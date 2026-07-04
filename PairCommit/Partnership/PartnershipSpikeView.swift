@@ -5,6 +5,7 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
+import Prefire
 import SwiftUI
 
 /// Spike: 2台で動かして検証するための最小UI。
@@ -40,4 +41,6 @@ struct PartnershipSpikeView: View {
 
 #Preview {
     PartnershipSpikeView()
+        // VRT: 記録環境(Intel)とCI(Apple Silicon)のアンチエイリアス差を吸収する許容値。
+        .snapshot(precision: 0.98, perceptualPrecision: 0.98)
 }
