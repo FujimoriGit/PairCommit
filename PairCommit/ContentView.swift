@@ -11,7 +11,7 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         // Spike中はペアリング検証画面を表示する。
-        PairingSpikeView()
+        PartnershipSpikeView()
     }
 }
 

@@ -1,5 +1,5 @@
 //
-//  PairingShare.swift
+//  PartnershipShare.swift
 //  PairCommit
 //  
 //  Created by Daiki Fujimori on 2026/06/20
@@ -8,7 +8,7 @@
 
 import CloudKit
 
-enum PairingShareError: LocalizedError {
+enum PartnershipShareError: LocalizedError {
     case shareURLUnavailable
     case metadataMissing
 
@@ -24,7 +24,7 @@ enum PairingShareError: LocalizedError {
 /// オーナーが CKShare を作って URL を出し、参加者がその URL から受諾する。
 /// 検証ポイント: システムの共有シート(UICloudSharingController)を経由せず、
 /// URL文字列だけでプログラム受諾できるか。
-enum PairingShare {
+enum PartnershipShare {
     static let container = CKContainer(identifier: "iCloud.com.daiki.paircommit")
     private static let zoneName = "PairingZone"
     private static let rootRecordName = "pairing-root"
@@ -53,7 +53,7 @@ enum PairingShare {
         // ルートレコードと CKShare は同一オペレーションで原子的に保存する必要がある。
         _ = try await db.modifyRecords(saving: [pairing, share], deleting: [])
 
-        guard let url = share.url else { throw PairingShareError.shareURLUnavailable }
+        guard let url = share.url else { throw PartnershipShareError.shareURLUnavailable }
         return url
     }
 
@@ -68,7 +68,7 @@ enum PairingShare {
 
 // MARK: - Private
 
-private extension PairingShare {
+private extension PartnershipShare {
     static func fetchMetadata(for url: URL) async throws -> CKShare.Metadata {
         try await withCheckedThrowingContinuation { continuation in
             let op = CKFetchShareMetadataOperation(shareURLs: [url])
@@ -79,7 +79,7 @@ private extension PairingShare {
                 switch result {
                 case .success:
                     if let fetched { continuation.resume(with: fetched) }
-                    else { continuation.resume(throwing: PairingShareError.metadataMissing) }
+                    else { continuation.resume(throwing: PartnershipShareError.metadataMissing) }
                 case .failure(let error):
                     continuation.resume(throwing: error)
                 }
@@ -88,7 +88,7 @@ private extension PairingShare {
         }
     }
 
-    private static func accept(_ metadata: CKShare.Metadata) async throws {
+    static func accept(_ metadata: CKShare.Metadata) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let op = CKAcceptSharesOperation(shareMetadatas: [metadata])
             var perShareError: Error?

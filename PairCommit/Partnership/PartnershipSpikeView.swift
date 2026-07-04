@@ -1,17 +1,16 @@
 //
-//  PairingSpikeView.swift
+//  PartnershipSpikeView.swift
 //  PairCommit
-//  
+//
 //  Created by Daiki Fujimori on 2026/06/20
-//  
-
+//
 
 import SwiftUI
 
 /// Spike: 2台で動かして検証するための最小UI。
 /// 片方で「オーナーで開始」、もう片方で「参加者で開始」を押す。
-struct PairingSpikeView: View {
-    @State private var service = PairingService()
+struct PartnershipSpikeView: View {
+    @State private var service = PartnershipService()
 
     var body: some View {
         VStack(spacing: 28) {
@@ -40,5 +39,5 @@ struct PairingSpikeView: View {
 }
 
 #Preview {
-    PairingSpikeView()
+    PartnershipSpikeView()
 }
