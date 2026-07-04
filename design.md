@@ -182,19 +182,35 @@ graph LR
 6. **片側リセット時の整合性**: 片方だけがアプリをリセットしたとき、CKShare の参加解除・ゾーン削除・相手側への通知をどう扱うか。
 7. **催促の具体仕様**（ロードマップ7): 期限からの逆算ペース、承認待ち滞留の閾値、通知チャネル（CloudKit subscription）の設計。
 
+## 現状（2026-07-04 時点）
+
+**PRスタック**（下から順にマージする。各PRのベースは1つ下のブランチ）:
+
+| PR | ブランチ | 内容 |
+|---|---|---|
+| #1 (draft) | `spike/mc-cloudkit-pairing` | MC+CloudKit ペアリングスパイク＋修正（ACK・displayName衝突・Swift 6対応）。実機検証は Developer Program 加入待ち |
+| #2 | `feature/domain-layer` | ドメインモデル・集約 `PartnershipState`・`SyncRepository`・`InMemorySyncRepository`・`PartnershipStore`・ユニットテスト |
+| #3 | `feature/test-infrastructure` | VRT（Prefire）・CI（GitHub Actions）・`Scripts/test.sh`。CI失敗はアーキ差のAA許容値で修正済み |
+| #4 | `feature/coding-standards` | マルチモジュール化（`Packages/PairCommitCore`: Domain / Application）・SwiftLint・Khorikov流テスト書き直し・CLAUDE.md原則 |
+
+**できていること**: ドメイン層（不変条件・ロールガード・全遷移＋テスト27件）/ 同期境界とインメモリ実装 / VRT・CI・SwiftLint の自動化基盤 / 設計・テスト原則の明文化（CLAUDE.md）。
+
+**保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したら PR #1 のスパイクを実機2台で検証する。
+
 ## 次のタスク（実装ロードマップ）
 
-方針: #1（CloudKit実行検証）は Developer Program 加入待ちで保留（draft PR #1）。**本体は CloudKit を待たずインメモリ実装で進める**。設計の隔離（`SyncRepository`）がここで効く。
+方針: **本体は CloudKit を待たずインメモリ実装で進める**。設計の隔離（`SyncRepository`）がここで効く。
 
-1. **ドメインモデル定義** -> 済（`PairCommit/Domain/` ── `Pairing` / `Vision` / `TaskItem` / `Reaction` / `Role`。値型・Sendable）。
-2. **`SyncRepository` プロトコル定義** -> 済（`PairCommit/Sync/SyncRepository.swift`。セマンティクスはdoc comment参照）。
-3. **`InMemorySyncRepository` 実装** -> 済（`PairCommit/Sync/InMemorySyncRepository.swift`。UI結節点の `PartnershipStore` も `PairCommit/Application/` に用意）。
-4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState` が不変条件・ロールガード・遷移を一手に守る。テストは `PairCommitTests/`）。
-5. **ロール別UI**
+1. **ドメインモデル定義** -> 済（`Packages/PairCommitCore/Sources/Domain/`）。
+2. **`SyncRepository` プロトコル定義** -> 済（同上。セマンティクスはdoc comment参照）。
+3. **`InMemorySyncRepository` 実装** -> 済（`Sources/Application/`。UI結節点の `PartnershipStore` も同じ場所）。
+4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `PairCommitTests/`）。
+5. **ロール別UI** ← **次はここ**。あわせて `Presentation` モジュールを `PairCommitCore` に切り出す（`.prefire.yml` のスキャン対象もそのとき移す）。
    - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。
    - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。
-6. **ライフサイクルUI** ── Vision（draft→proposed→active→achieved/abandoned）/ Task（todo→reported→approved）の遷移。
-7. **催促ロジック（双方向）** ── 期限ベースの催促＋承認待ち滞留時に管理者へも催促。
+   - ロール選択は当面デバッグ用の切り替えでよい（本来はペアリングで固定 → 未決事項5）。
+6. **ライフサイクルUI** ── Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移。
+7. **催促ロジック（双方向）** ── 期限ベースの催促＋承認待ち滞留時に管理者へも催促（具体仕様は未決事項7）。
 8. **（加入後）`CloudKitSyncRepository` 差し替え＋#1実行検証**。
 9. **（できれば）** 達成お祝い演出→次ビジョン設定 / Foundation Models でクライテリアをレビュー。
 
