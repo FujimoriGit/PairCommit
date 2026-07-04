@@ -8,7 +8,7 @@
 import Foundation
 
 /// ドメイン操作の失敗。ロール権限・状態遷移・不変条件の違反を型で表す。
-enum DomainError: Error, Equatable {
+public enum DomainError: Error, Equatable {
     /// そのロールには許されていない操作（非対称性のガード）。
     case roleForbidden(required: Role)
     case visionNotFound(Vision.ID)

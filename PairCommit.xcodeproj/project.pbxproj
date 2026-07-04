@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		FA0000000000000000000021 /* Prefire in Frameworks */ = {isa = PBXBuildFile; productRef = FA0000000000000000000011 /* Prefire */; };
 		FA0000000000000000000022 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = FA0000000000000000000012 /* SnapshotTesting */; };
+		FB0000000000000000000021 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000011 /* Domain */; };
+		FB0000000000000000000022 /* Application in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000012 /* Application */; };
+		FB0000000000000000000023 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000013 /* Domain */; };
+		FB0000000000000000000024 /* Application in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000014 /* Application */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +61,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB0000000000000000000021 /* Domain in Frameworks */,
+				FB0000000000000000000022 /* Application in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +72,8 @@
 			files = (
 				FA0000000000000000000021 /* Prefire in Frameworks */,
 				FA0000000000000000000022 /* SnapshotTesting in Frameworks */,
+				FB0000000000000000000023 /* Domain in Frameworks */,
+				FB0000000000000000000024 /* Application in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -113,12 +121,15 @@
 			buildRules = (
 			);
 			dependencies = (
+				FC0000000000000000000031 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D95E5E012FE6570500662BA2 /* PairCommit */,
 			);
 			name = PairCommit;
 			packageProductDependencies = (
+				FB0000000000000000000011 /* Domain */,
+				FB0000000000000000000012 /* Application */,
 			);
 			productName = PairCommit;
 			productReference = D95E5DFF2FE6570500662BA2 /* PairCommit.app */;
@@ -137,6 +148,7 @@
 			dependencies = (
 				D95E5E0E2FE6570900662BA2 /* PBXTargetDependency */,
 				FA0000000000000000000031 /* PBXTargetDependency */,
+				FC0000000000000000000032 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D95E5E0F2FE6570900662BA2 /* PairCommitTests */,
@@ -145,6 +157,8 @@
 			packageProductDependencies = (
 				FA0000000000000000000011 /* Prefire */,
 				FA0000000000000000000012 /* SnapshotTesting */,
+				FB0000000000000000000013 /* Domain */,
+				FB0000000000000000000014 /* Application */,
 			);
 			productName = PairCommitTests;
 			productReference = D95E5E0C2FE6570900662BA2 /* PairCommitTests.xctest */;
@@ -208,6 +222,8 @@
 			packageReferences = (
 				FA0000000000000000000001 /* XCRemoteSwiftPackageReference "Prefire" */,
 				FA0000000000000000000002 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				FC0000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
+				FB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/PairCommitCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D95E5E002FE6570500662BA2 /* Products */;
@@ -283,6 +299,14 @@
 		FA0000000000000000000031 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			productRef = FA0000000000000000000013 /* PrefireTestsPlugin */;
+		};
+		FC0000000000000000000031 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = FC0000000000000000000011 /* SwiftLintBuildToolPlugin */;
+		};
+		FC0000000000000000000032 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = FC0000000000000000000012 /* SwiftLintBuildToolPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -589,7 +613,22 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		FB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/PairCommitCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/PairCommitCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
+		FC0000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.65.0;
+			};
+		};
 		FA0000000000000000000001 /* XCRemoteSwiftPackageReference "Prefire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/BarredEwe/Prefire";
@@ -609,6 +648,32 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		FB0000000000000000000011 /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+		FB0000000000000000000012 /* Application */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Application;
+		};
+		FB0000000000000000000013 /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+		FB0000000000000000000014 /* Application */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Application;
+		};
+		FC0000000000000000000011 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FC0000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		FC0000000000000000000012 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FC0000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
 		FA0000000000000000000011 /* Prefire */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FA0000000000000000000001 /* XCRemoteSwiftPackageReference "Prefire" */;
