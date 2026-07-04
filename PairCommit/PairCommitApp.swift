@@ -1,10 +1,9 @@
 //
 //  PairCommitApp.swift
 //  PairCommit
-//  
+//
 //  Created by Daiki Fujimori on 2026/06/20
-//  
-
+//
 
 import SwiftUI
 

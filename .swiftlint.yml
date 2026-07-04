@@ -1,0 +1,36 @@
+# SwiftLint 設定（唯一のソース。Packages 配下は parent_config でこれを継承する）。
+# 導入は SPM プラグイン（SwiftLintPlugins）。ビルドのたびに走るので CI/ローカルで条件が揃う。
+
+excluded:
+  - PairCommitTests/__Snapshots__
+  - build
+  - Packages/PairCommitCore/.build
+
+opt_in_rules:
+  # コーディング規約「force unwrap を避ける」を機械的に強制
+  - force_unwrapping
+  # 意図の明確化・簡潔化
+  - first_where
+  - empty_count
+  - toggle_bool
+  - redundant_type_annotation
+  - unowned_variable_capture
+  - sorted_imports
+  # ファイルヘッダーのテンプレート順守を強制
+  - file_header
+
+force_unwrapping:
+  severity: error
+
+file_header:
+  required_pattern: |
+    \/\/
+    \/\/  SWIFTLINT_CURRENT_FILENAME
+    \/\/  PairCommit(Tests|UITests)?
+    \/\/
+    \/\/  Created by .+ on \d{4}\/\d{2}\/\d{2}
+    \/\/
+
+line_length:
+  warning: 140
+  error: 200

@@ -1,0 +1,2 @@
+# ルートの設定を継承する（ルールの実体は リポジトリルート/.swiftlint.yml のみ）。
+parent_config: ../../.swiftlint.yml
