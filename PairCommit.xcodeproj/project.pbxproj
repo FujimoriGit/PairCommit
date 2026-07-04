@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		FA0000000000000000000021 /* Prefire in Frameworks */ = {isa = PBXBuildFile; productRef = FA0000000000000000000011 /* Prefire */; };
 		FA0000000000000000000022 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = FA0000000000000000000012 /* SnapshotTesting */; };
+		FA0000000000000000000025 /* Prefire in Frameworks */ = {isa = PBXBuildFile; productRef = FA0000000000000000000015 /* Prefire */; };
 		FB0000000000000000000021 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000011 /* Domain */; };
 		FB0000000000000000000022 /* Application in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000012 /* Application */; };
 		FB0000000000000000000023 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000013 /* Domain */; };
@@ -61,6 +62,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA0000000000000000000025 /* Prefire in Frameworks */,
 				FB0000000000000000000021 /* Domain in Frameworks */,
 				FB0000000000000000000022 /* Application in Frameworks */,
 			);
@@ -128,6 +130,7 @@
 			);
 			name = PairCommit;
 			packageProductDependencies = (
+				FA0000000000000000000015 /* Prefire */,
 				FB0000000000000000000011 /* Domain */,
 				FB0000000000000000000012 /* Application */,
 			);
@@ -675,6 +678,11 @@
 			productName = "plugin:SwiftLintBuildToolPlugin";
 		};
 		FA0000000000000000000011 /* Prefire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA0000000000000000000001 /* XCRemoteSwiftPackageReference "Prefire" */;
+			productName = Prefire;
+		};
+		FA0000000000000000000015 /* Prefire */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FA0000000000000000000001 /* XCRemoteSwiftPackageReference "Prefire" */;
 			productName = Prefire;
