@@ -1,10 +1,9 @@
 //
 //  PairCommitUITestsLaunchTests.swift
 //  PairCommitUITests
-//  
+//
 //  Created by Daiki Fujimori on 2026/06/20
-//  
-
+//
 
 import XCTest
 

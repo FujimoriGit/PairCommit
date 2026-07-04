@@ -33,14 +33,14 @@ final class PartnershipService {
             case .connected:   return "接続しました"
             case .sharing:     return "共有を処理中…"
             case .done:        return "ペアリング成功 🎉"
-            case .failed(let m): return "失敗: \(m)"
+            case .failed(let message): return "失敗: \(message)"
             }
         }
     }
 
     private(set) var phase: Phase = .idle
 
-    private var mc: MultipeerSession?
+    private var multipeer: MultipeerSession?
     private var eventTask: Task<Void, Never>?
     private var role: Role = .owner
 
@@ -50,7 +50,7 @@ final class PartnershipService {
         phase = .searching
 
         let session = MultipeerSession(displayName: Self.makeDisplayName())
-        mc = session
+        multipeer = session
         eventTask = Task { [weak self] in
             for await event in session.events {
                 self?.handle(event)
@@ -108,7 +108,7 @@ private extension PartnershipService {
         Task {
             do {
                 let url = try await PartnershipShare.makeShare()
-                try mc?.send(url.absoluteString)
+                try multipeer?.send(url.absoluteString)
                 // ここでは完了にしない。参加者のACK受信（handleReceived）で .done になる。
             } catch {
                 phase = .failed(error.localizedDescription)
@@ -129,7 +129,7 @@ private extension PartnershipService {
             Task {
                 do {
                     try await PartnershipShare.acceptShare(from: url)
-                    try mc?.send(Self.ackMessage)
+                    try multipeer?.send(Self.ackMessage)
                     // すぐ切断するとACKが届く前にセッションが落ちることがあるため、
                     // ここでは止めない。オーナー側の切断（.disconnected）かリセットで片付く。
                     phase = .done
@@ -144,7 +144,7 @@ private extension PartnershipService {
     func tearDown() {
         eventTask?.cancel()
         eventTask = nil
-        mc?.stop()
-        mc = nil
+        multipeer?.stop()
+        multipeer = nil
     }
 }

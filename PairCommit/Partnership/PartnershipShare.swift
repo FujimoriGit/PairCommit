@@ -1,10 +1,9 @@
 //
 //  PartnershipShare.swift
 //  PairCommit
-//  
+//
 //  Created by Daiki Fujimori on 2026/06/20
-//  
-
+//
 
 import CloudKit
 
@@ -33,12 +32,12 @@ enum PartnershipShare {
 
     /// 共有ゾーンに Pairing レコードを作り、CKShare を生成して share URL を返す。
     static func makeShare() async throws -> URL {
-        let db = container.privateCloudDatabase
+        let database = container.privateCloudDatabase
         let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
 
         // 共有はカスタムゾーンが前提。先に作っておく。
         let zone = CKRecordZone(zoneID: zoneID)
-        _ = try await db.modifyRecordZones(saving: [zone], deleting: [])
+        _ = try await database.modifyRecordZones(saving: [zone], deleting: [])
 
         let pairing = CKRecord(
             recordType: "Pairing",
@@ -51,7 +50,7 @@ enum PartnershipShare {
         share.publicPermission = .none // 招待された相手だけが参加可能
 
         // ルートレコードと CKShare は同一オペレーションで原子的に保存する必要がある。
-        _ = try await db.modifyRecords(saving: [pairing, share], deleting: [])
+        _ = try await database.modifyRecords(saving: [pairing, share], deleting: [])
 
         guard let url = share.url else { throw PartnershipShareError.shareURLUnavailable }
         return url
@@ -71,40 +70,46 @@ enum PartnershipShare {
 private extension PartnershipShare {
     static func fetchMetadata(for url: URL) async throws -> CKShare.Metadata {
         try await withCheckedThrowingContinuation { continuation in
-            let op = CKFetchShareMetadataOperation(shareURLs: [url])
-            op.shouldFetchRootRecord = true
+            let operation = CKFetchShareMetadataOperation(shareURLs: [url])
+            operation.shouldFetchRootRecord = true
             var fetched: Result<CKShare.Metadata, Error>?
-            op.perShareMetadataResultBlock = { _, result in fetched = result }
-            op.fetchShareMetadataResultBlock = { result in
+            operation.perShareMetadataResultBlock = { _, result in fetched = result }
+            operation.fetchShareMetadataResultBlock = { result in
                 switch result {
                 case .success:
-                    if let fetched { continuation.resume(with: fetched) }
-                    else { continuation.resume(throwing: PartnershipShareError.metadataMissing) }
+                    if let fetched {
+                        continuation.resume(with: fetched)
+                    } else {
+                        continuation.resume(throwing: PartnershipShareError.metadataMissing)
+                    }
                 case .failure(let error):
                     continuation.resume(throwing: error)
                 }
             }
-            container.add(op)
+            container.add(operation)
         }
     }
 
     static func accept(_ metadata: CKShare.Metadata) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let op = CKAcceptSharesOperation(shareMetadatas: [metadata])
+            let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
             var perShareError: Error?
-            op.perShareResultBlock = { _, result in
+            operation.perShareResultBlock = { _, result in
                 if case .failure(let error) = result { perShareError = error }
             }
-            op.acceptSharesResultBlock = { result in
+            operation.acceptSharesResultBlock = { result in
                 switch result {
                 case .success:
-                    if let perShareError { continuation.resume(throwing: perShareError) }
-                    else { continuation.resume() }
+                    if let perShareError {
+                        continuation.resume(throwing: perShareError)
+                    } else {
+                        continuation.resume()
+                    }
                 case .failure(let error):
                     continuation.resume(throwing: error)
                 }
             }
-            container.add(op)
+            container.add(operation)
         }
     }
 }
