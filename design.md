@@ -62,9 +62,11 @@
 
 ## ビジョン（決定）
 
-- **アクティブなビジョンは常に1個** という不変条件が中心。タスクの無限増殖を防ぎ、焦点を1つに絞ること自体が規律になる。
+- **アクティブなビジョンは高々1個** という不変条件が中心。タスクの無限増殖を防ぎ、焦点を1つに絞ること自体が規律になる。
+  - 厳密には「同時に2個以上は存在しない」。0個は初期状態とクローズ直後にだけ現れる過渡状態で、UIは次のビジョン設定へ誘導する。
 - 発生源はプレイヤー、執行権限は管理者。
-- ライフサイクル: `draft`（起案中）→ `proposed`（承認待ち）→ `active`（確定・常に1個）→ `achieved` / `abandoned`（履歴）
+- ライフサイクル: `draft`（起案中）→ `proposed`（承認待ち）→ `active`（確定・高々1個）→ `achieved` / `abandoned`（履歴）
+  - 管理者は `proposed` を承認せず **draft に差し戻せる**（却下は削除ではなく差し戻し。起案の主導権はプレイヤーに残る）。
 - タスクの `todo → reported → approved` と対称。どちらも「起案→承認」の型。
 - **達成判断は管理者の質的判断**。タスクの自動ロールアップではない（タスク=具体、ビジョン=抽象なので機械的には決まらない）。
 - 達成の基準だけはペアリング/設定時に2人で言語化しておく（管理者の判断が気分で揺れないように）。**執行は独裁、憲法は共同制定。**
@@ -85,9 +87,12 @@
 ## タスク（決定）
 
 - 管理者が所有・生成する。
-- ライフサイクル: `todo` → `reported`（プレイヤーが完了報告）→ `approved`（管理者が承認＝完了）
+- ライフサイクル: `proposed`（プレイヤー起案・採用待ち）→ `todo` → `reported`（プレイヤーが完了報告）→ `approved`（管理者が承認＝完了）。終端に `cancelled`（却下 / Visionクローズ時の巻き込み）。
+  - 管理者が生成したタスクは `todo` から始まる。プレイヤー起案は `proposed` から始まり、管理者の採用（→ `todo`）/ 却下（→ `cancelled`）を待つ。
+  - 管理者は `reported` を承認せず **todo に差し戻せる**（やり直しの指示）。
+  - `approved` は取り消せない終端。未完了（`proposed` / `todo` / `reported`）は管理者がいつでも `cancelled` にできる。
 - プレイヤーが done にしても **承認待ちで止まる**。完了承認は管理者が握る。
-- 必ずビジョンに紐づく（全タスクが唯一のビジョンに奉仕する）。
+- 必ずビジョンに紐づく（全タスクが唯一のビジョンに奉仕する）。タスクは **active なビジョンの下にしか作れない**。
 - 承認待ちが溜まったとき管理者にも催促飛ばす
 - 起案はプレイヤーもできる（所有・承認は管理者のまま）。プレイヤーにできるのは起案まで。
 
@@ -105,10 +110,10 @@
 
 ## データモデル骨格
 
-- **Pairing** ── 2人を束ねる。ロール固定。
-- **Vision** ── プレイヤーの目標。タスクの上位。active は常に1個。status を持つ。
-- **Task** ── 管理者所有。Visionに紐づく。status を持つ。
-- **Reaction** ── 対象（Task）に貼る感情。ポジ/ネガ。
+- **Pairing** ── 2人を束ねる。ロール固定。`ownerRole`（共有オーナー側が取ったロール）を持ち、各端末の自ロールはこれと「自分がオーナーか」から定まる。
+- **Vision** ── プレイヤーの目標。タスクの上位。active は高々1個。status を持つ。
+- **Task** ── 管理者所有。Visionに紐づく。status を持つ。**コード上の型名は Swift Concurrency の `Task` と衝突するため `TaskItem`**（設計上の呼称は「タスク」のまま）。
+- **Reaction** ── 対象（Task）に貼る感情。ポジ/ネガ。実装上は Task の属性（上書き更新のステート）。
 
 ### リレーション図
 
@@ -130,9 +135,10 @@ graph TD
 
 **カーディナリティと不変条件**
 - `Pairing` は必ず `manager` 1 + `player` 1 の **2人ちょうど**。ロール固定・スワップなし。
-- `Vision` は `Pairing` に N 個ぶら下がる（履歴含む）が、**`status == active` は常にちょうど1個**（中心の不変条件）。
+- `Vision` は `Pairing` に N 個ぶら下がる（履歴含む）が、**`status == active` は高々1個**（中心の不変条件。0個は初期状態・クローズ直後のみ）。
 - `Task` は必ず1つの `Vision` に紐づく（孤立タスクは存在しない）。所有は manager、`createdBy` で player 起案かを区別。
 - `Reaction` は `Task` に従属する **ステート**（ストリームではない）。1タスクにつき player の現在の感情1つ（上書き更新）。Vision には感情を持たない。
+- 不変条件・ロール権限・状態遷移の番人は集約ルート `PartnershipState`（ドメイン層）。UI や同期層は個別レコードを直接いじらない。
 
 ### 状態の流れ（ステータスがどう移り変わるか）
 
@@ -140,27 +146,57 @@ Vision（閉じる時、配下の未承認タスクも一緒に閉じる）
 
 ```mermaid
 graph LR
-    draft["draft（起案中）"] --> proposed["proposed（承認待ち）"] --> active["active（確定・常に1個）"]
+    draft["draft（起案中）"] --> proposed["proposed（承認待ち）"] --> active["active(確定・高々1個)"]
+    proposed -->|"管理者が差し戻し"| draft
     active --> achieved["achieved（達成・履歴）"]
     active --> abandoned["abandoned（中止・履歴）"]
 ```
 
-Task
+Task（未完了状態からは管理者がいつでも `cancelled` にできる）
 
 ```mermaid
 graph LR
-    todo["todo"] --> reported["reported（完了報告）"] --> approved["approved（承認＝完了）"]
+    proposed["proposed（プレイヤー起案）"] -->|"管理者が採用"| todo["todo"]
+    todo --> reported["reported（完了報告）"] --> approved["approved（承認＝完了）"]
+    reported -->|"管理者が差し戻し"| todo
+    proposed -->|"却下 / Visionクローズ"| cancelled["cancelled"]
+    todo --> cancelled
+    reported --> cancelled
 ```
+
+管理者が生成したタスクは `todo` から始まる（`proposed` を経ない）。
 
 
 ## 未決事項まとめ
 
 1. MCで何を渡すか（CKShare URL or 独自トークン）と、CloudKit Sharingの招待フローとの噛み合わせ
    -> **方針決定: MCで `CKShare.url` を手渡し、参加者は共有シートを経由せず `CKFetchShareMetadataOperation` + `CKAcceptSharesOperation` でプログラム受諾**（独自トークンは不要）。
-   -> スパイク実装済み（`PairCommit/Pairing/`、ブランチ `spike/mc-cloudkit-pairing`）。
+   -> **成功判定はACKで締める**: 参加者が受諾を終えたらMCで ACK を返し、オーナーはそれを受けて初めて成功にする（URL送信だけで成功表示すると相手の受諾失敗を見逃す）。
+   -> スパイク実装済み（`PairCommit/Partnership/`、ブランチ `spike/mc-cloudkit-pairing`）。
    -> **実行検証は保留**: CloudKit は有料の Apple Developer Program 必須（無料署名では capability が降りない）。加入後にスパイクで実機検証する。設計が `SyncRepository` で隔離しているため本体着手のネックにはならない。
 2. データモデルのリレーション図作る -> 済（「データモデル骨格 > リレーション図 / 状態の流れ」参照）
 3. ビジョン達成時のお祝い演出 → 次ビジョン設定への画面遷移 -> できればやるくらいで
 4. ビジョンのクライテリアをFoundationModelに基準をレビューさせてもよい -> できればやるくらいで
+5. **ペアリング時のロール割り当て**: どちらが Manager かをMCハンドシェイクでどう確定するか（案: オーナーが自ロールを選び、URLと一緒に送って `Pairing.ownerRole` に固定する）。
+6. **片側リセット時の整合性**: 片方だけがアプリをリセットしたとき、CKShare の参加解除・ゾーン削除・相手側への通知をどう扱うか。
+7. **催促の具体仕様**（ロードマップ7): 期限からの逆算ペース、承認待ち滞留の閾値、通知チャネル（CloudKit subscription）の設計。
+
+## 次のタスク（実装ロードマップ）
+
+方針: #1（CloudKit実行検証）は Developer Program 加入待ちで保留（draft PR #1）。**本体は CloudKit を待たずインメモリ実装で進める**。設計の隔離（`SyncRepository`）がここで効く。
+
+1. **ドメインモデル定義** -> 済（`PairCommit/Domain/` ── `Pairing` / `Vision` / `TaskItem` / `Reaction` / `Role`。値型・Sendable）。
+2. **`SyncRepository` プロトコル定義** -> 済（`PairCommit/Sync/SyncRepository.swift`。セマンティクスはdoc comment参照）。
+3. **`InMemorySyncRepository` 実装** -> 済（`PairCommit/Sync/InMemorySyncRepository.swift`。UI結節点の `PartnershipStore` も `PairCommit/Application/` に用意）。
+4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState` が不変条件・ロールガード・遷移を一手に守る。テストは `PairCommitTests/`）。
+5. **ロール別UI**
+   - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。
+   - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。
+6. **ライフサイクルUI** ── Vision（draft→proposed→active→achieved/abandoned）/ Task（todo→reported→approved）の遷移。
+7. **催促ロジック（双方向）** ── 期限ベースの催促＋承認待ち滞留時に管理者へも催促。
+8. **（加入後）`CloudKitSyncRepository` 差し替え＋#1実行検証**。
+9. **（できれば）** 達成お祝い演出→次ビジョン設定 / Foundation Models でクライテリアをレビュー。
+
+---
 
 （アプリの表示名は別途。開発はコード上 `PairCommit` で進め、表示名は最後に差し替える。）
