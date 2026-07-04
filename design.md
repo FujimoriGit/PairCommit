@@ -155,7 +155,10 @@ graph LR
 
 ## 未決事項まとめ
 
-1. MCで何を渡すか（CKShare URL or 独自トークン）と、CloudKit Sharingの招待フローとの噛み合わせ ← **最優先** -> フィジビリティ検証して決める
+1. MCで何を渡すか（CKShare URL or 独自トークン）と、CloudKit Sharingの招待フローとの噛み合わせ
+   -> **方針決定: MCで `CKShare.url` を手渡し、参加者は共有シートを経由せず `CKFetchShareMetadataOperation` + `CKAcceptSharesOperation` でプログラム受諾**（独自トークンは不要）。
+   -> スパイク実装済み（`PairCommit/Pairing/`、ブランチ `spike/mc-cloudkit-pairing`）。
+   -> **実行検証は保留**: CloudKit は有料の Apple Developer Program 必須（無料署名では capability が降りない）。加入後にスパイクで実機検証する。設計が `SyncRepository` で隔離しているため本体着手のネックにはならない。
 2. データモデルのリレーション図作る -> 済（「データモデル骨格 > リレーション図 / 状態の流れ」参照）
 3. ビジョン達成時のお祝い演出 → 次ビジョン設定への画面遷移 -> できればやるくらいで
 4. ビジョンのクライテリアをFoundationModelに基準をレビューさせてもよい -> できればやるくらいで

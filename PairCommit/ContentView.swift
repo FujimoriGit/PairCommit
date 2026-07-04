@@ -10,13 +10,8 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        // Spike中はペアリング検証画面を表示する。
+        PartnershipSpikeView()
     }
 }
 
