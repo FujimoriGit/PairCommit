@@ -11,14 +11,19 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 - **値型中心。** struct / enum を既定に。参照セマンティクスは「同一性・ライフサイクルを持つもの」（Store、セッション）だけに使う。
 - **Functional core, imperative shell。**
-  - ドメイン（`PartnershipState` の操作）は決定的な純粋関数に保つ。`Date()` / `UUID()` は既定値付き引数で注入し、テストから制御できるようにする。
-  - 副作用（I/O・通信・永続化）は端（リポジトリ実装・Store・UI）へ押し出す。ドメインの中で `Task {}` を起動したり通信したりしない。
+  - ドメインの操作は決定的な純粋関数に保つ。`Date()` / `UUID()` は既定値付き引数で注入し、テストから制御できるようにする。
+  - 副作用（I/O・通信・永続化）は端（同期層の実装・Store・UI）へ押し出す。ドメインの中で `Task {}` を起動したり通信したりしない。
+- **ドメインに `mutating` を書かない。** 状態を変える操作は、受け取った値を変更せず**新しい値を返す関数**にする（`func 〜() throws -> PartnershipState`）。
+  - 格納プロパティは `var` ではなく `let`。書き換えられないことを型で示す。
+  - 命名は Swift API Design Guidelines の非破壊側に倣い `-ing` / `-ed` 形にする（`approvingVision`）。
+  - **型が文脈から決まるところで型名を繰り返さない。** 自分自身を返すなら戻り値の型は `Self`、生成は `.init(...)`。リネームに強く、読み手も型名の一致を確かめずに済む。
+  - 可変状態を持ってよいのは、同一性とライフサイクルを持つ端（Store・セッション）だけ。
 - **依存方向ルール（軽量クリーンアーキテクチャ）。**
   - `Domain` ← `Application` ← アプリ（UI / Infrastructure）。内側は外側を知らない。**ドメインは CloudKit / UIKit / SwiftUI を import しない。**
-  - 境界はプロトコル（ポート）で切る。同期は `SyncRepository` の裏に隔離し、CloudKit は「実装の一つ」。
+  - 境界はプロトコル（ポート）で切る。同期は `PartnershipSyncing` の裏に隔離し、CloudKit は「実装の一つ」。
   - UseCase クラスや Presenter 層などの儀式は導入しない。ドメインロジックは集約ルート（`PartnershipState`）のメソッド、アプリケーションロジックは Store に置く。層を増やすのは痛みが出てから。
 - **不変条件はドメインが守る。** active な Vision は高々1個 / ロール権限 / 状態遷移 ── すべて `PartnershipState` で強制し、UI や同期層に分散させない。
-- **モジュール構成**: `Packages/PairCommitCore` に `Domain` / `Application`。Presentation モジュールはロール別UIの実装時に切り出す（VRT 設定と同時に移す）。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
+- **モジュール構成**: `LocalPackage` に `Domain` / `Application` / `Infrastructure`。Presentation モジュールはロール別UIの実装時に切り出す（VRT 設定と同時に移す）。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
 
 ## コーディング規約
 
@@ -27,7 +32,8 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 - **Swift のセマンティクスに沿って書く。**
   - Optional・エラーは握り潰さず型で表現する。force unwrap (`!`) は禁止（lint error）。
   - API は Swift API Design Guidelines に沿った命名にする。
-  - **protocol の命名**: 「何であるか」を表すものは名詞（`Collection`, `SyncRepository`）、「能力」を表すものは `-able` / `-ible` / `-ing`（`Equatable`, `ProgressReporting`）。`〜Protocol` サフィックスは使わない。
+  - **protocol の命名**: 「何であるか」を表すものは名詞（`Collection`, `Sequence`）、「能力」を表すものは `-able` / `-ible` / `-ing`（`Equatable`, `ProgressReporting`）。`〜Protocol` サフィックスは使わない。
+  - **他言語由来の型名サフィックスを持ち込まない。** `Repository` / `Service` / `Helper` / `Util` などは使わない。
 - **Swift 6 / strict concurrency に準拠する。**
   - `Sendable`・actor isolation・`@MainActor` を正しく付ける。データ競合を型で排除する。
   - UI に触れる状態・処理は `@MainActor`。非同期は `async/await`（コールバック地獄や生 `DispatchQueue` の濫用をしない）。デリゲート等のコールバック境界は `AsyncStream` で async/await の世界へ変換する。
@@ -46,7 +52,14 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   //  Created by Daiki Fujimori on <yyyy/MM/dd>
   //
   ```
-- ファイルの役割説明は、ヘッダーに混ぜず型の上に `///` ドキュメントコメントで書く。
+- **コメントは書かない方に倒す。** コメントもコードと同じく保守対象で、放置されれば嘘になる。書く前に「これは消せないか」を問う。
+  - **名前・シグネチャ・型から読めることは書かない。** 引数や戻り値の言い換え、メソッド名の和訳、enum ケースの説明は消す。
+  - **実装の詳細・手順を書かない。** 何をどの順で処理するかはコードが語る。書くなら「なぜそうしたか」だけ。
+  - **他の型名を本文に書かない。** リネームのたびに追随が必要になる。関係は import と型で辿れる。
+  - **設計の意図・思想は `design.md` に書く。** コードに置くと、設計が変わったとき2箇所直すことになる。
+  - **`///` と `//` を使い分ける。** `///` は公開APIの**利用者向けの説明**（呼ぶ側が知る必要のあること）。実装の事情・背景・そう書いた理由は `///` ではなく `//` で書く。事情を `///` に書かない。
+  - **事情は原則書かない。** 書いてよいのは、**コードを読んでも導けないもの**だけ ── OS やライブラリ側の癖・制約、外部仕様の要求。「なぜこの実装にしたか」がコードを追えば分かるなら書かない。
+- ファイルの役割説明は、ヘッダーに混ぜず型の上に `///` ドキュメントコメントで書く（不要なら書かない）。
 
 ## テスト原則（Khorikov『単体テストの考え方/使い方』準拠）
 
@@ -60,7 +73,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 - 実行は `./Scripts/test.sh`（CIと同一条件。既定は iPhone 17 シミュレータ、なければ利用可能な iPhone にフォールバック）。
 - テストの層:
   - **ドメイン**（`PartnershipStateTests`）── 不変条件・ロールガード・状態遷移。純粋・高速。ドメインを変えたら必ずここに足す。
-  - **同期**（`SyncRepositoryTests`）── `SyncRepository` のセマンティクスと `PartnershipStore`。
+  - **同期**（`PartnershipSyncingTests`）── `PartnershipSyncing` のセマンティクスと `PartnershipStore`。
   - **VRT**（Prefire）── `#Preview` からスナップショットテストを**ビルド時に自動生成**。View を作ったら `#Preview` を書くだけで対象になる（除外は `.prefireIgnored()`）。
 - VRT の運用:
   - 基準画像は `PairCommitTests/__Snapshots__/` にコミットする。初回実行で自動記録、以後は差分で落ちる。
@@ -70,6 +83,6 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 ## プロジェクト構成メモ
 
-- モジュール: `Packages/PairCommitCore`（`Sources/Domain`, `Sources/Application`）。アプリターゲットはこのローカルパッケージに依存する。
+- モジュール: `LocalPackage`（`Sources/Domain`, `Sources/Application`, `Sources/Infrastructure`）。アプリターゲットはこのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
 - Bundle ID: `com.daiki.paircommit` / CloudKit コンテナ: `iCloud.com.daiki.paircommit`

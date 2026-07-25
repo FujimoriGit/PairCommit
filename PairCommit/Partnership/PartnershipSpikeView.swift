@@ -8,8 +8,6 @@
 import Prefire
 import SwiftUI
 
-/// Spike: 2台で動かして検証するための最小UI。
-/// 片方で「オーナーで開始」、もう片方で「参加者で開始」を押す。
 struct PartnershipSpikeView: View {
     @State private var service = PartnershipService()
 

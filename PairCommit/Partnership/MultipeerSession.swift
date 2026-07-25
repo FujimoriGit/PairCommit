@@ -18,11 +18,7 @@ enum MultipeerSessionError: LocalizedError {
     }
 }
 
-/// Spike: ペアリングの瞬間だけ使うMultipeerConnectivityラッパー。
-/// 役割は「CKShareのURL文字列を端末間で直接手渡す」ことだけ。
-///
-/// MCのデリゲートは任意のスレッドから呼ばれるため、イベントは `events`（AsyncStream）に
-/// 流し、受け手（`@MainActor` 側）が `for await` で処理する。1インスタンス = 1回のペアリング。
+// MC のデリゲートは任意のスレッドから呼ばれるため、イベントは AsyncStream に流す。
 final class MultipeerSession: NSObject {
     enum Event: Sendable {
         case connected
@@ -31,7 +27,7 @@ final class MultipeerSession: NSObject {
         case failed(String)
     }
 
-    /// serviceTypeは15文字以内・英小文字/数字/ハイフンのみ。
+    // MC の制約: 15文字以内・英小文字/数字/ハイフンのみ。
     private static let serviceType = "paircommit-pr"
 
     let events: AsyncStream<Event>
@@ -42,9 +38,7 @@ final class MultipeerSession: NSObject {
     private let advertiser: MCNearbyServiceAdvertiser
     private let browser: MCNearbyServiceBrowser
 
-    /// - Parameter displayName: 招待のタイブレークにも使うため、端末間で一意になる名前を渡すこと
-    ///   （iOS 16以降の `UIDevice.name` は汎用名を返すので、そのままだと2台とも "iPhone" で衝突し
-    ///   互いに招待せずペアリングできなくなる）。
+    /// - Parameter displayName: 招待のタイブレークに使うため、端末間で一意な名前を渡すこと。
     init(displayName: String) {
         (events, eventContinuation) = AsyncStream.makeStream()
         myPeerID = MCPeerID(displayName: displayName)
@@ -89,7 +83,6 @@ extension MultipeerSession: MCSessionDelegate {
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         switch state {
         case .connected:
-            // 接続が確立したら発見は止める（一回限りのイベント）。
             advertiser.stopAdvertisingPeer()
             browser.stopBrowsingForPeers()
             eventContinuation.yield(.connected)

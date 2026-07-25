@@ -19,10 +19,6 @@ enum PartnershipShareError: LocalizedError {
     }
 }
 
-/// Spike: CloudKit Sharing の最小フロー。
-/// オーナーが CKShare を作って URL を出し、参加者がその URL から受諾する。
-/// 検証ポイント: システムの共有シート(UICloudSharingController)を経由せず、
-/// URL文字列だけでプログラム受諾できるか。
 enum PartnershipShare {
     static let container = CKContainer(identifier: "iCloud.com.daiki.paircommit")
     private static let zoneName = "PairingZone"
@@ -30,12 +26,11 @@ enum PartnershipShare {
 
     // MARK: Owner 側
 
-    /// 共有ゾーンに Pairing レコードを作り、CKShare を生成して share URL を返す。
     static func makeShare() async throws -> URL {
         let database = container.privateCloudDatabase
         let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
 
-        // 共有はカスタムゾーンが前提。先に作っておく。
+        // CloudKit の共有はカスタムゾーンが前提。
         let zone = CKRecordZone(zoneID: zoneID)
         _ = try await database.modifyRecordZones(saving: [zone], deleting: [])
 
@@ -58,7 +53,6 @@ enum PartnershipShare {
 
     // MARK: Participant 側
 
-    /// URL からメタデータを引き、共有を受諾してゾーンに参加する。
     static func acceptShare(from url: URL) async throws {
         let metadata = try await fetchMetadata(for: url)
         try await accept(metadata)

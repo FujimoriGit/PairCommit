@@ -1,5 +1,5 @@
 //
-//  InMemorySyncRepository.swift
+//  InMemorySynchronizer.swift
 //  PairCommit
 //
 //  Created by Daiki Fujimori on 2026/07/04
@@ -8,14 +8,11 @@
 import Domain
 import Foundation
 
-/// CloudKit を待たずに本体を回すための最初の `SyncRepository` 実装。
-/// プロセス内に状態を持つだけで、永続化も端末間同期もしない。
-/// `simulateRemoteChange(_:)` で「相手側の変更」を注入できる（テスト・プレビュー用）。
-public actor InMemorySyncRepository: SyncRepository {
+public actor InMemorySynchronizer: PartnershipSyncing {
     private var state: PartnershipState
     private var subscribers: [UUID: AsyncStream<PartnershipState>.Continuation] = [:]
 
-    public init(initialState: PartnershipState = PartnershipState()) {
+    public init(initialState: PartnershipState = .init()) {
         state = initialState
     }
 
@@ -38,7 +35,6 @@ public actor InMemorySyncRepository: SyncRepository {
         }
     }
 
-    /// 相手側の変更が届いたことをシミュレートする。
     public func simulateRemoteChange(_ newState: PartnershipState) {
         state = newState
         for continuation in subscribers.values {
@@ -49,7 +45,7 @@ public actor InMemorySyncRepository: SyncRepository {
 
 // MARK: - Private
 
-private extension InMemorySyncRepository {
+private extension InMemorySynchronizer {
     func removeSubscriber(_ id: UUID) {
         subscribers[id] = nil
     }
