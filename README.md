@@ -15,7 +15,7 @@
 ```
 PairCommit/               アプリ本体（UI・MC+CloudKit ペアリングスパイク）
 LocalPackage/             Domain / Application / Infrastructure モジュール（ローカルSPM）
-PairCommitTests/          ユニットテスト + VRT基準画像（__Snapshots__/）
+PairCommitTests/          VRT基準画像（__Snapshots__/）。ユニットテストは LocalPackage/Tests/
 Scripts/test.sh           ビルド＆全テスト（CIと同一条件）
 ```
 

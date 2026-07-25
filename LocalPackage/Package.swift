@@ -38,6 +38,27 @@ let package = Package(
                 .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
             ]
         ),
+        .testTarget(
+            name: "DomainTests",
+            dependencies: ["Domain"],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+            ]
+        ),
+        .testTarget(
+            name: "ApplicationTests",
+            dependencies: ["Application", "Infrastructure"],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+            ]
+        ),
+        .testTarget(
+            name: "InfrastructureTests",
+            dependencies: ["Infrastructure"],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+            ]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )

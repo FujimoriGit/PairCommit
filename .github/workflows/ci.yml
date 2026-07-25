@@ -1,4 +1,4 @@
-name: CI
+name: App Build & VRT
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ jobs:
       - name: Select latest Xcode
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
 
-      - name: Build & test (unit + VRT)
+      - name: Build & VRT
         run: ./Scripts/test.sh
 
       # スナップショット差分は xcresult の添付画像で確認できる

@@ -1,0 +1,23 @@
+name: Unit Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: unit-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # ubuntu で回すのは速いからだけでなく、Apple のフレームワークに依存していないことを
+    # 同時に検証するため。ここが落ちたらどこかで Apple 依存を引き込んでいる。
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: swift test --package-path LocalPackage
