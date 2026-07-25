@@ -4,7 +4,7 @@
 excluded:
   - PairCommitTests/__Snapshots__
   - build
-  - Packages/PairCommitCore/.build
+  - LocalPackage/.build
 
 opt_in_rules:
   # コーディング規約「force unwrap を避ける」を機械的に強制

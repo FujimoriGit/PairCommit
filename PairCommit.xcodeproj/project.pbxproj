@@ -34,6 +34,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		FB0000000000000000000010 /* LocalPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LocalPackage; sourceTree = "<group>"; };
 		D95E5DFF2FE6570500662BA2 /* PairCommit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PairCommit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D95E5E0C2FE6570900662BA2 /* PairCommitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairCommitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D95E5E162FE6570900662BA2 /* PairCommitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairCommitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -92,6 +93,7 @@
 		D95E5DF62FE6570500662BA2 = {
 			isa = PBXGroup;
 			children = (
+				FB0000000000000000000010 /* LocalPackage */,
 				D95E5E012FE6570500662BA2 /* PairCommit */,
 				D95E5E0F2FE6570900662BA2 /* PairCommitTests */,
 				D95E5E192FE6570900662BA2 /* PairCommitUITests */,
@@ -133,6 +135,7 @@
 				FA0000000000000000000015 /* Prefire */,
 				FB0000000000000000000011 /* Domain */,
 				FB0000000000000000000012 /* Application */,
+				FB0000000000000000000015 /* Infrastructure */,
 			);
 			productName = PairCommit;
 			productReference = D95E5DFF2FE6570500662BA2 /* PairCommit.app */;
@@ -162,6 +165,7 @@
 				FA0000000000000000000012 /* SnapshotTesting */,
 				FB0000000000000000000013 /* Domain */,
 				FB0000000000000000000014 /* Application */,
+				FB0000000000000000000016 /* Infrastructure */,
 			);
 			productName = PairCommitTests;
 			productReference = D95E5E0C2FE6570900662BA2 /* PairCommitTests.xctest */;
@@ -226,7 +230,7 @@
 				FA0000000000000000000001 /* XCRemoteSwiftPackageReference "Prefire" */,
 				FA0000000000000000000002 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
 				FC0000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
-				FB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/PairCommitCore" */,
+				FB0000000000000000000001 /* XCLocalSwiftPackageReference "LocalPackage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D95E5E002FE6570500662BA2 /* Products */;
@@ -617,9 +621,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		FB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/PairCommitCore" */ = {
+		FB0000000000000000000001 /* XCLocalSwiftPackageReference "LocalPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/PairCommitCore;
+			relativePath = LocalPackage;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -666,6 +670,14 @@
 		FB0000000000000000000014 /* Application */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Application;
+		};
+		FB0000000000000000000015 /* Infrastructure */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Infrastructure;
+		};
+		FB0000000000000000000016 /* Infrastructure */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Infrastructure;
 		};
 		FC0000000000000000000011 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

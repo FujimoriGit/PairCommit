@@ -53,7 +53,7 @@
 - ドメイン層は `SyncRepository` のようなプロトコルとだけ会話する。CloudKitはその実装の一つ。**ドメインはCloudKitの存在を知らない。**
 - 同期層のセマンティクス（ドメインは何が保証されれば動くか）を先に決め、CloudKit依存をこのプロトコルの裏1点に隔離する。
 - これにより第二期のRust/自作バックエンドは「もう一つの実装」を差すだけで済む。
-- 実装上はローカルSPMパッケージ `Packages/PairCommitCore` の `Domain` / `Application` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。Presentation モジュールはロール別UI実装時に切り出す。
+- 実装上はローカルSPMパッケージ `LocalPackage` の `Domain` / `Application` / `Infrastructure` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。Presentation モジュールはロール別UI実装時に切り出す。
 
 ### 第二期構想（後回し）
 
@@ -191,7 +191,7 @@ graph LR
 | #1 (draft) | `spike/mc-cloudkit-pairing` | MC+CloudKit ペアリングスパイク＋修正（ACK・displayName衝突・Swift 6対応）。実機検証は Developer Program 加入待ち |
 | #2 | `feature/domain-layer` | ドメインモデル・集約 `PartnershipState`・`SyncRepository`・`InMemorySyncRepository`・`PartnershipStore`・ユニットテスト |
 | #3 | `feature/test-infrastructure` | VRT（Prefire）・CI（GitHub Actions）・`Scripts/test.sh`。CI失敗はアーキ差のAA許容値で修正済み |
-| #4 | `feature/coding-standards` | マルチモジュール化（`Packages/PairCommitCore`: Domain / Application）・SwiftLint・Khorikov流テスト書き直し・CLAUDE.md原則 |
+| #4 | `feature/coding-standards` | マルチモジュール化（`LocalPackage`: Domain / Application）・SwiftLint・Khorikov流テスト書き直し・CLAUDE.md原則 |
 
 **できていること**: ドメイン層（不変条件・ロールガード・全遷移＋テスト27件）/ 同期境界とインメモリ実装 / VRT・CI・SwiftLint の自動化基盤 / 設計・テスト原則の明文化（CLAUDE.md）。
 
@@ -201,11 +201,11 @@ graph LR
 
 方針: **本体は CloudKit を待たずインメモリ実装で進める**。設計の隔離（`SyncRepository`）がここで効く。
 
-1. **ドメインモデル定義** -> 済（`Packages/PairCommitCore/Sources/Domain/`）。
+1. **ドメインモデル定義** -> 済（`LocalPackage/Sources/Domain/`）。
 2. **`SyncRepository` プロトコル定義** -> 済（同上。セマンティクスはdoc comment参照）。
 3. **`InMemorySyncRepository` 実装** -> 済（`Sources/Application/`。UI結節点の `PartnershipStore` も同じ場所）。
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `PairCommitTests/`）。
-5. **ロール別UI** ← **次はここ**。あわせて `Presentation` モジュールを `PairCommitCore` に切り出す（`.prefire.yml` のスキャン対象もそのとき移す）。
+5. **ロール別UI** ← **次はここ**。あわせて `Presentation` モジュールを `LocalPackage` に切り出す（`.prefire.yml` のスキャン対象もそのとき移す）。
    - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。
    - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。
    - ロール選択は当面デバッグ用の切り替えでよい（本来はペアリングで固定 → 未決事項5）。

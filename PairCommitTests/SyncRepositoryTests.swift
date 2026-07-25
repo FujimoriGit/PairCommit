@@ -8,6 +8,7 @@
 import Application
 import Domain
 import Foundation
+import Infrastructure
 import Testing
 
 /// `SyncRepository` のセマンティクス（保存・読み込み・リモート変更の配信）を検証する。

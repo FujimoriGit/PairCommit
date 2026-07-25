@@ -18,7 +18,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - 境界はプロトコル（ポート）で切る。同期は `SyncRepository` の裏に隔離し、CloudKit は「実装の一つ」。
   - UseCase クラスや Presenter 層などの儀式は導入しない。ドメインロジックは集約ルート（`PartnershipState`）のメソッド、アプリケーションロジックは Store に置く。層を増やすのは痛みが出てから。
 - **不変条件はドメインが守る。** active な Vision は高々1個 / ロール権限 / 状態遷移 ── すべて `PartnershipState` で強制し、UI や同期層に分散させない。
-- **モジュール構成**: `Packages/PairCommitCore` に `Domain` / `Application`。Presentation モジュールはロール別UIの実装時に切り出す（VRT 設定と同時に移す）。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
+- **モジュール構成**: `LocalPackage` に `Domain` / `Application` / `Infrastructure`。Presentation モジュールはロール別UIの実装時に切り出す（VRT 設定と同時に移す）。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
 
 ## コーディング規約
 
@@ -70,6 +70,6 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 ## プロジェクト構成メモ
 
-- モジュール: `Packages/PairCommitCore`（`Sources/Domain`, `Sources/Application`）。アプリターゲットはこのローカルパッケージに依存する。
+- モジュール: `LocalPackage`（`Sources/Domain`, `Sources/Application`, `Sources/Infrastructure`）。アプリターゲットはこのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
 - Bundle ID: `com.daiki.paircommit` / CloudKit コンテナ: `iCloud.com.daiki.paircommit`
