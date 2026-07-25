@@ -29,11 +29,11 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
     }
 
     public let id: UUID
-    public var statement: String
-    public var doneCriteria: String
-    public var deadline: Date?
-    public var why: String?
-    public var status: Status
+    public let statement: String
+    public let doneCriteria: String
+    public let deadline: Date?
+    public let why: String?
+    public let status: Status
     public let createdAt: Date
 
     public init(
@@ -52,5 +52,17 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         self.why = why
         self.status = status
         self.createdAt = createdAt
+    }
+
+    func with(status: Status) -> Self {
+        .init(
+            id: id,
+            statement: statement,
+            doneCriteria: doneCriteria,
+            deadline: deadline,
+            why: why,
+            status: status,
+            createdAt: createdAt
+        )
     }
 }

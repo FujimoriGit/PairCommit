@@ -12,7 +12,7 @@ public actor InMemorySynchronizer: PartnershipSyncing {
     private var state: PartnershipState
     private var subscribers: [UUID: AsyncStream<PartnershipState>.Continuation] = [:]
 
-    public init(initialState: PartnershipState = PartnershipState()) {
+    public init(initialState: PartnershipState = .init()) {
         state = initialState
     }
 

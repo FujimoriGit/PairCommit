@@ -40,10 +40,9 @@ public final class PartnershipStore {
         observationTask = nil
     }
 
-    public func perform(_ mutation: (inout PartnershipState) throws -> Void) async throws {
+    public func perform(_ transform: (PartnershipState) throws -> PartnershipState) async throws {
         let previous = state
-        var next = state
-        try mutation(&next)
+        let next = try transform(state)
         state = next
         do {
             try await synchronizer.save(next)

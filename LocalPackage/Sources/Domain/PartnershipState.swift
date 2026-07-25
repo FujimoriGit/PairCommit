@@ -8,9 +8,9 @@
 import Foundation
 
 public struct PartnershipState: Sendable, Codable, Equatable {
-    public private(set) var pairing: Pairing?
-    public private(set) var visions: [Vision]
-    public private(set) var tasks: [TaskItem]
+    public let pairing: Pairing?
+    public let visions: [Vision]
+    public let tasks: [TaskItem]
 
     public init(pairing: Pairing? = nil, visions: [Vision] = [], tasks: [TaskItem] = []) {
         self.pairing = pairing
@@ -30,17 +30,24 @@ public struct PartnershipState: Sendable, Codable, Equatable {
 // MARK: - ペアリング
 
 extension PartnershipState {
-    public mutating func establishPairing(ownerRole: Role, id: UUID = UUID(), now: Date = Date()) throws {
+    public func establishingPairing(
+        ownerRole: Role,
+        id: UUID = UUID(),
+        now: Date = Date()
+    ) throws -> Self {
         guard pairing == nil else { throw DomainError.alreadyPaired }
-        pairing = Pairing(id: id, ownerRole: ownerRole, createdAt: now)
+        return .init(
+            pairing: Pairing(id: id, ownerRole: ownerRole, createdAt: now),
+            visions: visions,
+            tasks: tasks
+        )
     }
 }
 
 // MARK: - Vision 操作
 
 extension PartnershipState {
-    @discardableResult
-    public mutating func draftVision(
+    public func draftingVision(
         statement: String,
         doneCriteria: String,
         deadline: Date? = nil,
@@ -48,8 +55,8 @@ extension PartnershipState {
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws -> Vision.ID {
-        try require(role, is: .player)
+    ) throws -> (state: Self, visionID: Vision.ID) {
+        try requiring(role, is: .player)
         let vision = Vision(
             id: id,
             statement: statement,
@@ -59,46 +66,49 @@ extension PartnershipState {
             status: .draft,
             createdAt: now
         )
-        visions.append(vision)
-        return vision.id
+        return (updating(visions: visions + [vision]), vision.id)
     }
 
-    public mutating func proposeVision(_ id: Vision.ID, by role: Role) throws {
-        try require(role, is: .player)
-        try transitionVision(id, from: [.draft], to: .proposed)
+    public func proposingVision(_ id: Vision.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .player)
+        return updating(visions: try transitioningVision(id, from: [.draft], to: .proposed))
     }
 
-    public mutating func approveVision(_ id: Vision.ID, by role: Role) throws {
-        try require(role, is: .manager)
+    public func approvingVision(_ id: Vision.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .manager)
         guard activeVision == nil else { throw DomainError.activeVisionAlreadyExists }
-        try transitionVision(id, from: [.proposed], to: .active)
+        return updating(visions: try transitioningVision(id, from: [.proposed], to: .active))
     }
 
-    public mutating func rejectVision(_ id: Vision.ID, by role: Role) throws {
-        try require(role, is: .manager)
-        try transitionVision(id, from: [.proposed], to: .draft)
+    public func rejectingVision(_ id: Vision.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .manager)
+        return updating(visions: try transitioningVision(id, from: [.proposed], to: .draft))
     }
 
-    public mutating func closeVision(_ id: Vision.ID, as outcome: Vision.Outcome, by role: Role) throws {
-        try require(role, is: .manager)
-        try transitionVision(id, from: [.active], to: outcome.status)
-        for index in tasks.indices where tasks[index].visionID == id && tasks[index].status.isOpen {
-            tasks[index].status = .cancelled
+    public func closingVision(
+        _ id: Vision.ID,
+        as outcome: Vision.Outcome,
+        by role: Role
+    ) throws -> Self {
+        try requiring(role, is: .manager)
+        let closed = try transitioningVision(id, from: [.active], to: outcome.status)
+        let cancelled = tasks.map { task in
+            task.visionID == id && task.status.isOpen ? task.with(status: .cancelled) : task
         }
+        return updating(visions: closed, tasks: cancelled)
     }
 }
 
 // MARK: - タスク操作
 
 extension PartnershipState {
-    @discardableResult
-    public mutating func createTask(
+    public func creatingTask(
         title: String,
         deadline: Date? = nil,
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws -> TaskItem.ID {
+    ) throws -> (state: Self, taskID: TaskItem.ID) {
         guard let vision = activeVision else { throw DomainError.noActiveVision }
         let task = TaskItem(
             id: id,
@@ -110,76 +120,85 @@ extension PartnershipState {
             deadline: deadline,
             createdAt: now
         )
-        tasks.append(task)
-        return task.id
+        return (updating(tasks: tasks + [task]), task.id)
     }
 
-    public mutating func adoptTask(_ id: TaskItem.ID, by role: Role) throws {
-        try require(role, is: .manager)
-        try transitionTask(id, from: [.proposed], to: .todo)
+    public func adoptingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .manager)
+        return updating(tasks: try transitioningTask(id, from: [.proposed], to: .todo))
     }
 
-    public mutating func reportTask(_ id: TaskItem.ID, by role: Role) throws {
-        try require(role, is: .player)
-        try transitionTask(id, from: [.todo], to: .reported)
+    public func reportingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .player)
+        return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported))
     }
 
-    public mutating func approveTask(_ id: TaskItem.ID, by role: Role) throws {
-        try require(role, is: .manager)
-        try transitionTask(id, from: [.reported], to: .approved)
+    public func approvingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .manager)
+        return updating(tasks: try transitioningTask(id, from: [.reported], to: .approved))
     }
 
-    public mutating func returnTask(_ id: TaskItem.ID, by role: Role) throws {
-        try require(role, is: .manager)
-        try transitionTask(id, from: [.reported], to: .todo)
+    public func returningTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .manager)
+        return updating(tasks: try transitioningTask(id, from: [.reported], to: .todo))
     }
 
-    public mutating func cancelTask(_ id: TaskItem.ID, by role: Role) throws {
-        try require(role, is: .manager)
-        try transitionTask(id, from: [.proposed, .todo, .reported], to: .cancelled)
+    public func cancellingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+        try requiring(role, is: .manager)
+        return updating(tasks: try transitioningTask(id, from: [.proposed, .todo, .reported], to: .cancelled))
     }
 
-    public mutating func setReaction(_ reaction: Reaction?, on id: TaskItem.ID, by role: Role) throws {
-        try require(role, is: .player)
-        guard let index = tasks.firstIndex(where: { $0.id == id }) else {
-            throw DomainError.taskNotFound(id)
-        }
-        tasks[index].reaction = reaction
+    public func settingReaction(
+        _ reaction: Reaction?,
+        on id: TaskItem.ID,
+        by role: Role
+    ) throws -> Self {
+        try requiring(role, is: .player)
+        guard tasks.contains(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
+        return updating(tasks: tasks.map { $0.id == id ? $0.with(reaction: reaction) : $0 })
     }
 }
 
 // MARK: - Private
 
 private extension PartnershipState {
-    func require(_ role: Role, is required: Role) throws {
+    func updating(visions: [Vision]? = nil, tasks: [TaskItem]? = nil) -> Self {
+        .init(
+            pairing: pairing,
+            visions: visions ?? self.visions,
+            tasks: tasks ?? self.tasks
+        )
+    }
+
+    func requiring(_ role: Role, is required: Role) throws {
         guard role == required else { throw DomainError.roleForbidden(required: required) }
     }
 
-    mutating func transitionVision(
+    func transitioningVision(
         _ id: Vision.ID,
         from allowed: Set<Vision.Status>,
         to newStatus: Vision.Status
-    ) throws {
-        guard let index = visions.firstIndex(where: { $0.id == id }) else {
+    ) throws -> [Vision] {
+        guard let current = visions.first(where: { $0.id == id }) else {
             throw DomainError.visionNotFound(id)
         }
-        guard allowed.contains(visions[index].status) else {
-            throw DomainError.invalidVisionTransition(from: visions[index].status)
+        guard allowed.contains(current.status) else {
+            throw DomainError.invalidVisionTransition(from: current.status)
         }
-        visions[index].status = newStatus
+        return visions.map { $0.id == id ? $0.with(status: newStatus) : $0 }
     }
 
-    mutating func transitionTask(
+    func transitioningTask(
         _ id: TaskItem.ID,
         from allowed: Set<TaskItem.Status>,
         to newStatus: TaskItem.Status
-    ) throws {
-        guard let index = tasks.firstIndex(where: { $0.id == id }) else {
+    ) throws -> [TaskItem] {
+        guard let current = tasks.first(where: { $0.id == id }) else {
             throw DomainError.taskNotFound(id)
         }
-        guard allowed.contains(tasks[index].status) else {
-            throw DomainError.invalidTaskTransition(from: tasks[index].status)
+        guard allowed.contains(current.status) else {
+            throw DomainError.invalidTaskTransition(from: current.status)
         }
-        tasks[index].status = newStatus
+        return tasks.map { $0.id == id ? $0.with(status: newStatus) : $0 }
     }
 }

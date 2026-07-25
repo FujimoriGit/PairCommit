@@ -17,8 +17,7 @@ struct InMemorySynchronizerTests {
     func savedStateRoundTripsThroughLoad() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
-        var state = PartnershipState()
-        try state.establishPairing(ownerRole: .manager)
+        let state = try PartnershipState().establishingPairing(ownerRole: .manager)
 
         // When
         await synchronizer.save(state)
@@ -33,8 +32,9 @@ struct InMemorySynchronizerTests {
         // Given
         let synchronizer = InMemorySynchronizer()
         let stream = await synchronizer.remoteChanges()
-        var state = PartnershipState()
-        try state.draftVision(statement: "s", doneCriteria: "c", by: .player)
+        let (state, _) = try PartnershipState().draftingVision(
+            statement: "s", doneCriteria: "c", by: .player
+        )
 
         // When
         await synchronizer.simulateRemoteChange(state)
@@ -49,15 +49,17 @@ struct InMemorySynchronizerTests {
 @MainActor
 struct PartnershipStoreTests {
 
-    @Test("操作はローカル状態へ即時反映され、リポジトリにも保存される（楽観適用）")
-    func performAppliesMutationLocallyAndPersistsIt() async throws {
+    @Test("操作はローカル状態へ即時反映され、同期層にも保存される（楽観適用）")
+    func performAppliesChangeLocallyAndPersistsIt() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer)
         try await store.start()
 
         // When
-        try await store.perform { try $0.draftVision(statement: "s", doneCriteria: "c", by: .player) }
+        try await store.perform {
+            try $0.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+        }
 
         // Then
         #expect(store.state.visions.count == 1)
@@ -75,7 +77,9 @@ struct PartnershipStoreTests {
 
         // When / Then
         await #expect(throws: DomainError.roleForbidden(required: .player)) {
-            try await store.perform { try $0.draftVision(statement: "s", doneCriteria: "c", by: .manager) }
+            try await store.perform {
+                try $0.draftingVision(statement: "s", doneCriteria: "c", by: .manager).state
+            }
         }
         #expect(store.state == PartnershipState())
         store.stop()
@@ -87,8 +91,7 @@ struct PartnershipStoreTests {
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer)
         try await store.start()
-        var remote = PartnershipState()
-        try remote.establishPairing(ownerRole: .player)
+        let remote = try PartnershipState().establishingPairing(ownerRole: .player)
 
         // When
         await synchronizer.simulateRemoteChange(remote)
