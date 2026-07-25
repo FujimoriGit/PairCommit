@@ -9,10 +9,6 @@ import Foundation
 import Observation
 import UIKit
 
-/// Spike: MC接続 → (オーナー)URL送信 / (参加者)URL受諾 → ACK返信 を束ねる司令塔。
-///
-/// 成功の定義は「参加者が受諾を終えて ACK を返し、オーナーがそれを受け取る」まで。
-/// オーナーがURLを送っただけでは成功にしない（相手の受諾失敗を成功と誤表示しないため）。
 @MainActor
 @Observable
 final class PartnershipService {
@@ -68,11 +64,9 @@ final class PartnershipService {
 // MARK: - Private
 
 private extension PartnershipService {
-    /// 参加者が受諾完了をオーナーへ知らせる合図。
     static let ackMessage = "paircommit://ack"
 
-    /// iOS 16以降 `UIDevice.name` は汎用名（"iPhone"）を返し2台で衝突しうるため、
-    /// 招待のタイブレーク（displayName比較）が機能するようランダムなサフィックスを付ける。
+    // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
         "\(UIDevice.current.name.prefix(24))#\(UUID().uuidString.prefix(4))"
     }
@@ -89,7 +83,7 @@ private extension PartnershipService {
                 phase = .failed("接続が切れた")
                 tearDown()
             case .done:
-                // 完了後の切断は正常（MCは一回限り）。リソースだけ片付ける。
+                // 完了後の切断は正常。
                 tearDown()
             case .idle, .searching, .failed:
                 break
@@ -102,14 +96,13 @@ private extension PartnershipService {
 
     func handleConnected() {
         phase = .connected
-        // オーナーだけが共有を作ってURLを送る。参加者はURLを待つ。
         guard role == .owner else { return }
         phase = .sharing
         Task {
             do {
                 let url = try await PartnershipShare.makeShare()
                 try multipeer?.send(url.absoluteString)
-                // ここでは完了にしない。参加者のACK受信（handleReceived）で .done になる。
+                // 完了にするのは ACK を受け取った時点。
             } catch {
                 phase = .failed(error.localizedDescription)
                 tearDown()
@@ -130,8 +123,7 @@ private extension PartnershipService {
                 do {
                     try await PartnershipShare.acceptShare(from: url)
                     try multipeer?.send(Self.ackMessage)
-                    // すぐ切断するとACKが届く前にセッションが落ちることがあるため、
-                    // ここでは止めない。オーナー側の切断（.disconnected）かリセットで片付く。
+                    // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                     phase = .done
                 } catch {
                     phase = .failed(error.localizedDescription)

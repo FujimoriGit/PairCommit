@@ -9,30 +9,24 @@ import Domain
 import Foundation
 import Observation
 
-/// UI とドメインの結節点。この端末のロールで状態を操作し、`SyncRepository` 経由で保存・同期する。
-/// 楽観適用: 操作はまずローカル状態に反映し、保存に失敗したら巻き戻して投げ直す。
 @MainActor
 @Observable
 public final class PartnershipStore {
     public private(set) var state = PartnershipState()
-    /// この端末のロール。ペアリング時に固定される。
     public let role: Role
 
-    private let repository: any SyncRepository
+    private let synchronizer: any PartnershipSyncing
     private var observationTask: Task<Void, Never>?
 
-    public init(role: Role, repository: any SyncRepository) {
+    public init(role: Role, synchronizer: any PartnershipSyncing) {
         self.role = role
-        self.repository = repository
+        self.synchronizer = synchronizer
     }
 
-    /// 保存済み状態を読み込み、相手側の変更の監視を開始する。
     public func start() async throws {
         observationTask?.cancel()
-        // 購読をロードより先に確立して、その間に届いた変更を取りこぼさない
-        // （ストリームはバッファされるので、ロード後に消費が始まっても失われない）。
-        let changes = await repository.remoteChanges()
-        state = try await repository.load()
+        let changes = await synchronizer.remoteChanges()
+        state = try await synchronizer.load()
         observationTask = Task { [weak self] in
             for await remote in changes {
                 guard let self else { break }
@@ -46,15 +40,13 @@ public final class PartnershipStore {
         observationTask = nil
     }
 
-    /// ドメイン操作を適用して保存する。
-    /// 例: `try await store.perform { try $0.reportTask(id, by: store.role) }`
     public func perform(_ mutation: (inout PartnershipState) throws -> Void) async throws {
         let previous = state
         var next = state
         try mutation(&next)
         state = next
         do {
-            try await repository.save(next)
+            try await synchronizer.save(next)
         } catch {
             state = previous
             throw error

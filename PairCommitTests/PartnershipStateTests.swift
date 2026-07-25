@@ -9,8 +9,6 @@ import Domain
 import Foundation
 import Testing
 
-/// ドメインの不変条件・ロールの非対称性・状態遷移を、公開API（集約ルートの操作）だけで検証する。
-/// 実装詳細ではなく「ビジネスルールとして観測可能な振る舞い」をテストする。
 struct PartnershipStateTests {
 
     // MARK: - ペアリング
@@ -320,14 +318,12 @@ struct PartnershipStateTests {
 // MARK: - テストヘルパー
 
 private extension PartnershipState {
-    /// draft → proposed まで進めた Vision を作る。
     mutating func proposedVision() throws -> Vision.ID {
         let visionID = try draftVision(statement: "statement", doneCriteria: "criteria", by: .player)
         try proposeVision(visionID, by: .player)
         return visionID
     }
 
-    /// active な Vision を1つ用意する。
     @discardableResult
     mutating func makeActiveVision() throws -> Vision.ID {
         let visionID = try proposedVision()
