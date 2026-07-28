@@ -70,19 +70,22 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 ## テスト・検証の実行
 
-- 実行は `./Scripts/test.sh`（CIと同一条件。既定は iPhone 17 シミュレータ、なければ利用可能な iPhone にフォールバック）。
+- **ユニットテスト**: `swift test --package-path LocalPackage`。シミュレータもアプリのビルドも要らない。ドメインを触っている間はこれだけでよい。
+- **アプリのビルドと VRT**: `./Scripts/test.sh`（既定は iPhone 17 シミュレータ、なければ利用可能な iPhone にフォールバック）。
+- **UI に関係しないテストはパッケージ側に置く。** アプリのテストターゲットに置くとシミュレータ起動が要る。
 - テストの層:
-  - **ドメイン**（`PartnershipStateTests`）── 不変条件・ロールガード・状態遷移。純粋・高速。ドメインを変えたら必ずここに足す。
-  - **同期**（`PartnershipSyncingTests`）── `PartnershipSyncing` のセマンティクスと `PartnershipStore`。
-  - **VRT**（Prefire）── `#Preview` からスナップショットテストを**ビルド時に自動生成**。View を作ったら `#Preview` を書くだけで対象になる（除外は `.prefireIgnored()`）。
+  - **ドメイン**（`Tests/DomainTests`）── 不変条件・ロールガード・状態遷移。ドメインを変えたら必ずここに足す。
+  - **アプリケーション**（`Tests/ApplicationTests`）── Store の楽観適用・巻き戻し・リモート変更の反映。
+  - **インフラ**（`Tests/InfrastructureTests`）── 同期実装のセマンティクス。
+  - **VRT**（Prefire・`PairCommitTests`）── `#Preview` からスナップショットテストを**ビルド時に自動生成**。View を作ったら `#Preview` を書くだけで対象になる（除外は `.prefireIgnored()`）。シミュレータが要るのはここだけ。
 - VRT の運用:
   - 基準画像は `PairCommitTests/__Snapshots__/` にコミットする。初回実行で自動記録、以後は差分で落ちる。
   - 意図した見た目変更のときは該当 PNG を削除して再実行し、新基準画像を PR に含めて差分をレビューする。
   - レンダリングは `.prefire.yml` の `snapshot_devices`（論理デバイス）と `required_os` で固定してある。実行シミュレータ差で揺らさないこと。
-- CI は `.github/workflows/ci.yml`（PR と main push でビルド＋全テスト）。失敗時は xcresult がアーティファクトに上がる。
+- CI は PR と main push で2つ動く。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。同じテストを2度走らせない。失敗時は xcresult がアーティファクトに上がる。
 
 ## プロジェクト構成メモ
 
-- モジュール: `LocalPackage`（`Sources/Domain`, `Sources/Application`, `Sources/Infrastructure`）。アプリターゲットはこのローカルパッケージに依存する。
+- モジュール: `LocalPackage`（`Sources/` に Domain / Application / Infrastructure、`Tests/` に各層のテスト）。アプリターゲットはこのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
 - Bundle ID: `com.daiki.paircommit` / CloudKit コンテナ: `iCloud.com.daiki.paircommit`
