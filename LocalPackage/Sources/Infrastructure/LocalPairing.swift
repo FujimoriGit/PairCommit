@@ -7,11 +7,11 @@
 
 import Domain
 
-/// 相手の端末を必要とせず、指定したロールで即座に成立する握手。
+/// 相手の端末を伴わずに成立させる。指定したロールを名乗り、自分がオーナーになる。
 public struct LocalPairing: PartnershipPairing {
     public init() {}
 
-    public func pair(as role: Role) async -> PairingHandshake {
-        PairingHandshake(ownerRole: role, isOwner: true)
+    public func pair(as role: Role) async -> PairingAgreement {
+        PairingAgreement(ownerRole: role, isOwner: true)
     }
 }

@@ -12,7 +12,7 @@ import UIKit
 @MainActor
 @Observable
 final class MultipeerPairing {
-    /// CKShare を作る側か、受諾する側か。ドメインのロール（管理者 / プレイヤー）とは別の軸。
+    // CKShare を作る側か受諾する側かの区別で、管理者 / プレイヤーとは別の軸。
     enum Side { case owner, participant }
 
     enum Phase: Equatable {
