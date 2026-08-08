@@ -53,7 +53,7 @@
 - ドメイン層は `PartnershipSyncing` のようなプロトコルとだけ会話する。CloudKitはその実装の一つ。**ドメインはCloudKitの存在を知らない。**
 - 同期層のセマンティクス（ドメインは何が保証されれば動くか）を先に決め、CloudKit依存をこのプロトコルの裏1点に隔離する。
 - これにより第二期のRust/自作バックエンドは「もう一つの実装」を差すだけで済む。
-- 実装上はローカルSPMパッケージ `LocalPackage` の `Domain` / `Application` / `Infrastructure` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。Presentation モジュールはロール別UI実装時に切り出す。
+- 実装上はローカルSPMパッケージ `LocalPackage` の `Domain` / `Application` / `Infrastructure` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。View はアプリターゲットに置く。
 
 ### 第二期構想（後回し）
 
@@ -204,10 +204,10 @@ graph LR
 2. **`PartnershipSyncing` プロトコル定義** -> 済（同上。セマンティクスはdoc comment参照）。
 3. **`InMemorySynchronizer` 実装** -> 済（`Sources/Infrastructure/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
-5. **ロール別UI** ← **次はここ**。あわせて `Presentation` モジュールを `LocalPackage` に切り出す（`.prefire.yml` のスキャン対象もそのとき移す）。
-   - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。
-   - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。
-   - ロール選択は当面デバッグ用の切り替えでよい（本来はペアリングで固定 → 未決事項5）。
+5. **ロール別UI** ← **いまここ**。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
+   - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。ビジョンの承認・差し戻しまで実装済み。
+   - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。起案と提出まで実装済み。
+   - ロールは起動時に選び、`LocalPairing` でその場でペアを成立させる（本来はペアリングで固定 → 未決事項5）。
 6. **ライフサイクルUI** ── Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移。
 7. **催促ロジック（双方向）** ── 期限ベースの催促＋承認待ち滞留時に管理者へも催促（具体仕様は未決事項7）。
 8. **（加入後）`CloudKitSynchronizer` 差し替え＋#1実行検証**。

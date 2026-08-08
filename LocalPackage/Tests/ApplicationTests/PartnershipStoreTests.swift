@@ -50,6 +50,18 @@ struct PartnershipStoreTests {
         store.stop()
     }
 
+    @Test("渡された初期状態は、同期層から読み込む前でも見えている")
+    func initialStateIsVisibleBeforeStart() throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+
+        // When
+        let store = PartnershipStore(role: .manager, synchronizer: InMemorySynchronizer(), state: paired)
+
+        // Then
+        #expect(store.state == paired)
+    }
+
     @Test("相手側の変更は購読開始後に取りこぼしなく状態へ反映される")
     func remoteChangeUpdatesStoreState() async throws {
         // Given
