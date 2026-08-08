@@ -6,6 +6,5 @@
 //
 
 public protocol PartnershipPairing: Sendable {
-    /// 相手のロールは、指定したロールの対に決まる。
     func pair(as role: Role) async throws -> PairingAgreement
 }

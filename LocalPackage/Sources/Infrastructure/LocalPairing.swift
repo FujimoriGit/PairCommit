@@ -7,7 +7,6 @@
 
 import Domain
 
-/// 相手の端末を伴わずに成立させる。指定したロールを名乗り、自分がオーナーになる。
 public struct LocalPairing: PartnershipPairing {
     public init() {}
 
