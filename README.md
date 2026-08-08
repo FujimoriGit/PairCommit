@@ -22,6 +22,7 @@ Scripts/test.sh           ビルド＆全テスト（CIと同一条件）
 ## 開発
 
 - 必要環境: Xcode 26.x
-- テスト実行: `./Scripts/test.sh`（ユニット + VRT。VRT は `#Preview` から自動生成される）
-- CI: GitHub Actions（PR / main push で全テスト）
+- ユニットテスト: `swift test --package-path LocalPackage`（シミュレータ不要）
+- アプリのビルドと VRT: `./Scripts/test.sh`（VRT は `#Preview` から自動生成される）
+- CI: GitHub Actions（PR / main push で `unit-tests.yml` と `ci.yml` の2本）
 - CloudKit の実機検証は Apple Developer Program 加入待ち（`design.md` 未決事項参照）
