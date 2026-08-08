@@ -173,7 +173,7 @@ graph LR
 1. MCで何を渡すか（CKShare URL or 独自トークン）と、CloudKit Sharingの招待フローとの噛み合わせ
    -> **方針決定: MCで `CKShare.url` を手渡し、参加者は共有シートを経由せず `CKFetchShareMetadataOperation` + `CKAcceptSharesOperation` でプログラム受諾**（独自トークンは不要）。
    -> **成功判定はACKで締める**: 参加者が受諾を終えたらMCで ACK を返し、オーナーはそれを受けて初めて成功にする（URL送信だけで成功表示すると相手の受諾失敗を見逃す）。
-   -> スパイク実装済み（`PairCommit/Partnership/`、ブランチ `spike/mc-cloudkit-pairing`）。
+   -> スパイク実装済み（`PairCommit/Partnership/`）。
    -> **実行検証は保留**: CloudKit は有料の Apple Developer Program 必須（無料署名では capability が降りない）。加入後にスパイクで実機検証する。設計が `PartnershipSyncing` で隔離しているため本体着手のネックにはならない。
 2. データモデルのリレーション図作る -> 済（「データモデル骨格 > リレーション図 / 状態の流れ」参照）
 3. ビジョン達成時のお祝い演出 → 次ビジョン設定への画面遷移 -> できればやるくらいで
@@ -182,20 +182,19 @@ graph LR
 6. **片側リセット時の整合性**: 片方だけがアプリをリセットしたとき、CKShare の参加解除・ゾーン削除・相手側への通知をどう扱うか。
 7. **催促の具体仕様**（ロードマップ7): 期限からの逆算ペース、承認待ち滞留の閾値、通知チャネル（CloudKit subscription）の設計。
 
-## 現状（2026-07-04 時点）
+## 現状（2026-08-08 時点）
 
-**PRスタック**（下から順にマージする。各PRのベースは1つ下のブランチ）:
+**できていること**:
 
-| PR | ブランチ | 内容 |
-|---|---|---|
-| #1 (draft) | `spike/mc-cloudkit-pairing` | MC+CloudKit ペアリングスパイク＋修正（ACK・displayName衝突・Swift 6対応）。実機検証は Developer Program 加入待ち |
-| #2 | `feature/domain-layer` | ドメインモデル・集約 `PartnershipState`・`PartnershipSyncing`・`InMemorySynchronizer`・`PartnershipStore`・ユニットテスト |
-| #3 | `feature/test-infrastructure` | VRT（Prefire）・CI（GitHub Actions）・`Scripts/test.sh`。CI失敗はアーキ差のAA許容値で修正済み |
-| #4 | `feature/coding-standards` | マルチモジュール化（`LocalPackage`: Domain / Application）・SwiftLint・Khorikov流テスト書き直し・CLAUDE.md原則 |
+- ドメイン層 ── 不変条件・ロールガード・全遷移。状態を変える操作は受け取った値を変更せず新しい値を返す（`mutating` なし）。
+- 同期境界 `PartnershipSyncing` とインメモリ実装。UI結節点の `PartnershipStore`。
+- 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストも層ごとに `LocalPackage/Tests/` へ置き、`swift test` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
+- CI は2本立て。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。
+- VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 
-**できていること**: ドメイン層（不変条件・ロールガード・全遷移＋テスト27件）/ 同期境界とインメモリ実装 / VRT・CI・SwiftLint の自動化基盤 / 設計・テスト原則の明文化（CLAUDE.md）。
+**まだないもの**: 本番UI。アプリターゲットにあるのは `ContentView` とペアリングのスパイク（`PairCommit/Partnership/`）だけ。
 
-**保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したら PR #1 のスパイクを実機2台で検証する。
+**保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したらペアリングのスパイクを実機2台で検証する。
 
 ## 次のタスク（実装ロードマップ）
 
@@ -203,8 +202,8 @@ graph LR
 
 1. **ドメインモデル定義** -> 済（`LocalPackage/Sources/Domain/`）。
 2. **`PartnershipSyncing` プロトコル定義** -> 済（同上。セマンティクスはdoc comment参照）。
-3. **`InMemorySynchronizer` 実装** -> 済（`Sources/Application/`。UI結節点の `PartnershipStore` も同じ場所）。
-4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `PairCommitTests/`）。
+3. **`InMemorySynchronizer` 実装** -> 済（`Sources/Infrastructure/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
+4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
 5. **ロール別UI** ← **次はここ**。あわせて `Presentation` モジュールを `LocalPackage` に切り出す（`.prefire.yml` のスキャン対象もそのとき移す）。
    - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。
    - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。
