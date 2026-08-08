@@ -16,8 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select latest Xcode
-        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+      # ランナーの既定 Xcode はイメージ更新で上がり、そのたびに VRT の基準画像がずれる。
+      # 上げるときは update-snapshots で基準画像を record し直すこと。
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
 
       - name: Build & VRT
         run: ./Scripts/test.sh
