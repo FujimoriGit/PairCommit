@@ -9,27 +9,27 @@ import Prefire
 import SwiftUI
 
 struct PartnershipSpikeView: View {
-    @State private var service = PartnershipService()
+    @State private var pairing = MultipeerPairing()
 
     var body: some View {
         VStack(spacing: 28) {
             Text("ペアリング検証")
                 .font(.title2.bold())
 
-            Text(service.phase.label)
+            Text(pairing.phase.label)
                 .font(.headline)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 12) {
-                Button("オーナーで開始") { service.start(as: .owner) }
-                Button("参加者で開始") { service.start(as: .participant) }
+                Button("オーナーで開始") { pairing.start(as: .owner) }
+                Button("参加者で開始") { pairing.start(as: .participant) }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(service.phase != .idle)
+            .disabled(pairing.phase != .idle)
 
-            if service.phase != .idle {
-                Button("リセット") { service.reset() }
+            if pairing.phase != .idle {
+                Button("リセット") { pairing.reset() }
                     .buttonStyle(.bordered)
             }
         }

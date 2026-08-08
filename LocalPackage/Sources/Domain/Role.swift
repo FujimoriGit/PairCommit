@@ -8,4 +8,11 @@
 public enum Role: String, Sendable, Codable, CaseIterable {
     case manager
     case player
+
+    public var counterpart: Self {
+        switch self {
+        case .manager: .player
+        case .player: .manager
+        }
+    }
 }
