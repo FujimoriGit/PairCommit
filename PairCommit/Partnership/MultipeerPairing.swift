@@ -1,5 +1,5 @@
 //
-//  PartnershipService.swift
+//  MultipeerPairing.swift
 //  PairCommit
 //
 //  Created by Daiki Fujimori on 2026/06/20
@@ -11,8 +11,9 @@ import UIKit
 
 @MainActor
 @Observable
-final class PartnershipService {
-    enum Role { case owner, participant }
+final class MultipeerPairing {
+    /// CKShare を作る側か、受諾する側か。ドメインのロール（管理者 / プレイヤー）とは別の軸。
+    enum Side { case owner, participant }
 
     enum Phase: Equatable {
         case idle
@@ -38,11 +39,11 @@ final class PartnershipService {
 
     private var multipeer: MultipeerSession?
     private var eventTask: Task<Void, Never>?
-    private var role: Role = .owner
+    private var side: Side = .owner
 
-    func start(as role: Role) {
+    func start(as side: Side) {
         guard phase == .idle else { return }
-        self.role = role
+        self.side = side
         phase = .searching
 
         let session = MultipeerSession(displayName: Self.makeDisplayName())
@@ -63,7 +64,7 @@ final class PartnershipService {
 
 // MARK: - Private
 
-private extension PartnershipService {
+private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
@@ -96,7 +97,7 @@ private extension PartnershipService {
 
     func handleConnected() {
         phase = .connected
-        guard role == .owner else { return }
+        guard side == .owner else { return }
         phase = .sharing
         Task {
             do {
@@ -111,7 +112,7 @@ private extension PartnershipService {
     }
 
     func handleReceived(_ text: String) {
-        switch role {
+        switch side {
         case .owner:
             guard phase == .sharing, text == Self.ackMessage else { return }
             phase = .done
