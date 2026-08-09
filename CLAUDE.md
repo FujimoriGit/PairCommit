@@ -79,9 +79,10 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - **インフラ**（`Tests/InfrastructureTests`）── 同期実装のセマンティクス。
   - **VRT**（Prefire・`PairCommitTests`）── `#Preview` からスナップショットテストを**ビルド時に自動生成**。View を作ったら `#Preview` を書くだけで対象になる（除外は `.prefireIgnored()`）。シミュレータが要るのはここだけ。
 - VRT の運用:
-  - 基準画像は `PairCommitTests/__Snapshots__/` にコミットする。初回実行で自動記録、以後は差分で落ちる。
-  - 意図した見た目変更のときは該当 PNG を削除して再実行し、新基準画像を PR に含めて差分をレビューする。
-  - レンダリングは `.prefire.yml` の `snapshot_devices`（論理デバイス）と `required_os` で固定してある。実行シミュレータ差で揺らさないこと。
+  - 基準画像は `PairCommitTests/__Snapshots__/` にコミットする。**record するのは `update-snapshots` ワークフローだけ**（手元で撮らない）。手元の Mac と CI ではアンチエイリアスが一致しないため、記録する環境を1つに固定する。
+  - 意図した見た目変更のときは、そのブランチで `update-snapshots` を手動実行する。基準画像がコミットされて返るので、差分をレビューする。
+  - レンダリングは `.prefire.yml` の `snapshot_devices`（論理デバイス）と `required_os`、`ci.yml` の Xcode バージョンで固定してある。
+  - 差分が出たときに `.snapshot(precision:)` で許容値を緩めない。退行を見逃す。ずれたら基準画像を record し直す。
 - CI は PR と main push で2つ動く。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。同じテストを2度走らせない。失敗時は xcresult がアーティファクトに上がる。
 
 ## 文章の書き方（PR・コミット・報告）
