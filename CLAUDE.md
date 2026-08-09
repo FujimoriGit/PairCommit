@@ -72,6 +72,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 - **ユニットテスト**: `swift test --package-path LocalPackage`。シミュレータもアプリのビルドも要らない。ドメインを触っている間はこれだけでよい。
 - **アプリのビルドと VRT**: `./Scripts/test.sh`（既定は iPhone 17 シミュレータ、なければ利用可能な iPhone にフォールバック）。
+- **`#Preview` を足したら、テストターゲットのビルドまで通す**: `xcodebuild -scheme PairCommit -destination "platform=iOS Simulator,name=iPhone 17" -skipPackagePluginValidation -skip-testing:PairCommitUITests build-for-testing`。基準画像を record せずに、自動生成されたテストがコンパイルできるかだけを確かめられる。アプリターゲットの `build` は生成テストを作らないので、ここは通らない。
 - **UI に関係しないテストはパッケージ側に置く。** アプリのテストターゲットに置くとシミュレータ起動が要る。
 - テストの層:
   - **ドメイン**（`Tests/DomainTests`）── 不変条件・ロールガード・状態遷移。ドメインを変えたら必ずここに足す。
@@ -83,6 +84,8 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - 意図した見た目変更のときは、そのブランチで `update-snapshots` を手動実行する。基準画像がコミットされて返るので、差分をレビューする。
   - レンダリングは `.prefire.yml` の `snapshot_devices`（論理デバイス）と `required_os`、`ci.yml` の Xcode バージョンで固定してある。
   - 差分が出たときに `.snapshot(precision:)` で許容値を緩めない。退行を見逃す。ずれたら基準画像を record し直す。
+  - `#Preview` に付けた名前がそのままテスト関数名になり、View 名は入らない。**リポジトリ全体で一意になる名前を付ける**（`承認待ち` ではなく `管理者の承認待ち`）。
+  - 生成されるテストには元ファイルの import が引き継がれない。プレビューがパッケージの型に触れるなら、`.prefire.yml` の `imports` に足す。
 - CI は PR と main push で2つ動く。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。同じテストを2度走らせない。失敗時は xcresult がアーティファクトに上がる。
 
 ## 文章の書き方（PR・コミット・報告）

@@ -13,3 +13,8 @@ test_configuration:
   # レンダリングの論理デバイスを固定（実行シミュレータの機種に依存させない）
   snapshot_devices:
     - iPhone 15
+  # 生成ファイルは #Preview の中身だけを写し、元ファイルの import は引き継がない。
+  # プレビューがパッケージの型に触れるならここに足す。
+  imports:
+    - Domain
+    - Application

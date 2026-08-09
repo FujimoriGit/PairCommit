@@ -120,14 +120,14 @@ private extension PlayerVisionView {
     }
 }
 
-#Preview("起案前") {
+#Preview("プレイヤーの起案前") {
     PlayerVisionView(store: .preview(role: .player, visions: []))
 }
 
-#Preview("提出待ち") {
+#Preview("プレイヤーの提出待ち") {
     PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft)]))
 }
 
-#Preview("承認待ち") {
+#Preview("プレイヤーの承認待ち") {
     PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]))
 }

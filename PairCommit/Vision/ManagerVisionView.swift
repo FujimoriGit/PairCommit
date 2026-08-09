@@ -104,14 +104,14 @@ private extension ManagerVisionView {
     }
 }
 
-#Preview("起案待ち") {
+#Preview("管理者の起案待ち") {
     ManagerVisionView(store: .preview(role: .manager, visions: []))
 }
 
-#Preview("承認待ち") {
+#Preview("管理者の承認待ち") {
     ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed)]))
 }
 
-#Preview("進行中") {
+#Preview("管理者の進行中") {
     ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
 }
