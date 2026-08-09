@@ -1,0 +1,37 @@
+name: Update VRT Baselines
+
+# 基準画像はここでしか record しない。手元の Mac と CI ではアンチエイリアスが
+# 一致しないため、記録する環境を1つに固定する。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+
+      # 基準画像がないテストは record したうえで失敗するので、失敗を握って画像だけ拾う
+      - name: Record
+        run: |
+          rm -rf PairCommitTests/__Snapshots__
+          ./Scripts/test.sh || true
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PairCommitTests/__Snapshots__
+          if git diff --cached --quiet; then
+            echo "基準画像に変更なし"
+            exit 0
+          fi
+          git commit -m "VRT の基準画像を CI で record し直す"
+          git push
