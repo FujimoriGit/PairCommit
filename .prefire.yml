@@ -1,6 +1,9 @@
 # VRT（スナップショットテスト）の設定。
 # PrefireTestsPlugin がビルド時に #Preview を走査し、スナップショットテストを自動生成する。
 # 基準画像は PairCommitTests/__Snapshots__/ にコミットして差分をレビューする。
+#
+# Prefire の設定読み込みは、リスト形式の値をコロンを含む行が来るまで読み続ける。
+# コメント行も読み飛ばさないため、リストの直後にコメントを書くと値として混ざる。
 test_configuration:
   # プレビューを走査する対象（アプリターゲット）
   target: PairCommit
@@ -13,8 +16,6 @@ test_configuration:
   # レンダリングの論理デバイスを固定（実行シミュレータの機種に依存させない）
   snapshot_devices:
     - iPhone 15
-  # 生成ファイルは #Preview の中身だけを写し、元ファイルの import は引き継がない。
-  # プレビューがパッケージの型に触れるならここに足す。
   imports:
     - Domain
     - Application
