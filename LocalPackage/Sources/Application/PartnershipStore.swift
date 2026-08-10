@@ -18,9 +18,10 @@ public final class PartnershipStore {
     private let synchronizer: any PartnershipSyncing
     private var observationTask: Task<Void, Never>?
 
-    public init(role: Role, synchronizer: any PartnershipSyncing) {
+    public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState = .init()) {
         self.role = role
         self.synchronizer = synchronizer
+        self.state = state
     }
 
     public func start() async throws {
