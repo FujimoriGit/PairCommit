@@ -42,24 +42,29 @@ private extension ContentView {
     }
 
     var rolePicker: some View {
-        VStack(spacing: 24) {
-            Text("どちらで使いますか")
-                .font(.title2.bold())
-
-            ForEach(Role.allCases, id: \.self) { role in
-                Button(role.label) {
-                    Task { await start(as: role) }
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(Role.allCases, id: \.self) { role in
+                        Button {
+                            Task { await start(as: role) }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(role.label)
+                                    .font(.headline)
+                                Text(role.summary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } footer: {
+                    Text("役割は後から入れ替えられません。変えるにはペアリングからやり直します。")
                 }
-                .buttonStyle(.borderedProminent)
+                FailureRow(message: failureMessage)
             }
-
-            if let failureMessage {
-                Text(failureMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
+            .navigationTitle("どちらで使いますか")
         }
-        .padding()
     }
 
     func start(as role: Role) async {
