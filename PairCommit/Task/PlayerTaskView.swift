@@ -11,6 +11,7 @@ import SwiftUI
 
 struct PlayerTaskView: View {
     let store: PartnershipStore
+    var now = Date()
 
     @State private var input = TaskInput()
     @State private var failureMessage: String?
@@ -30,6 +31,7 @@ private extension PlayerTaskView {
     var content: some View {
         if let vision = store.state.activeVision {
             Form {
+                nudgeSection
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
@@ -71,6 +73,19 @@ private extension PlayerTaskView {
             }
             .buttonStyle(.borderedProminent)
             .disabled(!input.isComplete)
+        }
+    }
+
+    @ViewBuilder
+    var nudgeSection: some View {
+        let nudges = store.state.nudges(for: store.role, now: now)
+        if !nudges.isEmpty {
+            Section("催促") {
+                ForEach(nudges, id: \.self) { nudge in
+                    Text(nudge.message(in: store.state))
+                        .foregroundStyle(.orange)
+                }
+            }
         }
     }
 
@@ -165,4 +180,24 @@ private extension PlayerTaskView {
 
 #Preview("プレイヤーのタスクなし") {
     PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]))
+}
+
+#Preview("プレイヤーの催促") {
+    let vision = Vision.preview(status: .active)
+    PlayerTaskView(
+        store: .preview(
+            role: .player,
+            visions: [vision],
+            tasks: [
+                .preview(
+                    visionID: vision.id,
+                    title: "週3でジムに行く",
+                    status: .todo,
+                    createdBy: .manager,
+                    deadline: .preview
+                )
+            ]
+        ),
+        now: .preview(daysLater: 2)
+    )
 }

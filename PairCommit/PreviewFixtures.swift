@@ -13,6 +13,10 @@ import Infrastructure
 // 期限を表示するプレビューが日々ずれないよう、固定の日付を使う
 extension Date {
     static let preview = Date(timeIntervalSince1970: 1_800_000_000)
+
+    static func preview(daysLater days: Int) -> Self {
+        preview.addingTimeInterval(Double(days) * 24 * 60 * 60)
+    }
 }
 
 extension Vision {
@@ -36,7 +40,8 @@ extension TaskItem {
         status: Status,
         createdBy: Role = .player,
         reaction: Reaction? = nil,
-        deadline: Date? = nil
+        deadline: Date? = nil,
+        statusChangedAt: Date = .preview
     ) -> Self {
         .init(
             id: UUID(),
@@ -46,7 +51,8 @@ extension TaskItem {
             createdBy: createdBy,
             reaction: reaction,
             deadline: deadline,
-            createdAt: Date()
+            createdAt: Date(),
+            statusChangedAt: statusChangedAt
         )
     }
 }

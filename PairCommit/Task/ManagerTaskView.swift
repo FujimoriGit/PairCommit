@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ManagerTaskView: View {
     let store: PartnershipStore
+    var now = Date()
 
     @State private var input = TaskInput()
     @State private var outcome: Vision.Outcome?
@@ -31,6 +32,7 @@ private extension ManagerTaskView {
     var content: some View {
         if let vision = store.state.activeVision {
             Form {
+                nudgeSection
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
@@ -104,6 +106,19 @@ private extension ManagerTaskView {
         .init(get: { outcome != nil }, set: { presented in
             if !presented { outcome = nil }
         })
+    }
+
+    @ViewBuilder
+    var nudgeSection: some View {
+        let nudges = store.state.nudges(for: store.role, now: now)
+        if !nudges.isEmpty {
+            Section("催促") {
+                ForEach(nudges, id: \.self) { nudge in
+                    Text(nudge.message(in: store.state))
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
     }
 
     func taskList(_ tasks: [TaskItem]) -> some View {
@@ -205,4 +220,16 @@ private extension ManagerTaskView {
 
 #Preview("管理者のタスクなし") {
     ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
+}
+
+#Preview("管理者の催促") {
+    let vision = Vision.preview(status: .active)
+    ManagerTaskView(
+        store: .preview(
+            role: .manager,
+            visions: [vision],
+            tasks: [.preview(visionID: vision.id, title: "週3でジムに行く", status: .reported)]
+        ),
+        now: .preview(daysLater: 3)
+    )
 }
