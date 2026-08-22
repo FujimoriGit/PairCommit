@@ -15,6 +15,7 @@ struct PlayerVisionView: View {
 
     @State private var statement = ""
     @State private var doneCriteria = ""
+    @State private var deadline: Date?
     @State private var failureMessage: String?
 
     var body: some View {
@@ -51,10 +52,14 @@ private extension PlayerVisionView {
                 TextField("どうなれば達成か", text: $doneCriteria, axis: .vertical)
             }
             Section {
+                DeadlineField(deadline: $deadline)
+            }
+            Section {
                 Button("起案する") {
                     perform { state throws(DomainError) in try state.draftingVision(
                         statement: statement,
                         doneCriteria: doneCriteria,
+                        deadline: deadline,
                         by: store.role
                     ).state }
                 }
@@ -95,6 +100,16 @@ private extension PlayerVisionView {
             Section("達成基準") {
                 Text(vision.doneCriteria)
             }
+            deadlineSection(vision)
+        }
+    }
+
+    @ViewBuilder
+    func deadlineSection(_ vision: Vision) -> some View {
+        if let deadline = vision.deadline {
+            Section("期限") {
+                Text(deadline, format: .dateTime.year().month().day())
+            }
         }
     }
 
@@ -115,7 +130,7 @@ private extension PlayerVisionView {
 }
 
 #Preview("プレイヤーの提出待ち") {
-    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft)]))
+    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
 }
 
 #Preview("プレイヤーの承認待ち") {

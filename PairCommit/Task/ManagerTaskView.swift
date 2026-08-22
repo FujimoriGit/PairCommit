@@ -13,6 +13,7 @@ struct ManagerTaskView: View {
     let store: PartnershipStore
 
     @State private var title = ""
+    @State private var deadline: Date?
     @State private var outcome: Vision.Outcome?
     @State private var failureMessage: String?
 
@@ -33,6 +34,11 @@ private extension ManagerTaskView {
             Form {
                 Section("ビジョン") {
                     Text(vision.statement)
+                }
+                if let deadline = vision.deadline {
+                    Section("期限") {
+                        Text(deadline, format: .dateTime.year().month().day())
+                    }
                 }
                 Section("達成基準") {
                     Text(vision.doneCriteria)
@@ -65,15 +71,18 @@ private extension ManagerTaskView {
     var creation: some View {
         Section("タスクを追加") {
             TextField("やること", text: $title)
+            DeadlineField(deadline: $deadline)
             Button("追加する") {
                 let entered = title
+                let enteredDeadline = deadline
                 Task {
                     do throws(PartnershipFailure) {
                         try await store.perform { state throws(DomainError) in
-                            try state.creatingTask(title: entered, by: store.role).state
+                            try state.creatingTask(title: entered, deadline: enteredDeadline, by: store.role).state
                         }
                         failureMessage = nil
                         title = ""
+                        deadline = nil
                     } catch {
                         failureMessage = error.message
                     }
@@ -121,6 +130,7 @@ private extension ManagerTaskView {
                 if let reaction = task.reaction {
                     Text(reaction.emoji)
                 }
+                DeadlineText(deadline: task.deadline)
                 Text(task.status.label)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -184,12 +194,12 @@ private extension ManagerTaskView {
 }
 
 #Preview("管理者のタスク承認待ち") {
-    let vision = Vision.preview(status: .active)
+    let vision = Vision.preview(status: .active, deadline: .preview)
     ManagerTaskView(store: .preview(
         role: .manager,
         visions: [vision],
         tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy),
+            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview),
             .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
             .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
         ]

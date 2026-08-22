@@ -13,6 +13,7 @@ struct PlayerTaskView: View {
     let store: PartnershipStore
 
     @State private var title = ""
+    @State private var deadline: Date?
     @State private var failureMessage: String?
 
     var body: some View {
@@ -33,6 +34,11 @@ private extension PlayerTaskView {
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
+                if let deadline = vision.deadline {
+                    Section("期限") {
+                        Text(deadline, format: .dateTime.year().month().day())
+                    }
+                }
                 proposal
                 taskList(store.state.tasks(for: vision.id))
                 FailureRow(message: failureMessage)
@@ -49,15 +55,18 @@ private extension PlayerTaskView {
     var proposal: some View {
         Section("タスクを起案する") {
             TextField("やること", text: $title)
+            DeadlineField(deadline: $deadline)
             Button("起案する") {
                 let entered = title
+                let enteredDeadline = deadline
                 Task {
                     do throws(PartnershipFailure) {
                         try await store.perform { state throws(DomainError) in
-                            try state.creatingTask(title: entered, by: store.role).state
+                            try state.creatingTask(title: entered, deadline: enteredDeadline, by: store.role).state
                         }
                         failureMessage = nil
                         title = ""
+                        deadline = nil
                     } catch {
                         failureMessage = error.message
                     }
@@ -86,6 +95,7 @@ private extension PlayerTaskView {
             HStack {
                 Text(task.title)
                 Spacer()
+                DeadlineText(deadline: task.deadline)
                 Text(task.status.label)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -133,12 +143,12 @@ private extension PlayerTaskView {
 }
 
 #Preview("プレイヤーのタスク報告前") {
-    let vision = Vision.preview(status: .active)
+    let vision = Vision.preview(status: .active, deadline: .preview)
     PlayerTaskView(store: .preview(
         role: .player,
         visions: [vision],
         tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager),
+            .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview),
             .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .angry)
         ]
     ))
