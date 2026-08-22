@@ -11,6 +11,7 @@ import SwiftUI
 
 struct PlayerTaskView: View {
     let store: PartnershipStore
+    var now = Date()
 
     @State private var input = TaskInput()
     @State private var failureMessage: String?
@@ -30,6 +31,7 @@ private extension PlayerTaskView {
     var content: some View {
         if let vision = store.state.activeVision {
             Form {
+                nudgeSection
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
@@ -71,6 +73,19 @@ private extension PlayerTaskView {
             }
             .buttonStyle(.borderedProminent)
             .disabled(!input.isComplete)
+        }
+    }
+
+    @ViewBuilder
+    var nudgeSection: some View {
+        let nudges = store.state.nudges(for: store.role, now: now)
+        if !nudges.isEmpty {
+            Section("催促") {
+                ForEach(nudges, id: \.self) { nudge in
+                    Text(nudge.message(in: store.state))
+                        .foregroundStyle(.orange)
+                }
+            }
         }
     }
 
@@ -140,15 +155,15 @@ private extension PlayerTaskView {
 }
 
 #Preview("プレイヤーのタスク報告前") {
-    let vision = Vision.preview(status: .active, deadline: .preview)
+    let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
     PlayerTaskView(store: .preview(
         role: .player,
         visions: [vision],
         tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview),
+            .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview(daysLater: 30)),
             .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .angry)
         ]
-    ))
+    ), now: .preview)
 }
 
 #Preview("プレイヤーのタスク採用待ち") {
@@ -160,9 +175,29 @@ private extension PlayerTaskView {
             .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
             .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy)
         ]
-    ))
+    ), now: .preview)
 }
 
 #Preview("プレイヤーのタスクなし") {
-    PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]))
+    PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]), now: .preview)
+}
+
+#Preview("プレイヤーの催促") {
+    let vision = Vision.preview(status: .active)
+    PlayerTaskView(
+        store: .preview(
+            role: .player,
+            visions: [vision],
+            tasks: [
+                .preview(
+                    visionID: vision.id,
+                    title: "週3でジムに行く",
+                    status: .todo,
+                    createdBy: .manager,
+                    deadline: .preview(daysLater: -1)
+                )
+            ]
+        ),
+        now: .preview
+    )
 }
