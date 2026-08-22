@@ -25,6 +25,10 @@ public struct PartnershipState: Sendable, Codable, Equatable {
     public func tasks(for visionID: Vision.ID) -> [TaskItem] {
         tasks.filter { $0.visionID == visionID }
     }
+
+    public var lastAchievedVision: Vision? {
+        visions.last { $0.status == .achieved }
+    }
 }
 
 // MARK: - ペアリング

@@ -43,6 +43,9 @@ private extension PlayerVisionView {
 
     var draftForm: some View {
         Form {
+            if let achieved = store.state.lastAchievedVision {
+                AchievementBanner(vision: achieved)
+            }
             Section("ビジョン") {
                 TextField("何を達成したいか", text: $input.statement, axis: .vertical)
             }
@@ -144,4 +147,8 @@ private extension PlayerVisionView {
 
 #Preview("プレイヤーの承認待ち") {
     PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]))
+}
+
+#Preview("プレイヤーの達成直後") {
+    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]))
 }
