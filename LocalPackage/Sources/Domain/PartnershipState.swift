@@ -25,6 +25,10 @@ public struct PartnershipState: Sendable, Codable, Equatable {
     public func tasks(for visionID: Vision.ID) -> [TaskItem] {
         tasks.filter { $0.visionID == visionID }
     }
+
+    public var lastAchievedVision: Vision? {
+        visions.last { $0.status == .achieved }
+    }
 }
 
 // MARK: - ペアリング
@@ -88,12 +92,13 @@ extension PartnershipState {
     public func closingVision(
         _ id: Vision.ID,
         as outcome: Vision.Outcome,
-        by role: Role
+        by role: Role,
+        now: Date = Date()
     ) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         let closed = try transitioningVision(id, from: [.active], to: outcome.status)
         let cancelled = tasks.map { task in
-            task.visionID == id && task.status.isOpen ? task.with(status: .cancelled) : task
+            task.visionID == id && task.status.isOpen ? task.with(status: .cancelled, at: now) : task
         }
         return updating(visions: closed, tasks: cancelled)
     }
@@ -118,34 +123,35 @@ extension PartnershipState {
             createdBy: role,
             reaction: nil,
             deadline: deadline,
-            createdAt: now
+            createdAt: now,
+            statusChangedAt: now
         )
         return (updating(tasks: tasks + [task]), task.id)
     }
 
-    public func adoptingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
+    public func adoptingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.proposed], to: .todo))
+        return updating(tasks: try transitioningTask(id, from: [.proposed], to: .todo, at: now))
     }
 
-    public func reportingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
+    public func reportingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .player)
-        return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported))
+        return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported, at: now))
     }
 
-    public func approvingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
+    public func approvingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.reported], to: .approved))
+        return updating(tasks: try transitioningTask(id, from: [.reported], to: .approved, at: now))
     }
 
-    public func returningTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
+    public func returningTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.reported], to: .todo))
+        return updating(tasks: try transitioningTask(id, from: [.reported], to: .todo, at: now))
     }
 
-    public func cancellingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
+    public func cancellingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.proposed, .todo, .reported], to: .cancelled))
+        return updating(tasks: try transitioningTask(id, from: [.proposed, .todo, .reported], to: .cancelled, at: now))
     }
 
     public func settingReaction(
@@ -156,6 +162,43 @@ extension PartnershipState {
         try requiring(role, is: .player)
         guard tasks.contains(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
         return updating(tasks: tasks.map { $0.id == id ? $0.with(reaction: reaction) : $0 })
+    }
+}
+
+// MARK: - 催促
+
+extension PartnershipState {
+    public func nudges(
+        for role: Role,
+        now: Date = Date(),
+        dueSoonWithin: TimeInterval = Nudge.dueSoonWithin,
+        approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
+    ) -> [Nudge] {
+        guard let vision = activeVision else { return [] }
+
+        var found: [Nudge] = []
+        if let deadline = vision.deadline, deadline < now {
+            found.append(.visionOverdue(vision.id))
+        }
+        for task in tasks(for: vision.id) {
+            switch task.status {
+            case .todo:
+                if let deadline = task.deadline {
+                    if deadline < now {
+                        found.append(.taskOverdue(task.id))
+                    } else if deadline.timeIntervalSince(now) <= dueSoonWithin {
+                        found.append(.taskDueSoon(task.id))
+                    }
+                }
+            case .reported:
+                if now.timeIntervalSince(task.statusChangedAt) >= approvalStalledAfter {
+                    found.append(.approvalStalled(task.id))
+                }
+            case .proposed, .approved, .cancelled:
+                break
+            }
+        }
+        return found.filter { $0.recipient == role }
     }
 }
 
@@ -191,7 +234,8 @@ private extension PartnershipState {
     func transitioningTask(
         _ id: TaskItem.ID,
         from allowed: Set<TaskItem.Status>,
-        to newStatus: TaskItem.Status
+        to newStatus: TaskItem.Status,
+        at changedAt: Date
     ) throws(DomainError) -> [TaskItem] {
         guard let current = tasks.first(where: { $0.id == id }) else {
             throw DomainError.taskNotFound(id)
@@ -199,6 +243,6 @@ private extension PartnershipState {
         guard allowed.contains(current.status) else {
             throw DomainError.invalidTaskTransition(from: current.status)
         }
-        return tasks.map { $0.id == id ? $0.with(status: newStatus) : $0 }
+        return tasks.map { $0.id == id ? $0.with(status: newStatus, at: changedAt) : $0 }
     }
 }

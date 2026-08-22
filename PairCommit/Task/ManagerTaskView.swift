@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ManagerTaskView: View {
     let store: PartnershipStore
+    var now = Date()
 
     @State private var input = TaskInput()
     @State private var outcome: Vision.Outcome?
@@ -31,6 +32,7 @@ private extension ManagerTaskView {
     var content: some View {
         if let vision = store.state.activeVision {
             Form {
+                nudgeSection
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
@@ -106,6 +108,19 @@ private extension ManagerTaskView {
         })
     }
 
+    @ViewBuilder
+    var nudgeSection: some View {
+        let nudges = store.state.nudges(for: store.role, now: now)
+        if !nudges.isEmpty {
+            Section("催促") {
+                ForEach(nudges, id: \.self) { nudge in
+                    Text(nudge.message(in: store.state))
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+    }
+
     func taskList(_ tasks: [TaskItem]) -> some View {
         Section("タスク") {
             if tasks.isEmpty {
@@ -134,6 +149,7 @@ private extension ManagerTaskView {
             }
             actions(for: task)
         }
+        .listRowBackground(task.reaction.map { $0.tint.opacity(0.15) })
         .swipeActions {
             if task.status.isOpen {
                 Button("取り消す", role: .destructive) {
@@ -187,22 +203,58 @@ private extension ManagerTaskView {
             .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
             .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
         ]
-    ))
+    ), now: .preview)
 }
 
 #Preview("管理者のタスク承認待ち") {
-    let vision = Vision.preview(status: .active, deadline: .preview)
+    let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
     ManagerTaskView(store: .preview(
         role: .manager,
         visions: [vision],
         tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview),
+            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview(daysLater: 30)),
             .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
             .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
         ]
-    ))
+    ), now: .preview)
 }
 
 #Preview("管理者のタスクなし") {
-    ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
+    ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
+}
+
+#Preview("管理者の催促") {
+    let vision = Vision.preview(status: .active)
+    ManagerTaskView(
+        store: .preview(
+            role: .manager,
+            visions: [vision],
+            tasks: [
+                .preview(
+                    visionID: vision.id,
+                    title: "週3でジムに行く",
+                    status: .reported,
+                    statusChangedAt: .preview(daysLater: -3)
+                )
+            ]
+        ),
+        now: .preview
+    )
+}
+
+#Preview("管理者の感情ヒートマップ") {
+    let vision = Vision.preview(status: .active)
+    ManagerTaskView(
+        store: .preview(
+            role: .manager,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, reaction: .angry),
+                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
+                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .todo, reaction: .happy),
+                .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
+            ]
+        ),
+        now: .preview
+    )
 }

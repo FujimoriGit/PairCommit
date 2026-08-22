@@ -32,6 +32,7 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
     public let reaction: Reaction?
     public let deadline: Date?
     public let createdAt: Date
+    public let statusChangedAt: Date
 
     public init(
         id: UUID,
@@ -41,7 +42,8 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         createdBy: Role,
         reaction: Reaction?,
         deadline: Date?,
-        createdAt: Date
+        createdAt: Date,
+        statusChangedAt: Date
     ) {
         self.id = id
         self.visionID = visionID
@@ -51,21 +53,22 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         self.reaction = reaction
         self.deadline = deadline
         self.createdAt = createdAt
+        self.statusChangedAt = statusChangedAt
     }
 
-    func with(status: Status) -> Self {
-        with(status: status, reaction: reaction)
+    func with(status: Status, at changedAt: Date) -> Self {
+        with(status: status, reaction: reaction, statusChangedAt: changedAt)
     }
 
     func with(reaction: Reaction?) -> Self {
-        with(status: status, reaction: reaction)
+        with(status: status, reaction: reaction, statusChangedAt: statusChangedAt)
     }
 }
 
 // MARK: - Private
 
 private extension TaskItem {
-    func with(status: Status, reaction: Reaction?) -> Self {
+    func with(status: Status, reaction: Reaction?, statusChangedAt: Date) -> Self {
         .init(
             id: id,
             visionID: visionID,
@@ -74,7 +77,8 @@ private extension TaskItem {
             createdBy: createdBy,
             reaction: reaction,
             deadline: deadline,
-            createdAt: createdAt
+            createdAt: createdAt,
+            statusChangedAt: statusChangedAt
         )
     }
 }
