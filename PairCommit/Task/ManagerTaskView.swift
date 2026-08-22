@@ -149,6 +149,7 @@ private extension ManagerTaskView {
             }
             actions(for: task)
         }
+        .listRowBackground(task.reaction.map { $0.tint.opacity(0.15) })
         .swipeActions {
             if task.status.isOpen {
                 Button("取り消す", role: .destructive) {
@@ -235,6 +236,23 @@ private extension ManagerTaskView {
                     status: .reported,
                     statusChangedAt: .preview(daysLater: -3)
                 )
+            ]
+        ),
+        now: .preview
+    )
+}
+
+#Preview("管理者の感情ヒートマップ") {
+    let vision = Vision.preview(status: .active)
+    ManagerTaskView(
+        store: .preview(
+            role: .manager,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, reaction: .angry),
+                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
+                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .todo, reaction: .happy),
+                .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
             ]
         ),
         now: .preview

@@ -198,9 +198,10 @@ graph LR
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 - ロール別UI ── ビジョンの起案から承認・達成判断まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。ビジョンとタスクに期限を設定できる。
 - 催促の判定 ── 期限と滞留から誰を催促するかを決める純粋関数（`Nudge`）。判定に使う時刻は引数で渡す。
+- 管理者のタスク一覧は、行の背景を感情の色で塗る（絵文字と併記。色だけに意味を持たせない）。
 - 失敗は型で流す。ドメインの操作は `DomainError`、同期の境界は `SyncFailure`、Store はその2つを畳んだ型を投げる。
 
-**まだないもの**: 催促の通知（アプリ内表示まではある）。タスク一覧は素のリストで、感情ヒートマップにはなっていない。
+**まだないもの**: 催促の通知（アプリ内表示まではある）。
 
 **保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したらペアリングのスパイクを実機2台で検証する。
 
@@ -213,7 +214,7 @@ graph LR
 3. **`InMemorySynchronizer` 実装** -> 済（`Sources/Infrastructure/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
 5. **ロール別UI** -> 済。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
-   - Manager: タスク生成・採用・承認・差し戻し・取り消し、ビジョン承認・達成判断、催促の表示。残りは感情ヒートマップ。
+   - Manager: タスク生成・採用・承認・差し戻し・取り消し、ビジョン承認・達成判断、催促の表示、感情ヒートマップ（行の色）。
    - Player: ビジョン起案・タスク起案・完了報告・感情表明（😡😕😊）、催促の表示。
    - ロールは起動時に選び、`LocalPairing` でその場でペアを成立させる（本来はペアリングで固定 → 未決事項5）。
 6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
