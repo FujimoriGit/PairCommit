@@ -31,9 +31,14 @@ private extension ContentView {
         switch (store.role, store.state.activeVision) {
         case (.manager, .none): ManagerVisionView(store: store)
         case (.manager, .some): ManagerTaskView(store: store)
-        case (.player, .none): PlayerVisionView(store: store)
+        case (.player, .none): PlayerVisionView(store: store, reviewing: criteriaReviewing)
         case (.player, .some): PlayerTaskView(store: store)
         }
+    }
+
+    // Apple Intelligence が使えない端末では下読みごと出さない
+    var criteriaReviewing: (any CriteriaReviewing)? {
+        OnDeviceCriteriaReview.isAvailable ? OnDeviceCriteriaReview() : nil
     }
 
     var rolePicker: some View {
