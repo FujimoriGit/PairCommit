@@ -33,21 +33,15 @@ private extension ManagerTaskView {
         if let vision = store.state.activeVision {
             Form {
                 nudgeSection
-                Section("ビジョン") {
-                    Text(vision.statement)
-                }
-                Section("達成基準") {
-                    Text(vision.doneCriteria)
-                }
-                if let deadline = vision.deadline {
-                    Section("期限") {
-                        Text(deadline.formatted(Date.FormatStyle.deadlineFull))
-                    }
-                }
+                visionSection(vision)
                 creation
                 taskList(store.state.tasks(for: vision.id))
-                judgement
                 FailureRow(message: failureMessage)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    judgement
+                }
             }
             .confirmationDialog(
                 "このビジョンを閉じますか",
@@ -92,8 +86,19 @@ private extension ManagerTaskView {
         }
     }
 
+    func visionSection(_ vision: Vision) -> some View {
+        Section("ビジョン") {
+            Text(vision.statement)
+                .font(.headline)
+            LabeledContent("達成基準", value: vision.doneCriteria)
+            if let deadline = vision.deadline {
+                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.deadlineFull))
+            }
+        }
+    }
+
     var judgement: some View {
-        Section("達成判断") {
+        Menu("達成判断", systemImage: "flag.checkered") {
             ForEach(Vision.Outcome.allCases, id: \.self) { candidate in
                 Button(candidate.label, role: candidate == .abandoned ? .destructive : nil) {
                     outcome = candidate
@@ -112,9 +117,9 @@ private extension ManagerTaskView {
     var nudgeSection: some View {
         let nudges = store.state.nudges(for: store.role, now: now)
         if !nudges.isEmpty {
-            Section("催促") {
+            Section {
                 ForEach(nudges, id: \.self) { nudge in
-                    Text(nudge.message(in: store.state))
+                    Label(nudge.message(in: store.state), systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                 }
             }
