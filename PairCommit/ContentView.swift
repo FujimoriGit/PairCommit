@@ -12,7 +12,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var store: PartnershipStore?
-    @State private var failure: String?
+    @State private var failureMessage: String?
 
     var body: some View {
         if let store {
@@ -48,8 +48,8 @@ private extension ContentView {
                 .buttonStyle(.borderedProminent)
             }
 
-            if let failure {
-                Text(failure)
+            if let failureMessage {
+                Text(failureMessage)
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
@@ -58,18 +58,26 @@ private extension ContentView {
     }
 
     func start(as role: Role) async {
+        let agreement = await LocalPairing().pair(as: role)
+        let paired: PartnershipState
         do {
-            let agreement = await LocalPairing().pair(as: role)
-            let paired = try PartnershipState().establishingPairing(ownerRole: agreement.ownerRole)
-            let started = PartnershipStore(
-                role: agreement.role,
-                synchronizer: InMemorySynchronizer(initialState: paired)
-            )
-            try await started.start()
-            store = started
+            paired = try PartnershipState().establishingPairing(ownerRole: agreement.ownerRole)
         } catch {
-            failure = error.localizedDescription
+            failureMessage = error.message
+            return
         }
+
+        let started = PartnershipStore(
+            role: agreement.role,
+            synchronizer: InMemorySynchronizer(initialState: paired)
+        )
+        do {
+            try await started.start()
+        } catch {
+            failureMessage = error.message
+            return
+        }
+        store = started
     }
 }
 

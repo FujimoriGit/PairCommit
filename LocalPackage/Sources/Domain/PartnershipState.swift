@@ -34,7 +34,7 @@ extension PartnershipState {
         ownerRole: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws -> Self {
+    ) throws(DomainError) -> Self {
         guard pairing == nil else { throw DomainError.alreadyPaired }
         return .init(
             pairing: Pairing(id: id, ownerRole: ownerRole, createdAt: now),
@@ -55,7 +55,7 @@ extension PartnershipState {
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws -> (state: Self, visionID: Vision.ID) {
+    ) throws(DomainError) -> (state: Self, visionID: Vision.ID) {
         try requiring(role, is: .player)
         let vision = Vision(
             id: id,
@@ -69,18 +69,18 @@ extension PartnershipState {
         return (updating(visions: visions + [vision]), vision.id)
     }
 
-    public func proposingVision(_ id: Vision.ID, by role: Role) throws -> Self {
+    public func proposingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         return updating(visions: try transitioningVision(id, from: [.draft], to: .proposed))
     }
 
-    public func approvingVision(_ id: Vision.ID, by role: Role) throws -> Self {
+    public func approvingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         guard activeVision == nil else { throw DomainError.activeVisionAlreadyExists }
         return updating(visions: try transitioningVision(id, from: [.proposed], to: .active))
     }
 
-    public func rejectingVision(_ id: Vision.ID, by role: Role) throws -> Self {
+    public func rejectingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         return updating(visions: try transitioningVision(id, from: [.proposed], to: .draft))
     }
@@ -89,7 +89,7 @@ extension PartnershipState {
         _ id: Vision.ID,
         as outcome: Vision.Outcome,
         by role: Role
-    ) throws -> Self {
+    ) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         let closed = try transitioningVision(id, from: [.active], to: outcome.status)
         let cancelled = tasks.map { task in
@@ -108,7 +108,7 @@ extension PartnershipState {
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws -> (state: Self, taskID: TaskItem.ID) {
+    ) throws(DomainError) -> (state: Self, taskID: TaskItem.ID) {
         guard let vision = activeVision else { throw DomainError.noActiveVision }
         let task = TaskItem(
             id: id,
@@ -123,27 +123,27 @@ extension PartnershipState {
         return (updating(tasks: tasks + [task]), task.id)
     }
 
-    public func adoptingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+    public func adoptingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         return updating(tasks: try transitioningTask(id, from: [.proposed], to: .todo))
     }
 
-    public func reportingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+    public func reportingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported))
     }
 
-    public func approvingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+    public func approvingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         return updating(tasks: try transitioningTask(id, from: [.reported], to: .approved))
     }
 
-    public func returningTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+    public func returningTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         return updating(tasks: try transitioningTask(id, from: [.reported], to: .todo))
     }
 
-    public func cancellingTask(_ id: TaskItem.ID, by role: Role) throws -> Self {
+    public func cancellingTask(_ id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         return updating(tasks: try transitioningTask(id, from: [.proposed, .todo, .reported], to: .cancelled))
     }
@@ -152,7 +152,7 @@ extension PartnershipState {
         _ reaction: Reaction?,
         on id: TaskItem.ID,
         by role: Role
-    ) throws -> Self {
+    ) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         guard tasks.contains(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
         return updating(tasks: tasks.map { $0.id == id ? $0.with(reaction: reaction) : $0 })
@@ -170,7 +170,7 @@ private extension PartnershipState {
         )
     }
 
-    func requiring(_ role: Role, is required: Role) throws {
+    func requiring(_ role: Role, is required: Role) throws(DomainError) {
         guard role == required else { throw DomainError.roleForbidden(required: required) }
     }
 
@@ -178,7 +178,7 @@ private extension PartnershipState {
         _ id: Vision.ID,
         from allowed: Set<Vision.Status>,
         to newStatus: Vision.Status
-    ) throws -> [Vision] {
+    ) throws(DomainError) -> [Vision] {
         guard let current = visions.first(where: { $0.id == id }) else {
             throw DomainError.visionNotFound(id)
         }
@@ -192,7 +192,7 @@ private extension PartnershipState {
         _ id: TaskItem.ID,
         from allowed: Set<TaskItem.Status>,
         to newStatus: TaskItem.Status
-    ) throws -> [TaskItem] {
+    ) throws(DomainError) -> [TaskItem] {
         guard let current = tasks.first(where: { $0.id == id }) else {
             throw DomainError.taskNotFound(id)
         }

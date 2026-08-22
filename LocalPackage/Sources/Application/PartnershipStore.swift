@@ -24,7 +24,7 @@ public final class PartnershipStore {
         self.state = state
     }
 
-    public func start() async throws {
+    public func start() async throws(SyncFailure) {
         observationTask?.cancel()
         let changes = await synchronizer.remoteChanges()
         state = try await synchronizer.load()
@@ -41,15 +41,22 @@ public final class PartnershipStore {
         observationTask = nil
     }
 
-    public func perform(_ transform: (PartnershipState) throws -> PartnershipState) async throws {
+    public func perform(
+        _ transform: (PartnershipState) throws(DomainError) -> PartnershipState
+    ) async throws(PartnershipFailure) {
         let previous = state
-        let next = try transform(state)
+        let next: PartnershipState
+        do {
+            next = try transform(state)
+        } catch {
+            throw .rejected(error)
+        }
         state = next
         do {
             try await synchronizer.save(next)
         } catch {
             state = previous
-            throw error
+            throw .notSynchronized(error)
         }
     }
 }

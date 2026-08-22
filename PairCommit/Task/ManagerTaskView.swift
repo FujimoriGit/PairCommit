@@ -14,7 +14,7 @@ struct ManagerTaskView: View {
 
     @State private var title = ""
     @State private var outcome: Vision.Outcome?
-    @State private var failure: String?
+    @State private var failureMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -40,7 +40,7 @@ private extension ManagerTaskView {
                 creation
                 taskList(store.state.tasks(for: vision.id))
                 judgement
-                failureRow
+                FailureRow(message: failureMessage)
             }
             .confirmationDialog(
                 "このビジョンを閉じますか",
@@ -48,7 +48,7 @@ private extension ManagerTaskView {
                 presenting: outcome
             ) { outcome in
                 Button(outcome.confirmation, role: .destructive) {
-                    perform { try $0.closingVision(vision.id, as: outcome, by: store.role) }
+                    perform { state throws(DomainError) in try state.closingVision(vision.id, as: outcome, by: store.role) }
                 }
             } message: { _ in
                 Text("進行中のタスクはすべて取り消されます")
@@ -67,8 +67,17 @@ private extension ManagerTaskView {
             TextField("やること", text: $title)
             Button("追加する") {
                 let entered = title
-                perform { try $0.creatingTask(title: entered, by: store.role).state }
-                title = ""
+                Task {
+                    do throws(PartnershipFailure) {
+                        try await store.perform { state throws(DomainError) in
+                            try state.creatingTask(title: entered, by: store.role).state
+                        }
+                        failureMessage = nil
+                        title = ""
+                    } catch {
+                        failureMessage = error.message
+                    }
+                }
             }
             .buttonStyle(.borderedProminent)
             .disabled(title.isEmpty)
@@ -121,7 +130,7 @@ private extension ManagerTaskView {
         .swipeActions {
             if task.status.isOpen {
                 Button("取り消す", role: .destructive) {
-                    perform { try $0.cancellingTask(task.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.cancellingTask(task.id, by: store.role) }
                 }
             }
         }
@@ -132,16 +141,16 @@ private extension ManagerTaskView {
         switch task.status {
         case .proposed:
             Button("採用する") {
-                perform { try $0.adoptingTask(task.id, by: store.role) }
+                perform { state throws(DomainError) in try state.adoptingTask(task.id, by: store.role) }
             }
             .buttonStyle(.borderless)
         case .reported:
             HStack(spacing: 16) {
                 Button("承認する") {
-                    perform { try $0.approvingTask(task.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.approvingTask(task.id, by: store.role) }
                 }
                 Button("差し戻す") {
-                    perform { try $0.returningTask(task.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.returningTask(task.id, by: store.role) }
                 }
             }
             .buttonStyle(.borderless)
@@ -150,23 +159,13 @@ private extension ManagerTaskView {
         }
     }
 
-    @ViewBuilder
-    var failureRow: some View {
-        if let failure {
-            Section {
-                Text(failure)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-
-    func perform(_ transform: @escaping (PartnershipState) throws -> PartnershipState) {
+    func perform(_ transform: @escaping (PartnershipState) throws(DomainError) -> PartnershipState) {
         Task {
-            do {
+            do throws(PartnershipFailure) {
                 try await store.perform(transform)
-                failure = nil
+                failureMessage = nil
             } catch {
-                failure = error.localizedDescription
+                failureMessage = error.message
             }
         }
     }

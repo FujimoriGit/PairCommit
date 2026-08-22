@@ -22,8 +22,8 @@ struct PartnershipStoreTests {
         try await store.start()
 
         // When
-        try await store.perform {
-            try $0.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+        try await store.perform { state throws(DomainError) in
+            try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
         }
 
         // Then
@@ -41,9 +41,9 @@ struct PartnershipStoreTests {
         try await store.start()
 
         // When / Then
-        await #expect(throws: DomainError.roleForbidden(required: .player)) {
-            try await store.perform {
-                try $0.draftingVision(statement: "s", doneCriteria: "c", by: .manager).state
+        await #expect(throws: PartnershipFailure.rejected(.roleForbidden(required: .player))) {
+            try await store.perform { state throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: .manager).state
             }
         }
         #expect(store.state == PartnershipState())
