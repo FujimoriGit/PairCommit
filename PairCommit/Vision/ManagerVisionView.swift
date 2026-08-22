@@ -37,12 +37,21 @@ private extension ManagerVisionView {
         }
     }
 
+    @ViewBuilder
     var waiting: some View {
-        ContentUnavailableView(
-            "承認待ちのビジョンはありません",
-            systemImage: "tray",
-            description: Text("プレイヤーの起案を待っています")
-        )
+        if let achieved = store.state.lastAchievedVision {
+            ContentUnavailableView(
+                "🎉 達成しました",
+                systemImage: "flag.checkered",
+                description: Text("\(achieved.statement)\n\nプレイヤーの次の起案を待っています")
+            )
+        } else {
+            ContentUnavailableView(
+                "承認待ちのビジョンはありません",
+                systemImage: "tray",
+                description: Text("プレイヤーの起案を待っています")
+            )
+        }
     }
 
     func review(_ vision: Vision) -> some View {
@@ -114,4 +123,8 @@ private extension ManagerVisionView {
 
 #Preview("管理者の進行中") {
     ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
+}
+
+#Preview("管理者の達成直後") {
+    ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .achieved)]))
 }
