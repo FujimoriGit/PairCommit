@@ -108,7 +108,7 @@ private extension PlayerVisionView {
     func deadlineSection(_ vision: Vision) -> some View {
         if let deadline = vision.deadline {
             Section("期限") {
-                Text(deadline, format: .dateTime.year().month().day())
+                Text(deadline, format: Date.FormatStyle.deadlineFull)
             }
         }
     }

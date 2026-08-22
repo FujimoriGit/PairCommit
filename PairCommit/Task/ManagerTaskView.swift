@@ -35,13 +35,13 @@ private extension ManagerTaskView {
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
-                if let deadline = vision.deadline {
-                    Section("期限") {
-                        Text(deadline, format: .dateTime.year().month().day())
-                    }
-                }
                 Section("達成基準") {
                     Text(vision.doneCriteria)
+                }
+                if let deadline = vision.deadline {
+                    Section("期限") {
+                        Text(deadline, format: Date.FormatStyle.deadlineFull)
+                    }
                 }
                 creation
                 taskList(store.state.tasks(for: vision.id))

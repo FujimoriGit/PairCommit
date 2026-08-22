@@ -36,7 +36,7 @@ private extension PlayerTaskView {
                 }
                 if let deadline = vision.deadline {
                     Section("期限") {
-                        Text(deadline, format: .dateTime.year().month().day())
+                        Text(deadline, format: Date.FormatStyle.deadlineFull)
                     }
                 }
                 proposal
