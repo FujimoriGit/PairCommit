@@ -71,3 +71,9 @@ extension PartnershipStore {
         )
     }
 }
+
+struct PreviewCriteriaReview: CriteriaReviewing {
+    func review(statement: String, doneCriteria: String) async throws(ReviewFailure) -> CriteriaReview {
+        .init(isVerifiable: true, advice: "数値と期日が入っているので判定できます")
+    }
+}

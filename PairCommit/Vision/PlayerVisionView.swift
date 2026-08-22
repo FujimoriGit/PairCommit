@@ -12,8 +12,10 @@ import SwiftUI
 
 struct PlayerVisionView: View {
     let store: PartnershipStore
+    var reviewing: (any CriteriaReviewing)?
 
     @State private var input = VisionInput()
+    @State private var review: CriteriaReview?
     @State private var failureMessage: String?
 
     var body: some View {
@@ -55,6 +57,7 @@ private extension PlayerVisionView {
             Section {
                 DeadlineField(deadline: $input.deadline)
             }
+            reviewSection
             Section {
                 Button("起案する") {
                     let entered = input
@@ -78,6 +81,32 @@ private extension PlayerVisionView {
                 .disabled(!input.isComplete)
             }
             FailureRow(message: failureMessage)
+        }
+    }
+
+    @ViewBuilder
+    var reviewSection: some View {
+        if let reviewing {
+            Section("達成基準の下読み") {
+                Button("この基準で判定できるか見てもらう") {
+                    let entered = input
+                    Task {
+                        review = try? await reviewing.review(
+                            statement: entered.statement,
+                            doneCriteria: entered.doneCriteria
+                        )
+                    }
+                }
+                .disabled(!input.isComplete)
+
+                if let review {
+                    Label(
+                        review.advice,
+                        systemImage: review.isVerifiable ? "checkmark.circle" : "exclamationmark.triangle"
+                    )
+                    .foregroundStyle(review.isVerifiable ? .green : .orange)
+                }
+            }
         }
     }
 
@@ -151,4 +180,8 @@ private extension PlayerVisionView {
 
 #Preview("プレイヤーの達成直後") {
     PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]))
+}
+
+#Preview("プレイヤーの下読みつき起案") {
+    PlayerVisionView(store: .preview(role: .player, visions: []), reviewing: PreviewCriteriaReview())
 }
