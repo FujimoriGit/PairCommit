@@ -54,6 +54,7 @@ private extension PlayerTaskView {
                 perform { try $0.creatingTask(title: entered, by: store.role).state }
                 title = ""
             }
+            .buttonStyle(.borderedProminent)
             .disabled(title.isEmpty)
         }
     }
