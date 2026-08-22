@@ -13,8 +13,7 @@ import SwiftUI
 struct PlayerVisionView: View {
     let store: PartnershipStore
 
-    @State private var statement = ""
-    @State private var doneCriteria = ""
+    @State private var input = VisionInput()
     @State private var failureMessage: String?
 
     var body: some View {
@@ -45,20 +44,35 @@ private extension PlayerVisionView {
     var draftForm: some View {
         Form {
             Section("ビジョン") {
-                TextField("何を達成したいか", text: $statement, axis: .vertical)
+                TextField("何を達成したいか", text: $input.statement, axis: .vertical)
             }
             Section("達成基準") {
-                TextField("どうなれば達成か", text: $doneCriteria, axis: .vertical)
+                TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
+            }
+            Section {
+                DeadlineField(deadline: $input.deadline)
             }
             Section {
                 Button("起案する") {
-                    perform { state throws(DomainError) in try state.draftingVision(
-                        statement: statement,
-                        doneCriteria: doneCriteria,
-                        by: store.role
-                    ).state }
+                    let entered = input
+                    Task {
+                        do throws(PartnershipFailure) {
+                            try await store.perform { state throws(DomainError) in
+                                try state.draftingVision(
+                                    statement: entered.statement,
+                                    doneCriteria: entered.doneCriteria,
+                                    deadline: entered.deadline,
+                                    by: store.role
+                                ).state
+                            }
+                            failureMessage = nil
+                            input = .init()
+                        } catch {
+                            failureMessage = error.message
+                        }
+                    }
                 }
-                .disabled(statement.isEmpty || doneCriteria.isEmpty)
+                .disabled(!input.isComplete)
             }
             FailureRow(message: failureMessage)
         }
@@ -95,6 +109,16 @@ private extension PlayerVisionView {
             Section("達成基準") {
                 Text(vision.doneCriteria)
             }
+            deadlineSection(vision)
+        }
+    }
+
+    @ViewBuilder
+    func deadlineSection(_ vision: Vision) -> some View {
+        if let deadline = vision.deadline {
+            Section("期限") {
+                Text(deadline.formatted(Date.FormatStyle.deadlineFull))
+            }
         }
     }
 
@@ -115,7 +139,7 @@ private extension PlayerVisionView {
 }
 
 #Preview("プレイヤーの提出待ち") {
-    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft)]))
+    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
 }
 
 #Preview("プレイヤーの承認待ち") {

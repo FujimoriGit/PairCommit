@@ -79,6 +79,16 @@ private extension ManagerVisionView {
             Section("達成基準") {
                 Text(vision.doneCriteria)
             }
+            deadlineSection(vision)
+        }
+    }
+
+    @ViewBuilder
+    func deadlineSection(_ vision: Vision) -> some View {
+        if let deadline = vision.deadline {
+            Section("期限") {
+                Text(deadline.formatted(Date.FormatStyle.deadlineFull))
+            }
         }
     }
 
@@ -99,7 +109,7 @@ private extension ManagerVisionView {
 }
 
 #Preview("管理者の承認待ち") {
-    ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed)]))
+    ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
 }
 
 #Preview("管理者の進行中") {

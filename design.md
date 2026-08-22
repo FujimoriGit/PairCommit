@@ -191,10 +191,10 @@ graph LR
 - 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストも層ごとに `LocalPackage/Tests/` へ置き、`swift test` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
 - CI は2本立て。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
+- ロール別UI ── ビジョンの起案から承認・達成判断まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。ビジョンとタスクに期限を設定できる。
+- 失敗は型で流す。ドメインの操作は `DomainError`、同期の境界は `SyncFailure`、Store はその2つを畳んだ型を投げる。
 
-- ロール別UI ── ビジョンの起案から承認まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。
-
-**まだないもの**: ビジョンの達成判断と、期限・催促まわりのUI。タスク一覧は素のリストで、感情ヒートマップにはなっていない。
+**まだないもの**: 催促。タスク一覧は素のリストで、感情ヒートマップにはなっていない。
 
 **保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したらペアリングのスパイクを実機2台で検証する。
 
@@ -210,7 +210,7 @@ graph LR
    - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。ビジョンの承認・差し戻し、タスクの生成・採用・承認・差し戻し・取り消しまで実装済み。残りは達成判断と催促、ヒートマップ。
    - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。すべて実装済み。
    - ロールは起動時に選び、`LocalPairing` でその場でペアを成立させる（本来はペアリングで固定 → 未決事項5）。
-6. **ライフサイクルUI** ── Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移。
+6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
 7. **催促ロジック（双方向）** ── 期限ベースの催促＋承認待ち滞留時に管理者へも催促（具体仕様は未決事項7）。
 8. **（加入後）`CloudKitSynchronizer` 差し替え＋#1実行検証**。
 9. **（できれば）** 達成お祝い演出→次ビジョン設定 / Foundation Models でクライテリアをレビュー。
