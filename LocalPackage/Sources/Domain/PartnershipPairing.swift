@@ -6,5 +6,5 @@
 //
 
 public protocol PartnershipPairing: Sendable {
-    func pair(as role: Role) async throws -> PairingAgreement
+    func pair(as side: PairingSide) async throws -> PairingAgreement
 }

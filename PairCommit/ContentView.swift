@@ -47,7 +47,7 @@ private extension ContentView {
                 Section {
                     ForEach(Role.allCases, id: \.self) { role in
                         Button {
-                            Task { await start(as: role) }
+                            Task { await start(as: .owner(role)) }
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(role.label)
@@ -58,8 +58,18 @@ private extension ContentView {
                             }
                         }
                     }
+                } header: {
+                    Text("役割を選んで始める")
                 } footer: {
                     Text("役割は後から入れ替えられません。変えるにはペアリングからやり直します。")
+                }
+
+                Section {
+                    Button("相手の招待を受ける") {
+                        Task { await start(as: .participant) }
+                    }
+                } footer: {
+                    Text("始めた側が選ばなかったほうの役割になります。")
                 }
                 FailureRow(message: failureMessage)
             }
@@ -67,8 +77,8 @@ private extension ContentView {
         }
     }
 
-    func start(as role: Role) async {
-        let agreement = await LocalPairing().pair(as: role)
+    func start(as side: PairingSide) async {
+        let agreement = await LocalPairing().pair(as: side)
         let paired: PartnershipState
         do {
             paired = try PartnershipState().establishingPairing(ownerRole: agreement.ownerRole)
