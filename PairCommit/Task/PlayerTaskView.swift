@@ -12,7 +12,7 @@ import SwiftUI
 struct PlayerTaskView: View {
     let store: PartnershipStore
 
-    @State private var draft = TaskDraft()
+    @State private var input = TaskInput()
     @State private var failureMessage: String?
 
     var body: some View {
@@ -53,24 +53,24 @@ private extension PlayerTaskView {
 
     var proposal: some View {
         Section("タスクを起案する") {
-            TextField("やること", text: $draft.title)
-            DeadlineField(deadline: $draft.deadline)
+            TextField("やること", text: $input.title)
+            DeadlineField(deadline: $input.deadline)
             Button("起案する") {
-                let entered = draft
+                let entered = input
                 Task {
                     do throws(PartnershipFailure) {
                         try await store.perform { state throws(DomainError) in
                             try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
                         }
                         failureMessage = nil
-                        draft = .init()
+                        input = .init()
                     } catch {
                         failureMessage = error.message
                     }
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!draft.isComplete)
+            .disabled(!input.isComplete)
         }
     }
 

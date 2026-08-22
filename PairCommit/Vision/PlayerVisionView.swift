@@ -13,7 +13,7 @@ import SwiftUI
 struct PlayerVisionView: View {
     let store: PartnershipStore
 
-    @State private var draft = VisionDraft()
+    @State private var input = VisionInput()
     @State private var failureMessage: String?
 
     var body: some View {
@@ -44,17 +44,17 @@ private extension PlayerVisionView {
     var draftForm: some View {
         Form {
             Section("ビジョン") {
-                TextField("何を達成したいか", text: $draft.statement, axis: .vertical)
+                TextField("何を達成したいか", text: $input.statement, axis: .vertical)
             }
             Section("達成基準") {
-                TextField("どうなれば達成か", text: $draft.doneCriteria, axis: .vertical)
+                TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
             }
             Section {
-                DeadlineField(deadline: $draft.deadline)
+                DeadlineField(deadline: $input.deadline)
             }
             Section {
                 Button("起案する") {
-                    let entered = draft
+                    let entered = input
                     Task {
                         do throws(PartnershipFailure) {
                             try await store.perform { state throws(DomainError) in
@@ -66,13 +66,13 @@ private extension PlayerVisionView {
                                 ).state
                             }
                             failureMessage = nil
-                            draft = .init()
+                            input = .init()
                         } catch {
                             failureMessage = error.message
                         }
                     }
                 }
-                .disabled(!draft.isComplete)
+                .disabled(!input.isComplete)
             }
             FailureRow(message: failureMessage)
         }
