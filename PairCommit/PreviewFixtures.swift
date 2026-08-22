@@ -10,7 +10,8 @@ import Domain
 import Foundation
 import Infrastructure
 
-// 期限を表示するプレビューが日々ずれないよう、固定の日付を使う
+// プレビューが「いま」とみなす瞬間。期限も状態の変更時刻もここからの相対で置く。
+// 実時間を使うと、期限を過ぎた日から催促が出はじめて基準画像が壊れる。
 extension Date {
     static let preview = Date(timeIntervalSince1970: 1_800_000_000)
 

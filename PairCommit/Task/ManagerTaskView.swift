@@ -202,24 +202,24 @@ private extension ManagerTaskView {
             .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
             .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
         ]
-    ))
+    ), now: .preview)
 }
 
 #Preview("管理者のタスク承認待ち") {
-    let vision = Vision.preview(status: .active, deadline: .preview)
+    let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
     ManagerTaskView(store: .preview(
         role: .manager,
         visions: [vision],
         tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview),
+            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview(daysLater: 30)),
             .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
             .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
         ]
-    ))
+    ), now: .preview)
 }
 
 #Preview("管理者のタスクなし") {
-    ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
+    ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
 }
 
 #Preview("管理者の催促") {
@@ -228,8 +228,15 @@ private extension ManagerTaskView {
         store: .preview(
             role: .manager,
             visions: [vision],
-            tasks: [.preview(visionID: vision.id, title: "週3でジムに行く", status: .reported)]
+            tasks: [
+                .preview(
+                    visionID: vision.id,
+                    title: "週3でジムに行く",
+                    status: .reported,
+                    statusChangedAt: .preview(daysLater: -3)
+                )
+            ]
         ),
-        now: .preview(daysLater: 3)
+        now: .preview
     )
 }
