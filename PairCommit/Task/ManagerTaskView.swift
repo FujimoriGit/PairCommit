@@ -12,8 +12,7 @@ import SwiftUI
 struct ManagerTaskView: View {
     let store: PartnershipStore
 
-    @State private var title = ""
-    @State private var deadline: Date?
+    @State private var draft = TaskDraft()
     @State private var outcome: Vision.Outcome?
     @State private var failureMessage: String?
 
@@ -40,7 +39,7 @@ private extension ManagerTaskView {
                 }
                 if let deadline = vision.deadline {
                     Section("期限") {
-                        Text(deadline, format: Date.FormatStyle.deadlineFull)
+                        Text(deadline.formatted(Date.FormatStyle.deadlineFull))
                     }
                 }
                 creation
@@ -70,26 +69,24 @@ private extension ManagerTaskView {
 
     var creation: some View {
         Section("タスクを追加") {
-            TextField("やること", text: $title)
-            DeadlineField(deadline: $deadline)
+            TextField("やること", text: $draft.title)
+            DeadlineField(deadline: $draft.deadline)
             Button("追加する") {
-                let entered = title
-                let enteredDeadline = deadline
+                let entered = draft
                 Task {
                     do throws(PartnershipFailure) {
                         try await store.perform { state throws(DomainError) in
-                            try state.creatingTask(title: entered, deadline: enteredDeadline, by: store.role).state
+                            try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
                         }
                         failureMessage = nil
-                        title = ""
-                        deadline = nil
+                        draft = .init()
                     } catch {
                         failureMessage = error.message
                     }
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(title.isEmpty)
+            .disabled(!draft.isComplete)
         }
     }
 

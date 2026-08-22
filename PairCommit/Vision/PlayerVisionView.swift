@@ -13,9 +13,7 @@ import SwiftUI
 struct PlayerVisionView: View {
     let store: PartnershipStore
 
-    @State private var statement = ""
-    @State private var doneCriteria = ""
-    @State private var deadline: Date?
+    @State private var draft = VisionDraft()
     @State private var failureMessage: String?
 
     var body: some View {
@@ -46,24 +44,35 @@ private extension PlayerVisionView {
     var draftForm: some View {
         Form {
             Section("ビジョン") {
-                TextField("何を達成したいか", text: $statement, axis: .vertical)
+                TextField("何を達成したいか", text: $draft.statement, axis: .vertical)
             }
             Section("達成基準") {
-                TextField("どうなれば達成か", text: $doneCriteria, axis: .vertical)
+                TextField("どうなれば達成か", text: $draft.doneCriteria, axis: .vertical)
             }
             Section {
-                DeadlineField(deadline: $deadline)
+                DeadlineField(deadline: $draft.deadline)
             }
             Section {
                 Button("起案する") {
-                    perform { state throws(DomainError) in try state.draftingVision(
-                        statement: statement,
-                        doneCriteria: doneCriteria,
-                        deadline: deadline,
-                        by: store.role
-                    ).state }
+                    let entered = draft
+                    Task {
+                        do throws(PartnershipFailure) {
+                            try await store.perform { state throws(DomainError) in
+                                try state.draftingVision(
+                                    statement: entered.statement,
+                                    doneCriteria: entered.doneCriteria,
+                                    deadline: entered.deadline,
+                                    by: store.role
+                                ).state
+                            }
+                            failureMessage = nil
+                            draft = .init()
+                        } catch {
+                            failureMessage = error.message
+                        }
+                    }
                 }
-                .disabled(statement.isEmpty || doneCriteria.isEmpty)
+                .disabled(!draft.isComplete)
             }
             FailureRow(message: failureMessage)
         }
@@ -108,7 +117,7 @@ private extension PlayerVisionView {
     func deadlineSection(_ vision: Vision) -> some View {
         if let deadline = vision.deadline {
             Section("期限") {
-                Text(deadline, format: Date.FormatStyle.deadlineFull)
+                Text(deadline.formatted(Date.FormatStyle.deadlineFull))
             }
         }
     }

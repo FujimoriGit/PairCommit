@@ -87,7 +87,7 @@ private extension ManagerVisionView {
     func deadlineSection(_ vision: Vision) -> some View {
         if let deadline = vision.deadline {
             Section("期限") {
-                Text(deadline, format: Date.FormatStyle.deadlineFull)
+                Text(deadline.formatted(Date.FormatStyle.deadlineFull))
             }
         }
     }
