@@ -182,7 +182,7 @@ graph LR
 6. **片側リセット時の整合性**: 片方だけがアプリをリセットしたとき、CKShare の参加解除・ゾーン削除・相手側への通知をどう扱うか。
 7. **催促の具体仕様**（ロードマップ7): 期限からの逆算ペース、承認待ち滞留の閾値、通知チャネル（CloudKit subscription）の設計。
 
-## 現状（2026-08-08 時点）
+## 現状（2026-08-22 時点）
 
 **できていること**:
 
@@ -192,7 +192,9 @@ graph LR
 - CI は2本立て。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 
-**まだないもの**: 本番UI。アプリターゲットにあるのは `ContentView` とペアリングのスパイク（`PairCommit/Partnership/`）だけ。
+- ロール別UI ── ビジョンの起案から承認まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。
+
+**まだないもの**: ビジョンの達成判断と、期限・催促まわりのUI。タスク一覧は素のリストで、感情ヒートマップにはなっていない。
 
 **保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したらペアリングのスパイクを実機2台で検証する。
 
@@ -205,8 +207,8 @@ graph LR
 3. **`InMemorySynchronizer` 実装** -> 済（`Sources/Infrastructure/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
 5. **ロール別UI** ← **いまここ**。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
-   - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。ビジョンの承認・差し戻しまで実装済み。
-   - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。起案と提出まで実装済み。
+   - Manager: タスク生成・承認・催促・ビジョン承認・達成判断、タスク一覧＝感情ヒートマップ。ビジョンの承認・差し戻し、タスクの生成・採用・承認・差し戻し・取り消しまで実装済み。残りは達成判断と催促、ヒートマップ。
+   - Player: ビジョン起案・進捗報告・感情表明（😡😕😊）・タスク起案。すべて実装済み。
    - ロールは起動時に選び、`LocalPairing` でその場でペアを成立させる（本来はペアリングで固定 → 未決事項5）。
 6. **ライフサイクルUI** ── Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移。
 7. **催促ロジック（双方向）** ── 期限ベースの催促＋承認待ち滞留時に管理者へも催促（具体仕様は未決事項7）。
