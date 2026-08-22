@@ -16,7 +16,7 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         case abandoned
     }
 
-    public enum Outcome: String, Sendable, Codable {
+    public enum Outcome: String, Sendable, Codable, CaseIterable {
         case achieved
         case abandoned
 

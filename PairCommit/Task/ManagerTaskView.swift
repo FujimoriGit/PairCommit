@@ -13,6 +13,7 @@ struct ManagerTaskView: View {
     let store: PartnershipStore
 
     @State private var title = ""
+    @State private var outcome: Vision.Outcome?
     @State private var failure: String?
 
     var body: some View {
@@ -33,9 +34,24 @@ private extension ManagerTaskView {
                 Section("ビジョン") {
                     Text(vision.statement)
                 }
+                Section("達成基準") {
+                    Text(vision.doneCriteria)
+                }
                 creation
                 taskList(store.state.tasks(for: vision.id))
+                judgement
                 failureRow
+            }
+            .confirmationDialog(
+                "このビジョンを閉じますか",
+                isPresented: confirming,
+                presenting: outcome
+            ) { outcome in
+                Button(outcome.confirmation, role: .destructive) {
+                    perform { try $0.closingVision(vision.id, as: outcome, by: store.role) }
+                }
+            } message: { _ in
+                Text("進行中のタスクはすべて取り消されます")
             }
         } else {
             ContentUnavailableView(
@@ -54,8 +70,25 @@ private extension ManagerTaskView {
                 perform { try $0.creatingTask(title: entered, by: store.role).state }
                 title = ""
             }
+            .buttonStyle(.borderedProminent)
             .disabled(title.isEmpty)
         }
+    }
+
+    var judgement: some View {
+        Section("達成判断") {
+            ForEach(Vision.Outcome.allCases, id: \.self) { candidate in
+                Button(candidate.label, role: candidate == .abandoned ? .destructive : nil) {
+                    outcome = candidate
+                }
+            }
+        }
+    }
+
+    var confirming: Binding<Bool> {
+        .init(get: { outcome != nil }, set: { presented in
+            if !presented { outcome = nil }
+        })
     }
 
     func taskList(_ tasks: [TaskItem]) -> some View {
