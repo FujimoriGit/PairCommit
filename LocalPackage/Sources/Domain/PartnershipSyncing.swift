@@ -6,7 +6,7 @@
 //
 
 public protocol PartnershipSyncing: Sendable {
-    func load() async throws -> PartnershipState
-    func save(_ state: PartnershipState) async throws
+    func load() async throws(SyncFailure) -> PartnershipState
+    func save(_ state: PartnershipState) async throws(SyncFailure)
     func remoteChanges() async -> AsyncStream<PartnershipState>
 }

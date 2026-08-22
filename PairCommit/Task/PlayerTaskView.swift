@@ -13,7 +13,7 @@ struct PlayerTaskView: View {
     let store: PartnershipStore
 
     @State private var title = ""
-    @State private var failure: String?
+    @State private var failureMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -35,7 +35,7 @@ private extension PlayerTaskView {
                 }
                 proposal
                 taskList(store.state.tasks(for: vision.id))
-                failureRow
+                FailureRow(message: failureMessage)
             }
         } else {
             ContentUnavailableView(
@@ -51,8 +51,17 @@ private extension PlayerTaskView {
             TextField("やること", text: $title)
             Button("起案する") {
                 let entered = title
-                perform { try $0.creatingTask(title: entered, by: store.role).state }
-                title = ""
+                Task {
+                    do throws(PartnershipFailure) {
+                        try await store.perform { state throws(DomainError) in
+                            try state.creatingTask(title: entered, by: store.role).state
+                        }
+                        failureMessage = nil
+                        title = ""
+                    } catch {
+                        failureMessage = error.message
+                    }
+                }
             }
             .buttonStyle(.borderedProminent)
             .disabled(title.isEmpty)
@@ -86,7 +95,7 @@ private extension PlayerTaskView {
             }
             if task.status == .todo {
                 Button("完了を報告する") {
-                    perform { try $0.reportingTask(task.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
                 }
                 .buttonStyle(.borderless)
             }
@@ -97,8 +106,8 @@ private extension PlayerTaskView {
         HStack(spacing: 16) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button(reaction.emoji) {
-                    perform {
-                        try $0.settingReaction(
+                    perform { state throws(DomainError) in
+                        try state.settingReaction(
                             task.reaction == reaction ? nil : reaction,
                             on: task.id,
                             by: store.role
@@ -111,23 +120,13 @@ private extension PlayerTaskView {
         .buttonStyle(.borderless)
     }
 
-    @ViewBuilder
-    var failureRow: some View {
-        if let failure {
-            Section {
-                Text(failure)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-
-    func perform(_ transform: @escaping (PartnershipState) throws -> PartnershipState) {
+    func perform(_ transform: @escaping (PartnershipState) throws(DomainError) -> PartnershipState) {
         Task {
-            do {
+            do throws(PartnershipFailure) {
                 try await store.perform(transform)
-                failure = nil
+                failureMessage = nil
             } catch {
-                failure = error.localizedDescription
+                failureMessage = error.message
             }
         }
     }

@@ -12,7 +12,7 @@ import SwiftUI
 struct ManagerVisionView: View {
     let store: PartnershipStore
 
-    @State private var failure: String?
+    @State private var failureMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -50,13 +50,13 @@ private extension ManagerVisionView {
             visionFields(vision)
             Section {
                 Button("承認する") {
-                    perform { try $0.approvingVision(vision.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
                 }
                 Button("起案者に差し戻す") {
-                    perform { try $0.rejectingVision(vision.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
                 }
             }
-            failureRow
+            FailureRow(message: failureMessage)
         }
     }
 
@@ -67,7 +67,7 @@ private extension ManagerVisionView {
                     .foregroundStyle(.secondary)
             }
             visionFields(vision)
-            failureRow
+            FailureRow(message: failureMessage)
         }
     }
 
@@ -82,23 +82,13 @@ private extension ManagerVisionView {
         }
     }
 
-    @ViewBuilder
-    var failureRow: some View {
-        if let failure {
-            Section {
-                Text(failure)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-
-    func perform(_ transform: @escaping (PartnershipState) throws -> PartnershipState) {
+    func perform(_ transform: @escaping (PartnershipState) throws(DomainError) -> PartnershipState) {
         Task {
-            do {
+            do throws(PartnershipFailure) {
                 try await store.perform(transform)
-                failure = nil
+                failureMessage = nil
             } catch {
-                failure = error.localizedDescription
+                failureMessage = error.message
             }
         }
     }

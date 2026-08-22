@@ -15,7 +15,7 @@ struct PlayerVisionView: View {
 
     @State private var statement = ""
     @State private var doneCriteria = ""
-    @State private var failure: String?
+    @State private var failureMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -52,7 +52,7 @@ private extension PlayerVisionView {
             }
             Section {
                 Button("起案する") {
-                    perform { try $0.draftingVision(
+                    perform { state throws(DomainError) in try state.draftingVision(
                         statement: statement,
                         doneCriteria: doneCriteria,
                         by: store.role
@@ -60,7 +60,7 @@ private extension PlayerVisionView {
                 }
                 .disabled(statement.isEmpty || doneCriteria.isEmpty)
             }
-            failureRow
+            FailureRow(message: failureMessage)
         }
     }
 
@@ -69,10 +69,10 @@ private extension PlayerVisionView {
             visionFields(vision)
             Section {
                 Button("管理者に提出する") {
-                    perform { try $0.proposingVision(vision.id, by: store.role) }
+                    perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
                 }
             }
-            failureRow
+            FailureRow(message: failureMessage)
         }
     }
 
@@ -83,7 +83,7 @@ private extension PlayerVisionView {
                     .foregroundStyle(.secondary)
             }
             visionFields(vision)
-            failureRow
+            FailureRow(message: failureMessage)
         }
     }
 
@@ -98,23 +98,13 @@ private extension PlayerVisionView {
         }
     }
 
-    @ViewBuilder
-    var failureRow: some View {
-        if let failure {
-            Section {
-                Text(failure)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-
-    func perform(_ transform: @escaping (PartnershipState) throws -> PartnershipState) {
+    func perform(_ transform: @escaping (PartnershipState) throws(DomainError) -> PartnershipState) {
         Task {
-            do {
+            do throws(PartnershipFailure) {
                 try await store.perform(transform)
-                failure = nil
+                failureMessage = nil
             } catch {
-                failure = error.localizedDescription
+                failureMessage = error.message
             }
         }
     }
