@@ -18,12 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ビルドにも撮る画像にも関わらないものだけを挙げる。ここに書き忘れても
+      # VRT が走るだけで、見逃しにはならない。
       - id: filter
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          pattern='^(PairCommit/|PairCommitTests/|PairCommitUITests/|LocalPackage/|Packages/|Scripts/|PairCommit\.xcodeproj/|\.prefire\.yml|\.swiftlint\.yml|\.github/workflows/ci\.yml)'
-          if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qE "$pattern"; then
+          ignored='(\.md$|^\.claude/|^\.github/workflows/(claude-review|unit-tests|update-snapshots)\.yml$)'
+          if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qvE "$ignored"; then
             echo "app=true" >> "$GITHUB_OUTPUT"
           else
             echo "app=false" >> "$GITHUB_OUTPUT"
