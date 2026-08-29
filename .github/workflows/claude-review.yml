@@ -34,8 +34,9 @@ jobs:
             ドメインに触れる差分では design.md も読み、決定事項と食い違っていないか見てください。
             CI が判定すること（ビルド・テスト・lint の成否）は指摘しないでください。
             問題がなければその旨だけを短く投稿してください。
-            前回自分が付けたインラインコメントを確認し、すでに直っているものは GitHub の GraphQL API の
-            resolveReviewThread で解決済みにしてください。
+            投稿の前に、この PR に自分が付けた未解決のインラインコメントを全て読んでください。
+            すでに指摘済みの内容は、言い回しや根拠を変えたものも含めて再投稿しないでください。
+            すでに直っているものは GitHub の GraphQL API の resolveReviewThread で解決済みにしてください。
           claude_args: |
             --model claude-opus-5
             --allowedTools Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh api:*),mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment
