@@ -9,18 +9,20 @@ import CloudKit
 import Domain
 import Foundation
 
-/// 共有ゾーンのルートレコードと PartnershipState の相互変換。
 enum PartnershipRootRecord {
     static let type = "Pairing"
 
-    static func decoding(_ record: CKRecord) -> PartnershipState? {
-        guard let data = record[Key.state] as? Data else { return nil }
-        return try? JSONDecoder().decode(PartnershipState.self, from: data)
+    static func decoding(_ record: CKRecord) throws -> PartnershipState {
+        guard let data = record[Key.state] as? Data else { throw Failure.stateMissing }
+        return try JSONDecoder().decode(PartnershipState.self, from: data)
     }
 
-    static func encoding(_ state: PartnershipState, id: CKRecord.ID, base: CKRecord? = nil) -> CKRecord {
-        let record = base ?? CKRecord(recordType: type, recordID: id)
-        record[Key.state] = try? JSONEncoder().encode(state)
+    static func creating(_ state: PartnershipState, id: CKRecord.ID) throws -> CKRecord {
+        try encoding(state, into: CKRecord(recordType: type, recordID: id))
+    }
+
+    static func encoding(_ state: PartnershipState, into record: CKRecord) throws -> CKRecord {
+        record[Key.state] = try JSONEncoder().encode(state)
         return record
     }
 }
@@ -30,5 +32,9 @@ enum PartnershipRootRecord {
 private extension PartnershipRootRecord {
     enum Key {
         static let state = "state"
+    }
+
+    enum Failure: Error {
+        case stateMissing
     }
 }

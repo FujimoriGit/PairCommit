@@ -10,13 +10,13 @@ import Domain
 import Foundation
 import OSLog
 
-public struct CloudKitSynchronizer {
+struct CloudKitSynchronizer {
     private let database: CKDatabase
     private let rootRecordID: CKRecord.ID
     private let remoteChangeSignals: @Sendable () async -> AsyncStream<Void>
     private let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "sync")
 
-    public init(
+    init(
         rootRecordID: CKRecord.ID,
         isOwner: Bool,
         container: CKContainer,
@@ -31,19 +31,24 @@ public struct CloudKitSynchronizer {
 // MARK: - PartnershipSyncing
 
 extension CloudKitSynchronizer: PartnershipSyncing {
-    public func load() async throws(SyncFailure) -> PartnershipState {
+    func load() async throws(SyncFailure) -> PartnershipState {
         guard let record = try await fetchRoot() else { return .init() }
-        return PartnershipRootRecord.decoding(record) ?? .init()
+        do {
+            return try PartnershipRootRecord.decoding(record)
+        } catch {
+            logger.error("decode: \(error, privacy: .public)")
+            throw .unavailable
+        }
     }
 
-    public func save(_ state: PartnershipState) async throws(SyncFailure) {
+    func save(_ state: PartnershipState) async throws(SyncFailure) {
         // 作り直したレコードで上書きすると、CKShare との結びつきを持つ
         // システムフィールドが落ちる。サーバーにあるものへ書き足す。
-        let base = try await fetchRoot()
+        guard let base = try await fetchRoot() else { throw .unavailable }
         do {
             // .allKeys は変更タグを見ずに上書きする。後から書いた側が勝つ。
             _ = try await database.modifyRecords(
-                saving: [PartnershipRootRecord.encoding(state, id: rootRecordID, base: base)],
+                saving: [PartnershipRootRecord.encoding(state, into: base)],
                 deleting: [],
                 savePolicy: .allKeys
             )
@@ -53,12 +58,15 @@ extension CloudKitSynchronizer: PartnershipSyncing {
         }
     }
 
-    public func remoteChanges() async -> AsyncStream<PartnershipState> {
+    func remoteChanges() async -> AsyncStream<PartnershipState> {
         AsyncStream { continuation in
             let delivery = Task {
                 for await _ in await remoteChangeSignals() {
-                    guard let state = try? await load() else { continue }
-                    continuation.yield(state)
+                    do {
+                        continuation.yield(try await load())
+                    } catch {
+                        logger.error("remoteChanges: \(error, privacy: .public)")
+                    }
                 }
                 continuation.finish()
             }
@@ -67,7 +75,7 @@ extension CloudKitSynchronizer: PartnershipSyncing {
     }
 }
 
-public extension CloudKitSynchronizer {
+extension CloudKitSynchronizer {
     /// 相手側の変更でプッシュが飛ぶようにする。届いたプッシュは `remoteChangeSignals` へ流すこと。
     func subscribeToRemoteChanges() async throws(SyncFailure) {
         let subscription = CKDatabaseSubscription(subscriptionID: Self.subscriptionID)
@@ -97,7 +105,19 @@ private extension CloudKitSynchronizer {
             logger.error("fetch: \(error, privacy: .public)")
             throw .unavailable
         }
-        guard case .success(let record) = results[rootRecordID] else { return nil }
-        return record
+        switch results[rootRecordID] {
+        case .success(let record):
+            return record
+        case .failure(let error):
+            // 不在は終了の合図なので、読めなかっただけの失敗と同じ値にはできない。
+            guard (error as? CKError)?.code == .unknownItem else {
+                logger.error("fetch: \(error, privacy: .public)")
+                throw .unavailable
+            }
+            return nil
+        case nil:
+            logger.error("fetch: 要求したレコードの結果が返っていない")
+            throw .unavailable
+        }
     }
 }

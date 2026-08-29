@@ -37,7 +37,7 @@ enum PartnershipShare {
         _ = try await database.modifyRecordZones(saving: [zone], deleting: [])
 
         let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
-        let pairing = PartnershipRootRecord.encoding(initialState, id: rootRecordID)
+        let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
 
         let share = CKShare(rootRecord: pairing)
         share[CKShare.SystemFieldKey.title] = "PairCommit" as CKRecordValue
