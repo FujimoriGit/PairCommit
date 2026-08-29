@@ -14,9 +14,12 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
+      # 新しい基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push すると、
+      # 更新された PR のワークフローが承認待ちになる。
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.VRT_DEPLOY_KEY }}
 
       # ビルドにも撮る画像にも関わらないものだけを挙げる。ここに書き忘れても
       # VRT が走るだけで、見逃しにはならない。
@@ -40,6 +43,28 @@ jobs:
       - name: Build & VRT
         if: steps.filter.outputs.app == 'true'
         run: ./Scripts/test.sh
+
+      # 新しい #Preview には比べる相手がいないので、撮られた画像をそのまま取り込む。
+      # 既存の画像との差分は、意図した変更か退行かをコードから判定できない。
+      # 自動で取り込むと VRT が何も検出しなくなるので、そちらは人に返す。
+      - name: Adopt new baselines
+        if: failure() && steps.filter.outputs.app == 'true'
+        env:
+          HEAD_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+        run: |
+          changed=$(git diff --name-only -- PairCommitTests/__Snapshots__)
+          if [ -n "$changed" ]; then
+            echo "既存の基準画像に差分がある。意図した変更なら update-snapshots で撮り直すこと:"
+            echo "$changed"
+            exit 1
+          fi
+
+          if [ -z "$(git ls-files --others --exclude-standard -- PairCommitTests/__Snapshots__)" ]; then
+            echo "基準画像は増えていない。VRT 以外の失敗。"
+            exit 1
+          fi
+
+          ./Scripts/commit-snapshots.sh "$HEAD_BRANCH"
 
       # スナップショット差分は xcresult の添付画像で確認できる
       - name: Upload test results
