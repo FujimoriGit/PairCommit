@@ -25,8 +25,11 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          classify_inline_comments: false
           prompt: |
-            この PR の差分をレビューして、指摘を PR コメントとして投稿してください。
+            この PR の差分をレビューしてください。指摘は該当する行へのインラインコメントとして残し、
+            全体の所感だけを PR コメントに書いてください。
             CLAUDE.md の設計原則・コーディング規約・テスト原則に反する箇所を最優先で見てください。
             ドメインに触れる差分では design.md も読み、決定事項と食い違っていないか見てください。
             CI が判定すること（ビルド・テスト・lint の成否）は指摘しないでください。
