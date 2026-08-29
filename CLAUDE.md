@@ -101,4 +101,5 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 - モジュール: `LocalPackage`（`Sources/` に Domain / Application / Infrastructure、`Tests/` に各層のテスト）。アプリターゲットはこのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
+  - 例外は `PairCommit/Info.plist`。同期グループに任せるとリソースとしても複製され、生成される Info.plist と衝突してビルドが落ちるので、`membershipExceptions` で除外してある。
 - Bundle ID: `com.daiki.paircommit` / CloudKit コンテナ: `iCloud.com.daiki.paircommit`
