@@ -25,14 +25,35 @@ jobs:
           rm -rf PairCommitTests/__Snapshots__
           ./Scripts/test.sh || true
 
+      # record に10分近くかかる間にブランチが進むことがある。録った画像を
+      # そのときの先端に載せ替えてから push する。画像は録り直したものが正しいので、
+      # 先端側に画像の変更があっても録ったほうで置き換える。
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add PairCommitTests/__Snapshots__
-          if git diff --cached --quiet; then
-            echo "基準画像に変更なし"
-            exit 0
-          fi
-          git commit -m "VRT の基準画像を CI で record し直す"
-          git push
+
+          recorded="$RUNNER_TEMP/recorded-snapshots"
+          rm -rf "$recorded"
+          cp -R PairCommitTests/__Snapshots__ "$recorded"
+
+          for attempt in 1 2 3; do
+            git fetch origin "$GITHUB_REF_NAME"
+            git reset --hard "origin/$GITHUB_REF_NAME"
+
+            rm -rf PairCommitTests/__Snapshots__
+            cp -R "$recorded" PairCommitTests/__Snapshots__
+            git add PairCommitTests/__Snapshots__
+
+            if git diff --cached --quiet; then
+              echo "基準画像に変更なし"
+              exit 0
+            fi
+
+            git commit -m "VRT の基準画像を CI で record し直す"
+            if git push origin "HEAD:$GITHUB_REF_NAME"; then
+              exit 0
+            fi
+            echo "先端が動いたので載せ替えて再試行する（$attempt 回目）"
+          done
+          exit 1
