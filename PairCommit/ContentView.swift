@@ -19,6 +19,9 @@ struct ContentView: View {
     var body: some View {
         if let store {
             screen(for: store)
+                .task(id: store.state) {
+                    await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+                }
         } else if pairing.phase == .idle {
             rolePicker
         } else {
@@ -117,6 +120,7 @@ private extension ContentView {
                 state: state
             )
             try await started.start()
+            await NudgeNotifications.requestPermission()
             store = started
         } catch {
             giveUp(with: error.message)
