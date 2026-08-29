@@ -119,11 +119,7 @@ private extension ContentView {
                 return
             }
             let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
-            let started = PartnershipStore(
-                role: agreement.role,
-                synchronizer: synchronizer,
-                state: state
-            )
+            let started = PartnershipStore(role: agreement.role, synchronizer: synchronizer)
             try await started.start()
             await NudgeNotifications.requestPermission()
             store = started
@@ -132,7 +128,7 @@ private extension ContentView {
         }
     }
 
-    // ペアリング画面は失敗を出さないので、選び直せる最初の画面まで戻す。
+    // 入場の失敗を出せる画面がないので、選び直せる最初の画面まで戻す。
     func giveUp(with message: String) {
         failureMessage = message
         store?.stop()
