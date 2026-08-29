@@ -18,6 +18,7 @@ struct ManagerVisionView: View {
         NavigationStack {
             content
                 .navigationTitle(Role.manager.label)
+                .partnershipReset()
         }
     }
 }

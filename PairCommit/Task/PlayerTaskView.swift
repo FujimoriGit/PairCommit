@@ -20,6 +20,7 @@ struct PlayerTaskView: View {
         NavigationStack {
             content
                 .navigationTitle(Role.player.label)
+                .partnershipReset()
         }
     }
 }

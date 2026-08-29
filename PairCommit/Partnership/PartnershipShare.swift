@@ -57,6 +57,15 @@ enum PartnershipShare {
         return (url, rootRecordID)
     }
 
+    // MARK: 両者共通
+
+    /// ゾーンごと消してパートナーシップを終わらせる。始めた側は自分のゾーンを、
+    /// 受けた側は共有側のゾーンを消して共有から抜ける。
+    static func teardown(rootRecordID: CKRecord.ID, isOwner: Bool) async throws {
+        let database = isOwner ? container.privateCloudDatabase : container.sharedCloudDatabase
+        _ = try await database.modifyRecordZones(saving: [], deleting: [rootRecordID.zoneID])
+    }
+
     // MARK: Participant 側
 
     static func acceptShare(from url: URL) async throws -> CKRecord.ID {

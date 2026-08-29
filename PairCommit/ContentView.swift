@@ -18,9 +18,10 @@ struct ContentView: View {
     var body: some View {
         if let store = session.store {
             screen(for: store)
+                .environment(\.resettingPartnership) { await reset() }
                 .task(id: store.state) {
                     guard store.state.pairing != nil else {
-                        giveUp(with: "パートナーシップは終了しました")
+                        returnToPicker(with: "パートナーシップは終了しました")
                         return
                     }
                     await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
@@ -98,7 +99,7 @@ private extension ContentView {
 
     func enter() async {
         guard let outcome = pairing.outcome else {
-            giveUp(with: "ペアリングの結果を受け取れませんでした")
+            returnToPicker(with: "ペアリングの結果を受け取れませんでした")
             return
         }
         let synchronizer = CloudKitSynchronizer(
@@ -110,7 +111,7 @@ private extension ContentView {
         do {
             let state = try await synchronizer.start()
             guard let ownerRole = state.pairing?.ownerRole else {
-                giveUp(with: "相手の設定がまだ届いていません")
+                returnToPicker(with: "相手の設定がまだ届いていません")
                 return
             }
             let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
@@ -121,12 +122,19 @@ private extension ContentView {
                 state: state
             )
         } catch {
-            giveUp(with: error.message)
+            returnToPicker(with: error.message)
         }
     }
 
+    func reset() async {
+        if let outcome = pairing.outcome {
+            try? await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
+        }
+        returnToPicker(with: nil)
+    }
+
     // 入場の失敗を出せる画面がないので、選び直せる最初の画面まで戻す。
-    func giveUp(with message: String) {
+    func returnToPicker(with message: String?) {
         failureMessage = message
         session.store = nil
         pairing.reset()
