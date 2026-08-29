@@ -16,11 +16,16 @@ enum NudgeNotifications {
 
     static func post(_ nudges: [Nudge], in state: PartnershipState) async {
         let center = UNUserNotificationCenter.current()
-        // 同じ催促が続く間は増やさない。識別子が同じ通知は差し替わる。
         let wanted = Dictionary(nudges.map { (identifier(of: $0), $0) }, uniquingKeysWith: { first, _ in first })
-        await withdrawVanished(keeping: Set(wanted.keys), on: center)
+        let delivered = await center.deliveredNotifications().map(\.request.identifier)
 
-        for (id, nudge) in wanted {
+        // 解消した催促の通知は残さない。読んだときにはもう終わっている、が起きる。
+        center.removeDeliveredNotifications(
+            withIdentifiers: delivered.filter { $0.hasPrefix(prefix) && wanted[$0] == nil }
+        )
+
+        // 配信済みの催促は出し直さない。同じ識別子で add し直すと、差し替わると同時にもう一度鳴る。
+        for (id, nudge) in wanted where !delivered.contains(id) {
             let content = UNMutableNotificationContent()
             content.title = "PairCommit"
             content.body = nudge.message(in: state)
@@ -43,13 +48,5 @@ private extension NudgeNotifications {
         case .approvalStalled(let id): "\(prefix)approval-stalled.\(id)"
         case .visionOverdue(let id): "\(prefix)vision-overdue.\(id)"
         }
-    }
-
-    // 解消した催促の通知は残さない。読んだときにはもう終わっている、が起きる。
-    static func withdrawVanished(keeping wanted: Set<String>, on center: UNUserNotificationCenter) async {
-        let delivered = await center.deliveredNotifications()
-            .map(\.request.identifier)
-            .filter { $0.hasPrefix(prefix) && !wanted.contains($0) }
-        center.removeDeliveredNotifications(withIdentifiers: delivered)
     }
 }
