@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  unit-tests:
     # ubuntu で回すのは速いからだけでなく、Apple のフレームワークに依存していないことを
     # 同時に検証するため。ここが落ちたらどこかで Apple 依存を引き込んでいる。
     runs-on: ubuntu-latest
