@@ -20,7 +20,7 @@ enum PartnershipShareError: LocalizedError {
 }
 
 enum PartnershipShare {
-    static let container = CKContainer(identifier: "iCloud.com.daiki.paircommit")
+    static let container = CKContainer(identifier: "iCloud.com.fujimori.PairCommit")
     private static let zoneName = "PairingZone"
     private static let rootRecordName = "pairing-root"
 

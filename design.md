@@ -2,7 +2,7 @@
 
 > アプリ名 `PairCommit` は開発用の仮名。表示名（`CFBundleDisplayName`）は後で差し替え可能なので、リポジトリ・Bundle ID・モジュール名とは切り離して扱う。
 > - リポジトリ / モジュール: `PairCommit`
-> - Bundle ID: `com.daiki.paircommit`
+> - Bundle ID: `com.fujimori.PairCommit` / CloudKit コンテナ: `iCloud.com.fujimori.PairCommit`
 
 2人で使うコミットメントデバイス。自己管理が難しいのは「誰も見ていない」から、という前提に立ち、パートナーを観測者として置く。アカウンタビリティパートナーの仕組みをアプリ化する。
 
@@ -38,7 +38,11 @@
 ## 同期層（決定: CloudKit）
 
 - **CloudKit の Shared DB / CKShare** を使う。2人で特定レコードを共有する用途に設計されている。
-- **CKSyncEngine**（WWDC 2024）で同期処理を簡略化。変更トークン管理・プッシュ受信処理・ゾーン設定が大幅に楽に。
+- **CKSyncEngine は使わない**（当初は採用する決定だったが取り消した）。値を返す `CKDatabase` の async メソッドだけで書く。
+  - 集約を1レコードに丸ごと入れるので、CKSyncEngine が肩代わりする変更トークン管理も保留キューも使い道がない。
+  - 一方で CKSyncEngine は結果をデリゲートのコールバックで配るため、受け取る側に可変状態を強いる。同期層の実装を `let` だけの struct に保てなくなる。
+- 保存は last-writer-wins。`savePolicy: .allKeys` は変更タグを見ずに上書きするので、後から書いた側が勝つ。
+  - 2人・単一集約なので、レコード単位のマージは要らない。
 - 催促のプッシュ通知は CloudKit subscription で飛ばす。
 - 採用理由: 本丸である「同期・認証・プッシュ」を3つともタダで肩代わり。2人なら無料枠に完全に収まる。
 - **ロックイン: 両者ともApple端末必須。** ただし下記の隔離設計で、後からの置き換えを可能にしておく。
@@ -54,6 +58,7 @@
 - 同期層のセマンティクス（ドメインは何が保証されれば動くか）を先に決め、CloudKit依存をこのプロトコルの裏1点に隔離する。
 - これにより第二期のRust/自作バックエンドは「もう一つの実装」を差すだけで済む。
 - 実装上はローカルSPMパッケージ `LocalPackage` の `Domain` / `Application` / `Infrastructure` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。View はアプリターゲットに置く。
+- CloudKit を使う実装だけはアプリターゲット側に置く。パッケージに入れると ubuntu で回している `swift test` が壊れる（達成基準の下読みと同じ理由）。`InMemorySynchronizer` は `Infrastructure` に残す。
 
 ### 第二期構想（後回し）
 
@@ -174,7 +179,7 @@ graph LR
    -> **方針決定: MCで `CKShare.url` を手渡し、参加者は共有シートを経由せず `CKFetchShareMetadataOperation` + `CKAcceptSharesOperation` でプログラム受諾**（独自トークンは不要）。
    -> **成功判定はACKで締める**: 参加者が受諾を終えたらMCで ACK を返し、オーナーはそれを受けて初めて成功にする（URL送信だけで成功表示すると相手の受諾失敗を見逃す）。
    -> スパイク実装済み（`PairCommit/Partnership/`）。
-   -> **実行検証は保留**: CloudKit は有料の Apple Developer Program 必須（無料署名では capability が降りない）。加入後にスパイクで実機検証する。設計が `PartnershipSyncing` で隔離しているため本体着手のネックにはならない。
+   -> **実行検証はこれから**: Apple Developer Program には加入済み。MC は実機同士でないと繋がらないので、この検証だけは実機2台が要る。
 2. データモデルのリレーション図作る -> 済（「データモデル骨格 > リレーション図 / 状態の流れ」参照）
 3. ビジョン達成時のお祝い演出 → 次ビジョン設定への画面遷移 -> 済。達成済みビジョンの有無から導いて出す（見たかどうかの状態は持たない）。
 4. ビジョンのクライテリアをFoundationModelに基準をレビューさせてもよい -> 済。境界は `CriteriaReviewing`（Domain）、実装は端末上のモデルを使うのでアプリターゲット。使えない端末では機能ごと出さない。
@@ -185,9 +190,9 @@ graph LR
    - 完了報告から2日たっても承認されない -> 管理者へ
    - 進行中ビジョンの期限切れ -> 管理者へ（達成判断を促す）
    - 逆算の「ペース」は入れない。タスクに進捗率がなく（`todo` か `reported` か）、日数以外に測れるものがないため。
-   - 通知チャネルはアプリ内表示のみ。プッシュは CloudKit subscription が要るので加入後（ロードマップ8）。
+   - 通知チャネルはアプリ内表示のみ。プッシュは CloudKit subscription が要るのでロードマップ8のあと。
 
-## 現状（2026-08-22 時点）
+## 現状（2026-08-29 時点）
 
 **できていること**:
 
@@ -202,9 +207,9 @@ graph LR
 - 達成基準の下読み ── 境界は `CriteriaReviewing`。端末上のモデルを使う実装はアプリターゲットに置く（パッケージに入れると ubuntu の `swift test` が壊れる）。
 - 失敗は型で流す。ドメインの操作は `DomainError`、同期の境界は `SyncFailure`、Store はその2つを畳んだ型を投げる。
 
-**まだないもの**: 催促の通知（アプリ内表示まではある）。
+**まだないもの**: 催促の通知（アプリ内表示まではある）。CloudKit 同期をアプリに繋ぐ配線（`ContentView` はまだ `InMemorySynchronizer` を使う）。
 
-**保留**: CloudKit 実行検証（Developer Program 加入待ち）。加入したらペアリングのスパイクを実機2台で検証する。
+**保留**: 実機での検証。Apple Developer Program には加入済みで、CloudKit 自体は iCloud にサインインしたシミュレータで動かせる。実機2台が要るのはペアリングの握手（MC）だけ。
 
 ## 次のタスク（実装ロードマップ）
 
@@ -219,8 +224,8 @@ graph LR
    - Player: ビジョン起案・タスク起案・完了報告・感情表明（😡😕😊）、催促の表示。
    - ロールは起動時に選び、`LocalPairing` でその場でペアを成立させる（本来はペアリングで固定 → 未決事項5）。
 6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
-7. **催促ロジック（双方向）** ← **いまここ**。判定はドメインの純粋関数として済（`Nudge` / `nudges(for:now:)`）。アプリ内表示も済。残りは通知（ロードマップ8のあと）。
-8. **（加入後）`CloudKitSynchronizer` 差し替え＋#1実行検証**。
+7. **催促ロジック（双方向）** -> 判定はドメインの純粋関数として済（`Nudge` / `nudges(for:now:)`）。アプリ内表示も済。残りは通知（ロードマップ8のあと）。
+8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。`PartnershipSyncing` の実装は書けた（`PairCommit/Partnership/`）。残りは、ペアリングの成立からルートレコードの参照を受け取って `ContentView` で差し替える配線と、変更通知の入り口（`remoteChanges()` に渡す）。
 9. **（できれば）** 達成お祝い演出→次ビジョン設定 -> 済。Foundation Models でクライテリアをレビュー -> 済。
 
 ---

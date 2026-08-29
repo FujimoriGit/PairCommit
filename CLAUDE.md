@@ -13,6 +13,9 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 - **Functional core, imperative shell。**
   - ドメインの操作は決定的な純粋関数に保つ。`Date()` / `UUID()` は既定値付き引数で注入し、テストから制御できるようにする。
   - 副作用（I/O・通信・永続化）は端（同期層の実装・Store・UI）へ押し出す。ドメインの中で `Task {}` を起動したり通信したりしない。
+- **端の実装も、可変状態を持たずに書けないか先に試す。** I/O を担う型でも既定は struct と `let`。
+  - **可変状態を足してよいのは、外部フレームワークの形がそれを強制するときだけ。** 強制されていると思ったら、そのフレームワークを使わない選択肢を先に検討する。結果をコールバックで配る API は受け皿の可変状態を要求するが、値を返す `async` 関数だけで同じことができるなら、その状態はまるごと不要になる。
+  - **隔離先を変えることは、可変状態を減らしたことにならない。** `@MainActor` のクラスを actor に替えても、状態の数も共有のされ方も変わらない。しかも actor は `await` ごとに再入するので、中断をまたぐ不変条件は守られない。減らすべきは隔離の仕方ではなく状態そのもの。
 - **ドメインに `mutating` を書かない。** 状態を変える操作は、受け取った値を変更せず**新しい値を返す関数**にする（`func 〜() throws -> PartnershipState`）。
   - 格納プロパティは `var` ではなく `let`。書き換えられないことを型で示す。
   - 命名は Swift API Design Guidelines の非破壊側に倣い `-ing` / `-ed` 形にする（`approvingVision`）。
@@ -104,4 +107,4 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 - モジュール: `LocalPackage`（`Sources/` に Domain / Application / Infrastructure、`Tests/` に各層のテスト）。アプリターゲットはこのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
   - 例外は `PairCommit/Info.plist`。同期グループに任せるとリソースとしても複製され、生成される Info.plist と衝突してビルドが落ちるので、`membershipExceptions` で除外してある。
-- Bundle ID: `com.daiki.paircommit` / CloudKit コンテナ: `iCloud.com.daiki.paircommit`
+- Bundle ID: `com.fujimori.PairCommit` / CloudKit コンテナ: `iCloud.com.fujimori.PairCommit`
