@@ -20,6 +20,11 @@ struct ContentView: View {
         if let store {
             screen(for: store)
                 .task(id: store.state) {
+                    // 相手がリセットするとレコードごと消える。ペアが欠けた状態では何も進められない。
+                    guard store.state.pairing != nil else {
+                        giveUp(with: "パートナーシップは終了しました")
+                        return
+                    }
                     await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
                 }
         } else if pairing.phase == .idle {
@@ -130,6 +135,8 @@ private extension ContentView {
     // ペアリング画面は失敗を出さないので、選び直せる最初の画面まで戻す。
     func giveUp(with message: String) {
         failureMessage = message
+        store?.stop()
+        store = nil
         pairing.reset()
     }
 }
