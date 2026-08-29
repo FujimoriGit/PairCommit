@@ -183,7 +183,7 @@ graph LR
 2. データモデルのリレーション図作る -> 済（「データモデル骨格 > リレーション図 / 状態の流れ」参照）
 3. ビジョン達成時のお祝い演出 → 次ビジョン設定への画面遷移 -> 済。達成済みビジョンの有無から導いて出す（見たかどうかの状態は持たない）。
 4. ビジョンのクライテリアをFoundationModelに基準をレビューさせてもよい -> 済。境界は `CriteriaReviewing`（Domain）、実装は端末上のモデルを使うのでアプリターゲット。使えない端末では機能ごと出さない。
-5. **ペアリング時のロール割り当て**: どちらが Manager かをMCハンドシェイクでどう確定するか（案: オーナーが自ロールを選び、URLと一緒に送って `Pairing.ownerRole` に固定する）。
+5. **ペアリング時のロール割り当て** -> 済。始める側が自分のロールを選び、そのロールを入れた状態をルートレコードに書いてから共有する。受ける側はMCでロールを受け取るのではなく、参加後に読み込んだ状態から `ownerRole` を読む。MC で渡すのは CKShare の URL だけで済む。
 6. **片側リセット時の整合性**: 片方だけがアプリをリセットしたとき、CKShare の参加解除・ゾーン削除・相手側への通知をどう扱うか。
 7. **催促の具体仕様**（ロードマップ7）-> 決定。判定は `PartnershipState.nudges(for:now:)` の純粋関数。
    - タスクの期限切れ / 期限まで3日以内 -> プレイヤーへ
@@ -197,7 +197,7 @@ graph LR
 **できていること**:
 
 - ドメイン層 ── 不変条件・ロールガード・全遷移。状態を変える操作は受け取った値を変更せず新しい値を返す（`mutating` なし）。
-- 同期境界 `PartnershipSyncing` とインメモリ実装。UI結節点の `PartnershipStore`。
+- 同期境界 `PartnershipSyncing` と、CloudKit 実装・インメモリ実装。UI結節点の `PartnershipStore`。インメモリ実装はテストとプレビュー専用。
 - 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストも層ごとに `LocalPackage/Tests/` へ置き、`swift test` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
 - CI は2本立て。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
@@ -207,9 +207,9 @@ graph LR
 - 達成基準の下読み ── 境界は `CriteriaReviewing`。端末上のモデルを使う実装はアプリターゲットに置く（パッケージに入れると ubuntu の `swift test` が壊れる）。
 - 失敗は型で流す。ドメインの操作は `DomainError`、同期の境界は `SyncFailure`、Store はその2つを畳んだ型を投げる。
 
-**まだないもの**: 催促の通知（アプリ内表示まではある）。CloudKit 同期をアプリに繋ぐ配線（`ContentView` はまだ `InMemorySynchronizer` を使う）。
+**まだないもの**: 催促の通知（アプリ内表示まではある）。プッシュの受け口とサイレントプッシュの購読までは入っているので、残りは催促をどう出すか。
 
-**保留**: 実機での検証。Apple Developer Program には加入済みで、CloudKit 自体は iCloud にサインインしたシミュレータで動かせる。実機2台が要るのはペアリングの握手（MC）だけ。
+**保留**: 実機での検証。Apple Developer Program には加入済み。MC はシミュレータ同士では繋がらないので、ペアリングから先は実機2台でしか動かせない。1台だけで使う入り口（`LocalPairing`）は、ペアリングを本物にしたときに落とした。
 
 ## 次のタスク（実装ロードマップ）
 
@@ -222,10 +222,10 @@ graph LR
 5. **ロール別UI** -> 済。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
    - Manager: タスク生成・採用・承認・差し戻し・取り消し、ビジョン承認・達成判断、催促の表示、感情ヒートマップ（行の色）。
    - Player: ビジョン起案・タスク起案・完了報告・感情表明（😡😕😊）、催促の表示。
-   - ロールは起動時に選び、`LocalPairing` でその場でペアを成立させる（本来はペアリングで固定 → 未決事項5）。
+   - ロールはペアリングのときに固定する（未決事項5）。始める側が選び、受ける側は残りのロールになる。
 6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
 7. **催促ロジック（双方向）** -> 判定はドメインの純粋関数として済（`Nudge` / `nudges(for:now:)`）。アプリ内表示も済。残りは通知（ロードマップ8のあと）。
-8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。`PartnershipSyncing` の実装は書けた（`PairCommit/Partnership/`）。残りは、ペアリングの成立からルートレコードの参照を受け取って `ContentView` で差し替える配線と、変更通知の入り口（`remoteChanges()` に渡す）。
+8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。実装と配線は済（`PairCommit/Partnership/`）。残りは実機2台での実行検証。
 9. **（できれば）** 達成お祝い演出→次ビジョン設定 -> 済。Foundation Models でクライテリアをレビュー -> 済。
 
 ---

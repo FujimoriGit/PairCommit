@@ -7,18 +7,26 @@
 
 import Application
 import Domain
-import Infrastructure
 import SwiftUI
 
 struct ContentView: View {
+    let remoteChangeSignals: RemoteChangeSignals
+
+    @State private var pairing = MultipeerPairing()
     @State private var store: PartnershipStore?
     @State private var failureMessage: String?
 
     var body: some View {
         if let store {
             screen(for: store)
-        } else {
+        } else if pairing.phase == .idle {
             rolePicker
+        } else {
+            PairingView(phase: pairing.phase, onCancel: pairing.reset)
+                .task(id: pairing.phase) {
+                    guard pairing.phase == .done else { return }
+                    await enter()
+                }
         }
     }
 }
@@ -47,7 +55,7 @@ private extension ContentView {
                 Section {
                     ForEach(Role.allCases, id: \.self) { role in
                         Button {
-                            Task { await start(as: .owner(role)) }
+                            begin(as: .owner(role))
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(role.label)
@@ -66,7 +74,7 @@ private extension ContentView {
 
                 Section {
                     Button("相手の招待を受ける") {
-                        Task { await start(as: .participant) }
+                        begin(as: .participant)
                     }
                 } footer: {
                     Text("始めた側が選ばなかったほうの役割になります。")
@@ -77,30 +85,51 @@ private extension ContentView {
         }
     }
 
-    func start(as side: PairingSide) async {
-        let agreement = await LocalPairing().pair(as: side)
-        let paired: PartnershipState
-        do {
-            paired = try PartnershipState().establishingPairing(ownerRole: agreement.ownerRole)
-        } catch {
-            failureMessage = error.message
-            return
-        }
+    func begin(as side: PairingSide) {
+        failureMessage = nil
+        pairing.start(as: side)
+    }
 
-        let started = PartnershipStore(
-            role: agreement.role,
-            synchronizer: InMemorySynchronizer(initialState: paired)
-        )
-        do {
-            try await started.start()
-        } catch {
-            failureMessage = error.message
+    func enter() async {
+        guard let outcome = pairing.outcome else {
+            giveUp(with: "ペアリングの結果を受け取れませんでした")
             return
         }
-        store = started
+        let synchronizer = CloudKitSynchronizer(
+            rootRecordID: outcome.rootRecordID,
+            isOwner: outcome.isOwner,
+            container: PartnershipShare.container,
+            remoteChangeSignals: { [signals = remoteChangeSignals] in await signals.stream() }
+        )
+
+        do {
+            try await synchronizer.subscribeToRemoteChanges()
+            let state = try await synchronizer.load()
+            // ロールは共有された状態から読む。始めた側が選び、受ける側は残りになる。
+            guard let ownerRole = state.pairing?.ownerRole else {
+                giveUp(with: "相手の設定がまだ届いていません")
+                return
+            }
+            let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
+            let started = PartnershipStore(
+                role: agreement.role,
+                synchronizer: synchronizer,
+                state: state
+            )
+            try await started.start()
+            store = started
+        } catch {
+            giveUp(with: error.message)
+        }
+    }
+
+    // ペアリング画面は失敗を出さないので、選び直せる最初の画面まで戻す。
+    func giveUp(with message: String) {
+        failureMessage = message
+        pairing.reset()
     }
 }
 
-#Preview {
-    ContentView()
+#Preview("役割の選択") {
+    ContentView(remoteChangeSignals: RemoteChangeSignals())
 }

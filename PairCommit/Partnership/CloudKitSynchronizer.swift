@@ -13,14 +13,14 @@ import OSLog
 public struct CloudKitSynchronizer {
     private let database: CKDatabase
     private let rootRecordID: CKRecord.ID
-    private let remoteChangeSignals: @Sendable () -> AsyncStream<Void>
+    private let remoteChangeSignals: @Sendable () async -> AsyncStream<Void>
     private let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "sync")
 
     public init(
         rootRecordID: CKRecord.ID,
         isOwner: Bool,
         container: CKContainer,
-        remoteChangeSignals: @escaping @Sendable () -> AsyncStream<Void>
+        remoteChangeSignals: @escaping @Sendable () async -> AsyncStream<Void>
     ) {
         self.rootRecordID = rootRecordID
         self.database = isOwner ? container.privateCloudDatabase : container.sharedCloudDatabase
@@ -56,7 +56,7 @@ extension CloudKitSynchronizer: PartnershipSyncing {
     public func remoteChanges() async -> AsyncStream<PartnershipState> {
         AsyncStream { continuation in
             let delivery = Task {
-                for await _ in remoteChangeSignals() {
+                for await _ in await remoteChangeSignals() {
                     guard let state = try? await load() else { continue }
                     continuation.yield(state)
                 }
