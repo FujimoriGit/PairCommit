@@ -26,6 +26,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           classify_inline_comments: false
+          use_sticky_comment: true
           prompt: |
             この PR の差分をレビューしてください。指摘は該当する行へのインラインコメントとして残し、
             全体の所感だけを PR コメントに書いてください。
