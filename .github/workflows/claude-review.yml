@@ -7,7 +7,6 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  id-token: write
 
 concurrency:
   group: claude-review-${{ github.ref }}
@@ -24,9 +23,7 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_federation_rule_id: fdrl_01FcDovv9j3kFkbz2e6TgfHb
-          anthropic_organization_id: 02d3f84a-0a1c-41ba-9493-957e6423dbaf
-          anthropic_service_account_id: svac_01WQB9A4YgLyjdViagqJVoGs
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             この PR の差分をレビューして、指摘を PR コメントとして投稿してください。
             CLAUDE.md の設計原則・コーディング規約・テスト原則に反する箇所を最優先で見てください。
