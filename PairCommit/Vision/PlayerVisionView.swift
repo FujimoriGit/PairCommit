@@ -134,22 +134,12 @@ private extension PlayerVisionView {
     }
 
     func visionFields(_ vision: Vision) -> some View {
-        Group {
-            Section("ビジョン") {
-                Text(vision.statement)
-            }
-            Section("達成基準") {
-                Text(vision.doneCriteria)
-            }
-            deadlineSection(vision)
-        }
-    }
-
-    @ViewBuilder
-    func deadlineSection(_ vision: Vision) -> some View {
-        if let deadline = vision.deadline {
-            Section("期限") {
-                Text(deadline.formatted(Date.FormatStyle.deadlineFull))
+        Section("ビジョン") {
+            Text(vision.statement)
+                .font(.headline)
+            LabeledContent("達成基準", value: vision.doneCriteria)
+            if let deadline = vision.deadline {
+                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.deadlineFull))
             }
         }
     }

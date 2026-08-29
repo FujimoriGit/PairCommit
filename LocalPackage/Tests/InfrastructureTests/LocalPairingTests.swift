@@ -17,7 +17,19 @@ struct LocalPairingTests {
         let pairing = LocalPairing()
 
         // When
-        let agreement = await pairing.pair(as: .player)
+        let agreement = await pairing.pair(as: .owner(.player))
+
+        // Then
+        #expect(agreement.role == .player)
+    }
+
+    @Test("招待を受けた側は、相手が選ばなかったロールを名乗る")
+    func joiningYieldsTheCounterpartRole() async {
+        // Given
+        let pairing = LocalPairing(ownerRole: .manager)
+
+        // When
+        let agreement = await pairing.pair(as: .participant)
 
         // Then
         #expect(agreement.role == .player)
@@ -27,7 +39,7 @@ struct LocalPairingTests {
     func agreementEstablishesPairingInState() async throws {
         // Given
         let pairing = LocalPairing()
-        let agreement = await pairing.pair(as: .manager)
+        let agreement = await pairing.pair(as: .owner(.manager))
 
         // When
         let state = try PartnershipState().establishingPairing(ownerRole: agreement.ownerRole)

@@ -32,14 +32,7 @@ private extension PlayerTaskView {
         if let vision = store.state.activeVision {
             Form {
                 nudgeSection
-                Section("ビジョン") {
-                    Text(vision.statement)
-                }
-                if let deadline = vision.deadline {
-                    Section("期限") {
-                        Text(deadline.formatted(Date.FormatStyle.deadlineFull))
-                    }
-                }
+                visionSection(vision)
                 proposal
                 taskList(store.state.tasks(for: vision.id))
                 FailureRow(message: failureMessage)
@@ -80,11 +73,21 @@ private extension PlayerTaskView {
     var nudgeSection: some View {
         let nudges = store.state.nudges(for: store.role, now: now)
         if !nudges.isEmpty {
-            Section("催促") {
+            Section {
                 ForEach(nudges, id: \.self) { nudge in
-                    Text(nudge.message(in: store.state))
+                    Label(nudge.message(in: store.state), systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                 }
+            }
+        }
+    }
+
+    func visionSection(_ vision: Vision) -> some View {
+        Section("ビジョン") {
+            Text(vision.statement)
+                .font(.headline)
+            if let deadline = vision.deadline {
+                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.deadlineFull))
             }
         }
     }
