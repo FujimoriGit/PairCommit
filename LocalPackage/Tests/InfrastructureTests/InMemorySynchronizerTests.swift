@@ -26,21 +26,17 @@ struct InMemorySynchronizerTests {
         #expect(loaded == state)
     }
 
-    @Test("相手側の変更は remoteChanges のストリームに届く")
-    func remoteChangeIsDeliveredToSubscribers() async throws {
+    @Test("開始したときに返るのは、保存済みの最新の状態")
+    func startReturnsLatestSavedState() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
-        let stream = await synchronizer.remoteChanges()
-        let (state, _) = try PartnershipState().draftingVision(
-            statement: "s", doneCriteria: "c", by: .player
-        )
+        let state = try PartnershipState().establishingPairing(ownerRole: .player)
+        await synchronizer.save(state)
 
         // When
-        await synchronizer.simulateRemoteChange(state)
+        let started = await synchronizer.start()
 
         // Then
-        var iterator = stream.makeAsyncIterator()
-        let received = await iterator.next()
-        #expect(received == state)
+        #expect(started == state)
     }
 }

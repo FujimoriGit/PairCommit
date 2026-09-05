@@ -12,33 +12,19 @@ import Observation
 @MainActor
 @Observable
 public final class PartnershipStore {
-    public private(set) var state = PartnershipState()
+    public private(set) var state: PartnershipState
     public let role: Role
 
     private let synchronizer: any PartnershipSyncing
-    private var observationTask: Task<Void, Never>?
 
-    public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState = .init()) {
+    public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState) {
         self.role = role
         self.synchronizer = synchronizer
         self.state = state
     }
 
-    public func start() async throws(SyncFailure) {
-        observationTask?.cancel()
-        let changes = await synchronizer.remoteChanges()
+    public func refresh() async throws(SyncFailure) {
         state = try await synchronizer.load()
-        observationTask = Task { [weak self] in
-            for await remote in changes {
-                guard let self else { break }
-                self.state = remote
-            }
-        }
-    }
-
-    public func stop() {
-        observationTask?.cancel()
-        observationTask = nil
     }
 
     public func perform(

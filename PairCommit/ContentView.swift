@@ -10,17 +10,15 @@ import Domain
 import SwiftUI
 
 struct ContentView: View {
-    let remoteChangeSignals: RemoteChangeSignals
+    let session: PartnershipSession
 
     @State private var pairing = MultipeerPairing()
-    @State private var store: PartnershipStore?
     @State private var failureMessage: String?
 
     var body: some View {
-        if let store {
+        if let store = session.store {
             screen(for: store)
                 .task(id: store.state) {
-                    // 相手がリセットするとレコードごと消える。ペアが欠けた状態では何も進められない。
                     guard store.state.pairing != nil else {
                         giveUp(with: "パートナーシップは終了しました")
                         return
@@ -106,23 +104,22 @@ private extension ContentView {
         let synchronizer = CloudKitSynchronizer(
             rootRecordID: outcome.rootRecordID,
             isOwner: outcome.isOwner,
-            container: PartnershipShare.container,
-            remoteChangeSignals: { [signals = remoteChangeSignals] in await signals.stream() }
+            container: PartnershipShare.container
         )
 
         do {
-            try await synchronizer.subscribeToRemoteChanges()
-            let state = try await synchronizer.load()
-            // ロールは共有された状態から読む。始めた側が選び、受ける側は残りになる。
+            let state = try await synchronizer.start()
             guard let ownerRole = state.pairing?.ownerRole else {
                 giveUp(with: "相手の設定がまだ届いていません")
                 return
             }
             let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
-            let started = PartnershipStore(role: agreement.role, synchronizer: synchronizer)
-            try await started.start()
             await NudgeNotifications.requestPermission()
-            store = started
+            session.store = PartnershipStore(
+                role: agreement.role,
+                synchronizer: synchronizer,
+                state: state
+            )
         } catch {
             giveUp(with: error.message)
         }
@@ -131,12 +128,11 @@ private extension ContentView {
     // 入場の失敗を出せる画面がないので、選び直せる最初の画面まで戻す。
     func giveUp(with message: String) {
         failureMessage = message
-        store?.stop()
-        store = nil
+        session.store = nil
         pairing.reset()
     }
 }
 
 #Preview("役割の選択") {
-    ContentView(remoteChangeSignals: RemoteChangeSignals())
+    ContentView(session: PartnershipSession())
 }
