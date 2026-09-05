@@ -157,21 +157,32 @@ struct PartnershipStateTests {
         #expect(state.activeVision?.id == second)
     }
 
-    @Test("履歴に残るのは閉じたビジョンだけで、新しく起案したものから並ぶ")
-    func closedVisionsAreListedNewestFirst() throws {
+    @Test("履歴に残るのは閉じたビジョンだけ")
+    func historyHoldsOnlyClosedVisions() throws {
         // Given
-        let older = try PartnershipState().closedVision(
-            statement: "古い方", as: .abandoned, now: Date(timeIntervalSince1970: 0)
-        )
-        let newer = try older.closedVision(
-            statement: "新しい方", as: .achieved, now: Date(timeIntervalSince1970: 86_400)
-        )
+        let (state, _) = try PartnershipState()
+            .closedVision(statement: "閉じた方", as: .achieved, now: Date(timeIntervalSince1970: 0))
+            .activeVision()
 
         // When
-        let (state, _) = try newer.activeVision()
+        let closed = state.closedVisions
 
         // Then
-        #expect(state.closedVisions.map(\.statement) == ["新しい方", "古い方"])
+        #expect(closed.map(\.vision.statement) == ["閉じた方"])
+    }
+
+    @Test("履歴は新しく起案したビジョンから並ぶ")
+    func closedVisionsAreListedNewestFirst() throws {
+        // Given
+        let state = try PartnershipState()
+            .closedVision(statement: "古い方", as: .abandoned, now: Date(timeIntervalSince1970: 0))
+            .closedVision(statement: "新しい方", as: .achieved, now: Date(timeIntervalSince1970: 86_400))
+
+        // When
+        let closed = state.closedVisions
+
+        // Then
+        #expect(closed.map(\.vision.statement) == ["新しい方", "古い方"])
     }
 
     // MARK: - タスクライフサイクル
@@ -359,7 +370,7 @@ private extension PartnershipState {
         return try active.creatingTask(title: title, by: .manager)
     }
 
-    func closedVision(statement: String, as outcome: Vision.Outcome, now: Date) throws -> PartnershipState {
+    func closedVision(statement: String, as outcome: Vision.Outcome, now: Date) throws -> Self {
         let (drafted, visionID) = try draftingVision(
             statement: statement, doneCriteria: "criteria", by: .player, now: now
         )
