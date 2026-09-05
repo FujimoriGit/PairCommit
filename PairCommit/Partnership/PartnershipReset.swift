@@ -8,7 +8,7 @@
 import SwiftUI
 
 extension EnvironmentValues {
-    @Entry var resettingPartnership: @Sendable () async -> Void = {}
+    @Entry var resettingPartnership: (@Sendable () async -> Void)?
 }
 
 extension View {
@@ -26,15 +26,17 @@ private struct PartnershipReset: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット", systemImage: "arrow.counterclockwise") {
-                        confirming = true
+                if let reset {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("リセット", systemImage: "arrow.counterclockwise") {
+                            confirming = true
+                        }
                     }
                 }
             }
             .confirmationDialog("ペアリングをやり直しますか", isPresented: $confirming) {
                 Button("リセットする", role: .destructive) {
-                    Task { await reset() }
+                    Task { await reset?() }
                 }
             } message: {
                 Text("ビジョンとタスクはすべて消えます。相手も最初の画面に戻ります。")
