@@ -26,4 +26,4 @@ jobs:
           ./Scripts/test.sh || true
 
       - name: Commit
-        run: ./Scripts/commit-snapshots.sh "$GITHUB_REF_NAME"
+        run: ./Scripts/commit-snapshots.sh "$GITHUB_REF_NAME" replace "VRT の基準画像を CI で record し直す"

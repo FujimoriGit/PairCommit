@@ -44,27 +44,20 @@ jobs:
         if: steps.filter.outputs.app == 'true'
         run: ./Scripts/test.sh
 
-      # 新しい #Preview には比べる相手がいないので、撮られた画像をそのまま取り込む。
-      # 既存の画像との差分は、意図した変更か退行かをコードから判定できない。
-      # 自動で取り込むと VRT が何も検出しなくなるので、そちらは人に返す。
+      # swift-snapshot-testing は基準画像がないときだけ __Snapshots__ に書き、
+      # あるのに一致しないときは一時ディレクトリに書く。増えたファイルは
+      # 比べる相手がいなかったものだけなので、そのまま取り込んでよい。
       - name: Adopt new baselines
-        if: failure() && steps.filter.outputs.app == 'true'
+        if: failure() && steps.filter.outputs.app == 'true' && github.event_name == 'pull_request'
         env:
-          HEAD_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          HEAD_BRANCH: ${{ github.head_ref }}
         run: |
-          changed=$(git diff --name-only -- PairCommitTests/__Snapshots__)
-          if [ -n "$changed" ]; then
-            echo "既存の基準画像に差分がある。意図した変更なら update-snapshots で撮り直すこと:"
-            echo "$changed"
-            exit 1
-          fi
-
           if [ -z "$(git ls-files --others --exclude-standard -- PairCommitTests/__Snapshots__)" ]; then
-            echo "基準画像は増えていない。VRT 以外の失敗。"
-            exit 1
+            echo "増えた基準画像はない。見た目の退行か、VRT 以外の失敗。xcresult を見ること。"
+            exit 0
           fi
 
-          ./Scripts/commit-snapshots.sh "$HEAD_BRANCH"
+          ./Scripts/commit-snapshots.sh "$HEAD_BRANCH" add "基準画像のない #Preview を CI が撮って足す"
 
       # スナップショット差分は xcresult の添付画像で確認できる
       - name: Upload test results
