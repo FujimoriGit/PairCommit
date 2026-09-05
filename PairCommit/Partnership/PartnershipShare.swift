@@ -37,7 +37,12 @@ enum PartnershipShare {
         _ = try await database.modifyRecordZones(saving: [zone], deleting: [])
 
         let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
-        let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
+        // ゾーン名もレコード名も固定なので、2回目からはサーバーにあるものを使う。
+        let pairing = try await fetchRoot(rootRecordID, from: database)
+            ?? PartnershipRootRecord.creating(initialState, id: rootRecordID)
+        if let url = try await shareURL(of: pairing, in: database) {
+            return (url, rootRecordID)
+        }
 
         let share = CKShare(rootRecord: pairing)
         share[CKShare.SystemFieldKey.title] = "PairCommit" as CKRecordValue
@@ -66,6 +71,20 @@ enum PartnershipShare {
 // MARK: - Private
 
 private extension PartnershipShare {
+    static func fetchRoot(_ id: CKRecord.ID, from database: CKDatabase) async throws -> CKRecord? {
+        do {
+            return try await database.record(for: id)
+        } catch let error as CKError where error.code == .unknownItem {
+            return nil
+        }
+    }
+
+    static func shareURL(of root: CKRecord, in database: CKDatabase) async throws -> URL? {
+        guard let shareID = root.share?.recordID,
+              let share = try await database.record(for: shareID) as? CKShare else { return nil }
+        return share.url
+    }
+
     static func fetchMetadata(for url: URL) async throws -> CKShare.Metadata {
         try await withCheckedThrowingContinuation { continuation in
             let operation = CKFetchShareMetadataOperation(shareURLs: [url])
