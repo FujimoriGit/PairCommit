@@ -106,6 +106,7 @@ private extension ManagerVisionView {
 
 #Preview("管理者の起案待ち") {
     ManagerVisionView(store: .preview(role: .manager, visions: []))
+        .environment(\.resettingPartnership) { nil }
 }
 
 #Preview("管理者の承認待ち") {
