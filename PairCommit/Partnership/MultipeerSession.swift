@@ -28,6 +28,7 @@ final class MultipeerSession: NSObject {
     }
 
     // MC の制約: 15文字以内・英小文字/数字/ハイフンのみ。
+    // 変えるときは Info.plist の NSBonjourServices も同じ値にすること。
     private static let serviceType = "paircommit-pr"
 
     let events: AsyncStream<Event>
