@@ -127,11 +127,9 @@ private extension ContentView {
         }
     }
 
-    // 消せていないのに戻ると、相手には一人では何も進められないアプリが残る。
     func reset() async -> String? {
         guard let outcome = pairing.outcome else {
-            returnToPicker(with: "ペアリングの結果を受け取れませんでした")
-            return nil
+            return "ペアリングの結果を受け取れませんでした"
         }
         do {
             try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
