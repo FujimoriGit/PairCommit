@@ -79,6 +79,9 @@ private extension CloudKitSynchronizer {
         let results: [CKRecord.ID: Result<CKRecord, any Error>]
         do {
             results = try await database.records(for: [rootRecordID])
+        } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
+            // ゾーンごと消えたときは、レコード単位ではなく取得そのものが失敗する。
+            return nil
         } catch {
             logger.error("fetch: \(error, privacy: .public)")
             throw .unavailable
