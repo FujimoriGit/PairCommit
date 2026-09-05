@@ -14,8 +14,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
-      # 新しい基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push すると、
-      # 更新された PR のワークフローが承認待ちになる。
+      # 新しい基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push しても、
+      # 再帰実行を防ぐ仕組みで、そのコミットに対するワークフローは起動しない。
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0

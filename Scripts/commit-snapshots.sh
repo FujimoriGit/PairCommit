@@ -10,6 +10,7 @@ MODE="${2:?replace か add を渡すこと}"
 MESSAGE="${3:?コミットメッセージを渡すこと}"
 SNAPSHOTS=PairCommitTests/__Snapshots__
 
+# 載せ替えのたびに reset で作業ツリーが戻るので、載せるものは先に控えておく。
 # replace は全部を撮り直した結果なので、先端側にも画像の変更があれば録ったほうで
 # 置き換える（こちらが新しい）。add は撮り直していないので、増えたぶんだけ載せる。
 case "$MODE" in
@@ -18,7 +19,14 @@ case "$MODE" in
     rm -rf "$recorded"
     cp -R "$SNAPSHOTS" "$recorded"
     ;;
-  add) ;;
+  add)
+    added="$RUNNER_TEMP/added-snapshots.tar"
+    if [ -z "$(git ls-files --others --exclude-standard "$SNAPSHOTS")" ]; then
+      echo "基準画像に変更なし"
+      exit 0
+    fi
+    git ls-files --others --exclude-standard -z "$SNAPSHOTS" | tar -cf "$added" --null -T -
+    ;;
   *)
     echo "不明なモード: $MODE" >&2
     exit 1
@@ -35,6 +43,8 @@ for attempt in 1 2 3; do
   if [ "$MODE" = replace ]; then
     rm -rf "$SNAPSHOTS"
     cp -R "$recorded" "$SNAPSHOTS"
+  else
+    tar -xf "$added"
   fi
   git add "$SNAPSHOTS"
 
