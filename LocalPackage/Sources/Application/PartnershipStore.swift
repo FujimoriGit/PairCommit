@@ -16,6 +16,7 @@ public final class PartnershipStore {
     public let role: Role
 
     private let synchronizer: any PartnershipSyncing
+    private var pending: Task<Void, Never>?
 
     public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState) {
         self.role = role
@@ -24,30 +25,56 @@ public final class PartnershipStore {
     }
 
     public func refresh() async throws(SyncFailure) {
-        state = try await synchronizer.load()
+        let failure = await serialized { [self] () -> SyncFailure? in
+            do throws(SyncFailure) {
+                state = try await synchronizer.load()
+                return nil
+            } catch {
+                return error
+            }
+        }
+        if let failure {
+            throw failure
+        }
     }
 
     public func perform(
-        _ transform: (PartnershipState) throws(DomainError) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState
     ) async throws(PartnershipFailure) {
-        let previous = state
-        let next: PartnershipState
-        do {
-            next = try transform(state)
-        } catch {
-            throw .rejected(error)
-        }
-        state = next
-        do {
-            try await synchronizer.save(next)
-        } catch {
-            // 保存を待つ間に取り直しが入っていたら、そちらが最新。自分の操作だけを取り消す。
-            if state == next {
-                state = previous
+        let failure = await serialized { [self] () -> PartnershipFailure? in
+            let previous = state
+            let next: PartnershipState
+            do throws(DomainError) {
+                next = try transform(state)
+            } catch {
+                return .rejected(error)
             }
-            throw .notSynchronized(error)
+            state = next
+            do throws(SyncFailure) {
+                try await synchronizer.save(next)
+                return nil
+            } catch {
+                state = previous
+                return .notSynchronized(error)
+            }
         }
-        // 後から書いた側が勝つので、保存できた時点でサーバーにあるのは next。
-        state = next
+        if let failure {
+            throw failure
+        }
+    }
+}
+
+// MARK: - Private
+
+private extension PartnershipStore {
+    // 保存と取り直しを1件ずつ流す。重ねると、サーバーに着く順とローカルの順が食い違う。
+    func serialized<T: Sendable>(_ body: @escaping @MainActor () async -> T) async -> T {
+        let queued = pending
+        let turn = Task { @MainActor in
+            await queued?.value
+            return await body()
+        }
+        pending = Task { _ = await turn.value }
+        return await turn.value
     }
 }

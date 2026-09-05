@@ -66,27 +66,60 @@ struct PartnershipStoreTests {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
-        synchronizer.stored = try PartnershipState().establishingPairing(ownerRole: .player)
-        synchronizer.duringSave = { [store] in try? await store.refresh() }
+        synchronizer.hold()
 
         // When
-        try await store.perform { state throws(DomainError) in
-            try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+        let performing = Task {
+            try await store.perform { state throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+            }
         }
+        await Task.yield()
+        let refreshing = Task { try await store.refresh() }
+        await Task.yield()
+        synchronizer.release()
+        try await performing.value
+        try await refreshing.value
 
         // Then
         #expect(store.state.visions.count == 1)
     }
 
-    @Test("保存に失敗したときの巻き戻しは、待つ間に取り直した相手の変更までは消さない")
-    func failedSaveKeepsTheRefreshedRemoteChange() async throws {
+    @Test("保存が重なっても、あとから始めた操作は消えない")
+    func overlappingPerformsKeepBothChanges() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
-        let remote = try PartnershipState().establishingPairing(ownerRole: .player)
-        synchronizer.stored = remote
+        synchronizer.hold()
+
+        // When
+        let first = Task {
+            try await store.perform { state throws(DomainError) in
+                try state.draftingVision(statement: "s1", doneCriteria: "c1", by: .player).state
+            }
+        }
+        await Task.yield()
+        let second = Task {
+            try await store.perform { state throws(DomainError) in
+                try state.draftingVision(statement: "s2", doneCriteria: "c2", by: .player).state
+            }
+        }
+        await Task.yield()
+        synchronizer.release()
+        try await first.value
+        try await second.value
+
+        // Then
+        #expect(store.state.visions.count == 2)
+        #expect(synchronizer.stored == store.state)
+    }
+
+    @Test("保存に失敗した操作は、状態を元へ戻して呼び出し元へ投げ直される")
+    func failedSaveRollsBackTheChange() async throws {
+        // Given
+        let synchronizer = InterruptibleSynchronizer()
         synchronizer.failure = .unavailable
-        synchronizer.duringSave = { [store] in try? await store.refresh() }
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When / Then
         await #expect(throws: PartnershipFailure.notSynchronized(.unavailable)) {
@@ -94,16 +127,28 @@ struct PartnershipStoreTests {
                 try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
             }
         }
-        #expect(store.state == remote)
+        #expect(store.state == PartnershipState())
     }
 }
 
-/// 保存の途中に割り込みを差し込める同期層。
+/// 保存を止めておける同期層。保存が重なった状況を作るために使う。
 @MainActor
 private final class InterruptibleSynchronizer: PartnershipSyncing {
     var stored: PartnershipState = .init()
     var failure: SyncFailure?
-    var duringSave: (() async -> Void)?
+
+    private var held = false
+    private var waiting: CheckedContinuation<Void, Never>?
+
+    func hold() {
+        held = true
+    }
+
+    func release() {
+        held = false
+        waiting?.resume()
+        waiting = nil
+    }
 
     func start() -> PartnershipState {
         stored
@@ -114,7 +159,9 @@ private final class InterruptibleSynchronizer: PartnershipSyncing {
     }
 
     func save(_ state: PartnershipState) async throws(SyncFailure) {
-        await duringSave?()
+        if held {
+            await withCheckedContinuation { waiting = $0 }
+        }
         if let failure {
             throw failure
         }
