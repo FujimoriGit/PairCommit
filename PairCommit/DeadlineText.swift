@@ -12,7 +12,7 @@ struct DeadlineText: View {
 
     var body: some View {
         if let deadline {
-            Text(deadline.formatted(Date.FormatStyle.deadlineDay))
+            Text(deadline.formatted(Date.FormatStyle.monthDay))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -24,6 +24,6 @@ struct DeadlineText: View {
 private let japanese = Locale(identifier: "ja_JP")
 
 extension Date.FormatStyle {
-    static var deadlineDay: Self { .dateTime.month().day().locale(japanese) }
-    static var deadlineFull: Self { .dateTime.year().month().day().locale(japanese) }
+    static var monthDay: Self { .dateTime.month().day().locale(japanese) }
+    static var yearMonthDay: Self { .dateTime.year().month().day().locale(japanese) }
 }

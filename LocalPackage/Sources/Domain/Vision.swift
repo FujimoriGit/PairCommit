@@ -54,6 +54,14 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         self.createdAt = createdAt
     }
 
+    var outcome: Outcome? {
+        switch status {
+        case .achieved: .achieved
+        case .abandoned: .abandoned
+        case .draft, .proposed, .active: nil
+        }
+    }
+
     func with(status: Status) -> Self {
         .init(
             id: id,

@@ -157,6 +157,48 @@ struct PartnershipStateTests {
         #expect(state.activeVision?.id == second)
     }
 
+    @Test("履歴に残るのは閉じたビジョンだけ")
+    func historyHoldsOnlyClosedVisions() throws {
+        // Given
+        let (state, _) = try PartnershipState()
+            .closedVision(statement: "閉じた方", as: .achieved, now: Date(timeIntervalSince1970: 0))
+            .activeVision()
+
+        // When
+        let closed = state.closedVisions
+
+        // Then
+        #expect(closed.map(\.vision.statement) == ["閉じた方"])
+    }
+
+    @Test("履歴は新しく起案したビジョンから並ぶ")
+    func closedVisionsAreListedNewestFirst() throws {
+        // Given
+        let state = try PartnershipState()
+            .closedVision(statement: "古い方", as: .abandoned, now: Date(timeIntervalSince1970: 0))
+            .closedVision(statement: "新しい方", as: .achieved, now: Date(timeIntervalSince1970: 86_400))
+
+        // When
+        let closed = state.closedVisions
+
+        // Then
+        #expect(closed.map(\.vision.statement) == ["新しい方", "古い方"])
+    }
+
+    @Test("履歴のビジョンには、閉じたときの結果が付く")
+    func closedVisionCarriesItsOutcome() throws {
+        // Given
+        let state = try PartnershipState()
+            .closedVision(statement: "取りやめた方", as: .abandoned, now: Date(timeIntervalSince1970: 0))
+            .closedVision(statement: "達成した方", as: .achieved, now: Date(timeIntervalSince1970: 86_400))
+
+        // When
+        let closed = state.closedVisions
+
+        // Then
+        #expect(closed.map(\.outcome) == [.achieved, .abandoned])
+    }
+
     // MARK: - タスクライフサイクル
 
     @Test("管理者が作るタスクは todo から、プレイヤー起案は proposed（採用待ち）から始まる")
@@ -340,6 +382,16 @@ private extension PartnershipState {
     func activeVisionWithTask(title: String = "t") throws -> (state: PartnershipState, taskID: TaskItem.ID) {
         let (active, _) = try activeVision()
         return try active.creatingTask(title: title, by: .manager)
+    }
+
+    func closedVision(statement: String, as outcome: Vision.Outcome, now: Date) throws -> Self {
+        let (drafted, visionID) = try draftingVision(
+            statement: statement, doneCriteria: "criteria", by: .player, now: now
+        )
+        return try drafted
+            .proposingVision(visionID, by: .player)
+            .approvingVision(visionID, by: .manager)
+            .closingVision(visionID, as: outcome, by: .manager)
     }
 
     func status(of taskID: TaskItem.ID) -> TaskItem.Status? {
