@@ -42,7 +42,6 @@ private extension VisionHistoryView {
         }
     }
 
-    @ViewBuilder
     var taskSection: some View {
         Section("タスク") {
             if tasks.isEmpty {
