@@ -112,7 +112,6 @@ private extension MultipeerPairing {
         phase = .sharing
         Task {
             do {
-                // 相手はロールを受け取るのではなく、共有された状態から読む。
                 let paired = try PartnershipState().establishingPairing(ownerRole: role)
                 let share = try await PartnershipShare.makeShare(initialState: paired)
                 outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
