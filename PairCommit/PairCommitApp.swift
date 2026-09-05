@@ -46,7 +46,10 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         } catch {
             return .failed
         }
-        await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+        // 前面では取り直しで画面が更新され、そちらからも掲示が走る。二重に出すと鳴り直す。
+        if application.applicationState != .active {
+            await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+        }
         return .newData
     }
 }
