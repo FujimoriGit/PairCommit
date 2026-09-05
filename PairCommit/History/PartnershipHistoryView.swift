@@ -60,7 +60,7 @@ private extension PartnershipHistoryView {
 #Preview("記録の一覧") {
     NavigationStack {
         PartnershipHistoryView(state: PartnershipState(visions: [
-            .preview(status: .achieved, deadline: .preview(daysLater: -10), createdAt: .preview(daysLater: -40)),
+            .preview(status: .achieved, createdAt: .preview(daysLater: -40)),
             .preview(
                 statement: "毎朝6時に起きて出社前に1時間勉強する",
                 status: .abandoned,
