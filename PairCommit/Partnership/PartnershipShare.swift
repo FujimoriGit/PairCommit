@@ -60,14 +60,18 @@ enum PartnershipShare {
     // MARK: 両者共通
 
     static func teardown(rootRecordID: CKRecord.ID, isOwner: Bool) async throws {
-        guard isOwner else {
-            _ = try await container.sharedCloudDatabase.modifyRecords(saving: [], deleting: [rootRecordID])
+        do {
+            guard isOwner else {
+                _ = try await container.sharedCloudDatabase.modifyRecords(saving: [], deleting: [rootRecordID])
+                return
+            }
+            _ = try await container.privateCloudDatabase.modifyRecordZones(
+                saving: [],
+                deleting: [rootRecordID.zoneID]
+            )
+        } catch let error as CKError where absent.contains(error.code) {
             return
         }
-        _ = try await container.privateCloudDatabase.modifyRecordZones(
-            saving: [],
-            deleting: [rootRecordID.zoneID]
-        )
     }
 
     // MARK: Participant 側
@@ -86,6 +90,8 @@ enum PartnershipShare {
 // MARK: - Private
 
 private extension PartnershipShare {
+    static let absent: Set<CKError.Code> = [.zoneNotFound, .userDeletedZone, .unknownItem]
+
     static func fetchRoot(_ id: CKRecord.ID, from database: CKDatabase) async throws -> CKRecord? {
         do {
             return try await database.record(for: id)
