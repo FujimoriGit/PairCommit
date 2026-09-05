@@ -44,7 +44,9 @@ for attempt in 1 2 3; do
     rm -rf "$SNAPSHOTS"
     cp -R "$recorded" "$SNAPSHOTS"
   else
-    tar -xf "$added"
+    # reset は untracked のファイルも reset 先の内容で黙って上書きする。押し負けている
+    # 間に同じ名前の画像が先端へ入っていたら、そちらを控えで塗り替えない。
+    tar -xf "$added" --keep-old-files
   fi
   git add "$SNAPSHOTS"
 

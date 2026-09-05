@@ -1,7 +1,7 @@
 name: Update VRT Baselines
 
-# 基準画像はここでしか record しない。手元の Mac と CI ではアンチエイリアスが
-# 一致しないため、記録する環境を1つに固定する。
+# 既存の基準画像を撮り直すのはここだけ（ci.yml が撮るのは基準画像のないものだけ）。
+# 手元の Mac と CI ではアンチエイリアスが一致しないため、記録する環境を CI に固定する。
 on:
   workflow_dispatch:
 
@@ -10,8 +10,8 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
-      # GITHUB_TOKEN で push すると、更新された PR のワークフローが承認待ちになる。
-      # deploy key で push すればそのまま走る。
+      # 基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push しても、
+      # 再帰実行を防ぐ仕組みで、そのコミットに対するワークフローは起動しない。
       - uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.VRT_DEPLOY_KEY }}
