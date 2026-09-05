@@ -21,6 +21,7 @@ struct ContentView: View {
                 .environment(\.resettingPartnership) { await reset() }
                 .task(id: store.state) {
                     guard store.state.pairing != nil else {
+                        await NudgeNotifications.withdrawAll()
                         returnToPicker(with: "パートナーシップは終了しました")
                         return
                     }
@@ -126,19 +127,20 @@ private extension ContentView {
         }
     }
 
-    func reset() async {
+    // 消せていないのに戻ると、相手には一人では何も進められないアプリが残る。
+    func reset() async -> String? {
         guard let outcome = pairing.outcome else {
             returnToPicker(with: "ペアリングの結果を受け取れませんでした")
-            return
+            return nil
         }
         do {
             try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
         } catch {
-            returnToPicker(with: "リセットできませんでした")
-            return
+            return error.localizedDescription
         }
         await NudgeNotifications.withdrawAll()
         returnToPicker(with: nil)
+        return nil
     }
 
     func returnToPicker(with message: String?) {
