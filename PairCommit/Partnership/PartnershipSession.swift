@@ -8,7 +8,7 @@
 import Application
 import Observation
 
-/// ペアが成立してからの状態。プッシュで起こされたときに画面の更新を待たずに触れるよう、アプリ側で持つ。
+/// ペアが成立してからの状態。
 @MainActor
 @Observable
 final class PartnershipSession {
