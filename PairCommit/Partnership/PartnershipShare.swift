@@ -46,7 +46,9 @@ enum PartnershipShare {
 
         let share = CKShare(rootRecord: pairing)
         share[CKShare.SystemFieldKey.title] = "PairCommit" as CKRecordValue
-        share.publicPermission = .none // 招待された相手だけが参加可能
+        // 参加者を名指しで招待する仕組みを持たない。URL を知っている人が参加でき、
+        // ルートレコードを書ける必要がある。
+        share.publicPermission = .readWrite
 
         // ルートレコードと CKShare は同一オペレーションで原子的に保存する必要がある。
         _ = try await database.modifyRecords(saving: [pairing, share], deleting: [])
