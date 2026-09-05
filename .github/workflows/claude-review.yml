@@ -22,9 +22,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      # main を取り込んだだけの push でも synchronize は来る。PR 自身の差分が
+      # 変わっていなければ、レビューする対象がない。
+      - id: diff
+        env:
+          ACTION: ${{ github.event.action }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: |
+          changed=true
+          if [ "$ACTION" = synchronize ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            before=$(git diff "$(git merge-base "$BASE" "$BEFORE")" "$BEFORE" | git hash-object --stdin)
+            after=$(git diff "$(git merge-base "$BASE" "$AFTER")" "$AFTER" | git hash-object --stdin)
+            [ "$before" = "$after" ] && changed=false
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
       - uses: anthropics/claude-code-action@v1
+        if: steps.diff.outputs.changed == 'true'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
           classify_inline_comments: false
           use_sticky_comment: true
           prompt: |
