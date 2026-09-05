@@ -49,10 +49,10 @@ private extension PartnershipHistoryView {
                 .font(.headline)
             HStack(spacing: 8) {
                 Text(closed.outcome.result)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                DeadlineText(deadline: closed.vision.deadline)
+                Text(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 }

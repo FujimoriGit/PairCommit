@@ -89,7 +89,7 @@ private extension PlayerTaskView {
             Text(vision.statement)
                 .font(.headline)
             if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.deadlineFull))
+                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
             }
         }
     }

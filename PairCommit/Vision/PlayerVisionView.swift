@@ -141,7 +141,7 @@ private extension PlayerVisionView {
                 .font(.headline)
             LabeledContent("達成基準", value: vision.doneCriteria)
             if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.deadlineFull))
+                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
             }
         }
     }

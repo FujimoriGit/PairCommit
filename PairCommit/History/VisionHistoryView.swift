@@ -36,7 +36,7 @@ private extension VisionHistoryView {
                 LabeledContent("動機", value: why)
             }
             if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.deadlineFull))
+                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
             }
         }
     }
