@@ -54,6 +54,10 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         self.createdAt = createdAt
     }
 
+    public var outcome: Outcome? {
+        Outcome.allCases.first { $0.status == status }
+    }
+
     func with(status: Status) -> Self {
         .init(
             id: id,

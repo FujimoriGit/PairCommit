@@ -21,6 +21,7 @@ struct PlayerTaskView: View {
             content
                 .navigationTitle(Role.player.label)
                 .partnershipReset()
+                .partnershipHistory(store.state)
         }
     }
 }

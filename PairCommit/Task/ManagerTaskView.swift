@@ -22,6 +22,7 @@ struct ManagerTaskView: View {
             content
                 .navigationTitle(Role.manager.label)
                 .partnershipReset()
+                .partnershipHistory(store.state)
         }
     }
 }

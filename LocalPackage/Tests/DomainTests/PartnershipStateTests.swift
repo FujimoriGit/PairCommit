@@ -157,6 +157,23 @@ struct PartnershipStateTests {
         #expect(state.activeVision?.id == second)
     }
 
+    @Test("履歴に残るのは閉じたビジョンだけで、新しく起案したものから並ぶ")
+    func closedVisionsAreListedNewestFirst() throws {
+        // Given
+        let older = try PartnershipState().closedVision(
+            statement: "古い方", as: .abandoned, now: Date(timeIntervalSince1970: 0)
+        )
+        let newer = try older.closedVision(
+            statement: "新しい方", as: .achieved, now: Date(timeIntervalSince1970: 86_400)
+        )
+
+        // When
+        let (state, _) = try newer.activeVision()
+
+        // Then
+        #expect(state.closedVisions.map(\.statement) == ["新しい方", "古い方"])
+    }
+
     // MARK: - タスクライフサイクル
 
     @Test("管理者が作るタスクは todo から、プレイヤー起案は proposed（採用待ち）から始まる")
@@ -340,6 +357,16 @@ private extension PartnershipState {
     func activeVisionWithTask(title: String = "t") throws -> (state: PartnershipState, taskID: TaskItem.ID) {
         let (active, _) = try activeVision()
         return try active.creatingTask(title: title, by: .manager)
+    }
+
+    func closedVision(statement: String, as outcome: Vision.Outcome, now: Date) throws -> PartnershipState {
+        let (drafted, visionID) = try draftingVision(
+            statement: statement, doneCriteria: "criteria", by: .player, now: now
+        )
+        return try drafted
+            .proposingVision(visionID, by: .player)
+            .approvingVision(visionID, by: .manager)
+            .closingVision(visionID, as: outcome, by: .manager)
     }
 
     func status(of taskID: TaskItem.ID) -> TaskItem.Status? {

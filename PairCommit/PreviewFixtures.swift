@@ -21,15 +21,21 @@ extension Date {
 }
 
 extension Vision {
-    static func preview(id: UUID = UUID(), status: Status, deadline: Date? = nil) -> Self {
+    static func preview(
+        id: UUID = UUID(),
+        statement: String = "半年で10kg痩せて健康診断オールA",
+        status: Status,
+        deadline: Date? = nil,
+        createdAt: Date = .preview
+    ) -> Self {
         .init(
             id: id,
-            statement: "半年で10kg痩せて健康診断オールA",
+            statement: statement,
             doneCriteria: "体重68kg以下、次回の健康診断で全項目A判定",
             deadline: deadline,
             why: nil,
             status: status,
-            createdAt: Date()
+            createdAt: createdAt
         )
     }
 }

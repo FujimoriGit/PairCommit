@@ -23,6 +23,7 @@ struct PlayerVisionView: View {
             content
                 .navigationTitle(Role.player.label)
                 .partnershipReset()
+                .partnershipHistory(store.state)
         }
     }
 }
