@@ -62,6 +62,8 @@ private extension CloudKitSynchronizer {
     static let subscriptionID = "partnership-changes"
 
     func subscribe() async throws(SyncFailure) {
+        // 同じ ID を保存し直すと拒否される。2回目からは張り直さない。
+        if try await hasSubscription() { return }
         let subscription = CKDatabaseSubscription(subscriptionID: Self.subscriptionID)
         let info = CKSubscription.NotificationInfo()
         // 催促以外で相手の画面に何か出したいわけではないので、通知は出さず起こすだけにする。
@@ -71,6 +73,18 @@ private extension CloudKitSynchronizer {
             _ = try await database.modifySubscriptions(saving: [subscription], deleting: [])
         } catch {
             logger.error("subscribe: \(error, privacy: .public)")
+            throw .unavailable
+        }
+    }
+
+    func hasSubscription() async throws(SyncFailure) -> Bool {
+        do {
+            _ = try await database.subscription(for: Self.subscriptionID)
+            return true
+        } catch let error as CKError where error.code == .unknownItem {
+            return false
+        } catch {
+            logger.error("subscription: \(error, privacy: .public)")
             throw .unavailable
         }
     }
