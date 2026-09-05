@@ -185,6 +185,20 @@ struct PartnershipStateTests {
         #expect(closed.map(\.vision.statement) == ["新しい方", "古い方"])
     }
 
+    @Test("履歴のビジョンには、閉じたときの結果が付く")
+    func closedVisionCarriesItsOutcome() throws {
+        // Given
+        let state = try PartnershipState()
+            .closedVision(statement: "取りやめた方", as: .abandoned, now: Date(timeIntervalSince1970: 0))
+            .closedVision(statement: "達成した方", as: .achieved, now: Date(timeIntervalSince1970: 86_400))
+
+        // When
+        let closed = state.closedVisions
+
+        // Then
+        #expect(closed.map(\.outcome) == [.achieved, .abandoned])
+    }
+
     // MARK: - タスクライフサイクル
 
     @Test("管理者が作るタスクは todo から、プレイヤー起案は proposed（採用待ち）から始まる")
