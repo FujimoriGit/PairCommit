@@ -14,9 +14,12 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
+      # 新しい基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push しても、
+      # 再帰実行を防ぐ仕組みで、そのコミットに対するワークフローは起動しない。
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.VRT_DEPLOY_KEY }}
 
       # ビルドにも撮る画像にも関わらないものだけを挙げる。ここに書き忘れても
       # VRT が走るだけで、見逃しにはならない。
@@ -40,6 +43,21 @@ jobs:
       - name: Build & VRT
         if: steps.filter.outputs.app == 'true'
         run: ./Scripts/test.sh
+
+      # swift-snapshot-testing は基準画像がないときだけ __Snapshots__ に書き、
+      # あるのに一致しないときは一時ディレクトリに書く。増えたファイルは
+      # 比べる相手がいなかったものだけなので、そのまま取り込んでよい。
+      - name: Adopt new baselines
+        if: failure() && steps.filter.outputs.app == 'true' && github.event_name == 'pull_request'
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          if [ -z "$(git ls-files --others --exclude-standard -- PairCommitTests/__Snapshots__)" ]; then
+            echo "増えた基準画像はない。見た目の退行か、VRT 以外の失敗。xcresult を見ること。"
+            exit 0
+          fi
+
+          ./Scripts/commit-snapshots.sh "$HEAD_BRANCH" add "基準画像のない #Preview を CI が撮って足す"
 
       # スナップショット差分は xcresult の添付画像で確認できる
       - name: Upload test results
