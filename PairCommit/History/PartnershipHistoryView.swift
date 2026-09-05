@@ -49,7 +49,7 @@ private extension PartnershipHistoryView {
                 .font(.headline)
             HStack(spacing: 8) {
                 Text(closed.outcome.result)
-                Text(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))
+                Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
