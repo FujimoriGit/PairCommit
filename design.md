@@ -2,6 +2,7 @@
 
 > 表示名（`CFBundleDisplayName`）は **「ふたりの帆柱」**。ユリシーズが自分を帆柱に縛らせ、部下に「頼んでも解くな」と命じた構造がこのアプリそのもので、縛られる側だけでは装置にならない。ふたり、を頭に置くのはそのため。
 > `PairCommit` は開発用の仮名として、リポジトリ・Bundle ID・モジュール名に残す。表示名とは切り離して扱う。
+> 英語圏に出すときの表示名は `Mastbound` を予定。帆柱に縛られた状態そのものを指す。ローカライズを実際に入れるのは先。
 > - リポジトリ / モジュール: `PairCommit`
 > - Bundle ID: `com.fujimori.PairCommit` / CloudKit コンテナ: `iCloud.com.fujimori.PairCommit`
 
