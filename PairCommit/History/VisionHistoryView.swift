@@ -30,7 +30,7 @@ private extension VisionHistoryView {
             Text(vision.statement)
                 .font(.headline)
             if let outcome = vision.outcome {
-                LabeledContent("結果", value: outcome.name)
+                LabeledContent("結果", value: outcome.result)
             }
             LabeledContent("達成基準", value: vision.doneCriteria)
             if let why = vision.why {

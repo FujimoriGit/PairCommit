@@ -15,7 +15,7 @@ extension Vision.Outcome {
         }
     }
 
-    var name: String {
+    var result: String {
         switch self {
         case .achieved: "達成"
         case .abandoned: "取りやめ"

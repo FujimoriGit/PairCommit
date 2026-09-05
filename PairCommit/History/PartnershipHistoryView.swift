@@ -45,7 +45,7 @@ private extension PartnershipHistoryView {
                 .font(.headline)
             HStack(spacing: 8) {
                 if let outcome = vision.outcome {
-                    Text(outcome.name)
+                    Text(outcome.result)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
