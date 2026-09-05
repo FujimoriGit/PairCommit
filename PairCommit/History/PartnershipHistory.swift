@@ -19,19 +19,16 @@ extension View {
 private struct PartnershipHistory: ViewModifier {
     let state: PartnershipState
 
-    @State private var showing = false
-
     func body(content: Content) -> some View {
         content
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("記録", systemImage: "clock.arrow.circlepath") {
-                        showing = true
+                    NavigationLink {
+                        PartnershipHistoryView(state: state)
+                    } label: {
+                        Label("記録", systemImage: "clock.arrow.circlepath")
                     }
                 }
-            }
-            .navigationDestination(isPresented: $showing) {
-                PartnershipHistoryView(state: state)
             }
     }
 }
