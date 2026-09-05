@@ -1,6 +1,7 @@
 # PairCommit 設計メモ
 
-> アプリ名 `PairCommit` は開発用の仮名。表示名（`CFBundleDisplayName`）は後で差し替え可能なので、リポジトリ・Bundle ID・モジュール名とは切り離して扱う。
+> 表示名（`CFBundleDisplayName`）は **「ふたりの帆柱」**。ユリシーズが自分を帆柱に縛らせ、部下に「頼んでも解くな」と命じた構造がこのアプリそのもので、縛られる側だけでは装置にならない。ふたり、を頭に置くのはそのため。
+> `PairCommit` は開発用の仮名として、リポジトリ・Bundle ID・モジュール名に残す。表示名とは切り離して扱う。
 > - リポジトリ / モジュール: `PairCommit`
 > - Bundle ID: `com.fujimori.PairCommit` / CloudKit コンテナ: `iCloud.com.fujimori.PairCommit`
 
@@ -235,7 +236,8 @@ graph LR
 - 誰も操作しないまま期限が過ぎただけの催促を出す経路。相手の変更がなければプッシュが飛ばないので、時刻が進んだだけでは何も起きない。
 - 署名と capability（Team・iCloud コンテナ・Push Notifications・Background Modes の Remote notifications）。プッシュはこれが入るまで配送されない。
 - 見た目。「見た目（決定）」に書いた方針は、まだどの画面にも入っていない。素の `Form` と標準のアクセント色のまま。
-- アプリアイコンと表示名。`AppIcon.appiconset` は空で、`CFBundleDisplayName` も未設定。どちらもリリースに要る。画像は手で用意する。
+- アプリアイコン。`AppIcon.appiconset` は空。リリースに要る。画像は手で用意する。
+- 表示名の反映。名前は決まったが、`CFBundleDisplayName` にはまだ入っていない。
 
 **保留**: 実機での検証。Apple Developer Program には加入済み。MC はシミュレータ同士では繋がらないので、ペアリングから先は実機2台でしか動かせない。1台だけで使う入り口（`LocalPairing`）は、ペアリングを本物にしたときに落とした。
 
