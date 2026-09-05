@@ -41,8 +41,13 @@ public final class PartnershipStore {
         do {
             try await synchronizer.save(next)
         } catch {
-            state = previous
+            // 保存を待つ間に取り直しが入っていたら、そちらが最新。自分の操作だけを取り消す。
+            if state == next {
+                state = previous
+            }
             throw .notSynchronized(error)
         }
+        // 後から書いた側が勝つので、保存できた時点でサーバーにあるのは next。
+        state = next
     }
 }

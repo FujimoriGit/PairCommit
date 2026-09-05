@@ -60,4 +60,64 @@ struct PartnershipStoreTests {
         // Then
         #expect(store.state == remote)
     }
+
+    @Test("保存を待つ間に相手の変更を取り直しても、保存できた自分の操作は消えない")
+    func refreshDuringSaveKeepsTheSavedChange() async throws {
+        // Given
+        let synchronizer = InterruptibleSynchronizer()
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        synchronizer.stored = try PartnershipState().establishingPairing(ownerRole: .player)
+        synchronizer.duringSave = { [store] in try? await store.refresh() }
+
+        // When
+        try await store.perform { state throws(DomainError) in
+            try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+        }
+
+        // Then
+        #expect(store.state.visions.count == 1)
+    }
+
+    @Test("保存に失敗したときの巻き戻しは、待つ間に取り直した相手の変更までは消さない")
+    func failedSaveKeepsTheRefreshedRemoteChange() async throws {
+        // Given
+        let synchronizer = InterruptibleSynchronizer()
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let remote = try PartnershipState().establishingPairing(ownerRole: .player)
+        synchronizer.stored = remote
+        synchronizer.failure = .unavailable
+        synchronizer.duringSave = { [store] in try? await store.refresh() }
+
+        // When / Then
+        await #expect(throws: PartnershipFailure.notSynchronized(.unavailable)) {
+            try await store.perform { state throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+            }
+        }
+        #expect(store.state == remote)
+    }
+}
+
+/// 保存の途中に割り込みを差し込める同期層。
+@MainActor
+private final class InterruptibleSynchronizer: PartnershipSyncing {
+    var stored: PartnershipState = .init()
+    var failure: SyncFailure?
+    var duringSave: (() async -> Void)?
+
+    func start() -> PartnershipState {
+        stored
+    }
+
+    func load() -> PartnershipState {
+        stored
+    }
+
+    func save(_ state: PartnershipState) async throws(SyncFailure) {
+        await duringSave?()
+        if let failure {
+            throw failure
+        }
+        stored = state
+    }
 }
