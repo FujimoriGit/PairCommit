@@ -55,7 +55,11 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
     }
 
     public var outcome: Outcome? {
-        Outcome.allCases.first { $0.status == status }
+        switch status {
+        case .achieved: .achieved
+        case .abandoned: .abandoned
+        case .draft, .proposed, .active: nil
+        }
     }
 
     func with(status: Status) -> Self {
