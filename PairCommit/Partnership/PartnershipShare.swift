@@ -12,11 +12,13 @@ import Foundation
 enum PartnershipShareError: LocalizedError {
     case shareURLUnavailable
     case metadataMissing
+    case deleteResultMissing
 
     var errorDescription: String? {
         switch self {
-        case .shareURLUnavailable: return "CKShareのURLが取得できなかった"
-        case .metadataMissing:     return "共有メタデータが取得できなかった"
+        case .shareURLUnavailable:  return "CKShareのURLが取得できなかった"
+        case .metadataMissing:      return "共有メタデータが取得できなかった"
+        case .deleteResultMissing:  return "削除した結果が返ってこなかった"
         }
     }
 }
@@ -57,6 +59,28 @@ enum PartnershipShare {
         return (url, rootRecordID)
     }
 
+    // MARK: 両者共通
+
+    static func teardown(rootRecordID: CKRecord.ID, isOwner: Bool) async throws {
+        do {
+            guard isOwner else {
+                let results = try await container.sharedCloudDatabase.modifyRecords(
+                    saving: [],
+                    deleting: [rootRecordID]
+                )
+                try confirmDeleted(results.deleteResults[rootRecordID])
+                return
+            }
+            let results = try await container.privateCloudDatabase.modifyRecordZones(
+                saving: [],
+                deleting: [rootRecordID.zoneID]
+            )
+            try confirmDeleted(results.deleteResults[rootRecordID.zoneID])
+        } catch let error as CKError where absent.contains(error.code) {
+            return
+        }
+    }
+
     // MARK: Participant 側
 
     static func acceptShare(from url: URL) async throws -> CKRecord.ID {
@@ -73,6 +97,15 @@ enum PartnershipShare {
 // MARK: - Private
 
 private extension PartnershipShare {
+    static let absent: Set<CKError.Code> = [.zoneNotFound, .userDeletedZone, .unknownItem]
+
+    // 消せたかどうかは項目ごとの結果に入る。オペレーション自体が投げるのは、そこへ辿り着けなかったとき。
+    static func confirmDeleted(_ result: Result<Void, any Error>?) throws {
+        guard let result else { throw PartnershipShareError.deleteResultMissing }
+        guard case .failure(let error) = result else { return }
+        guard let code = (error as? CKError)?.code, absent.contains(code) else { throw error }
+    }
+
     static func fetchRoot(_ id: CKRecord.ID, from database: CKDatabase) async throws -> CKRecord? {
         do {
             return try await database.record(for: id)

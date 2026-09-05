@@ -34,6 +34,12 @@ enum NudgeNotifications {
             try? await center.add(request)
         }
     }
+
+    static func withdrawAll() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await center.deliveredNotifications().map(\.request.identifier)
+        center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(prefix) })
+    }
 }
 
 // MARK: - Private

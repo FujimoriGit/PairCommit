@@ -22,6 +22,7 @@ struct PlayerVisionView: View {
         NavigationStack {
             content
                 .navigationTitle(Role.player.label)
+                .partnershipReset()
         }
     }
 }
