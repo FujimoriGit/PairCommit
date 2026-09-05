@@ -5,6 +5,8 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
+import CloudKit
+import Domain
 import Foundation
 import Observation
 import UIKit
@@ -12,8 +14,10 @@ import UIKit
 @MainActor
 @Observable
 final class MultipeerPairing {
-    // CKShare を作る側か受諾する側かの区別で、管理者 / プレイヤーとは別の軸。
-    enum Side { case owner, participant }
+    struct Outcome: Sendable {
+        let rootRecordID: CKRecord.ID
+        let isOwner: Bool
+    }
 
     enum Phase: Equatable {
         case idle
@@ -36,12 +40,13 @@ final class MultipeerPairing {
     }
 
     private(set) var phase: Phase = .idle
+    private(set) var outcome: Outcome?
 
     private var multipeer: MultipeerSession?
     private var eventTask: Task<Void, Never>?
-    private var side: Side = .owner
+    private var side: PairingSide = .participant
 
-    func start(as side: Side) {
+    func start(as side: PairingSide) {
         guard phase == .idle else { return }
         self.side = side
         phase = .searching
@@ -58,6 +63,7 @@ final class MultipeerPairing {
 
     func reset() {
         tearDown()
+        outcome = nil
         phase = .idle
     }
 }
@@ -70,6 +76,11 @@ private extension MultipeerPairing {
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
         "\(UIDevice.current.name.prefix(24))#\(UUID().uuidString.prefix(4))"
+    }
+
+    var isOwner: Bool {
+        if case .owner = side { return true }
+        return false
     }
 
     func handle(_ event: MultipeerSession.Event) {
@@ -97,41 +108,47 @@ private extension MultipeerPairing {
 
     func handleConnected() {
         phase = .connected
-        guard side == .owner else { return }
+        guard case .owner(let role) = side else { return }
         phase = .sharing
         Task {
             do {
-                let url = try await PartnershipShare.makeShare()
-                try multipeer?.send(url.absoluteString)
+                let paired = try PartnershipState().establishingPairing(ownerRole: role)
+                let share = try await PartnershipShare.makeShare(initialState: paired)
+                outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
+                try multipeer?.send(share.url.absoluteString)
                 // 完了にするのは ACK を受け取った時点。
             } catch {
-                phase = .failed(error.localizedDescription)
-                tearDown()
+                fail(with: error)
             }
         }
     }
 
     func handleReceived(_ text: String) {
-        switch side {
-        case .owner:
+        if isOwner {
             guard phase == .sharing, text == Self.ackMessage else { return }
             phase = .done
             tearDown()
-        case .participant:
+        } else {
             guard phase == .connected, let url = URL(string: text) else { return }
             phase = .sharing
             Task {
                 do {
-                    try await PartnershipShare.acceptShare(from: url)
+                    let rootRecordID = try await PartnershipShare.acceptShare(from: url)
+                    outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
                     try multipeer?.send(Self.ackMessage)
                     // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                     phase = .done
                 } catch {
-                    phase = .failed(error.localizedDescription)
-                    tearDown()
+                    fail(with: error)
                 }
             }
         }
+    }
+
+    func fail(with error: any Error) {
+        outcome = nil
+        phase = .failed(error.localizedDescription)
+        tearDown()
     }
 
     func tearDown() {

@@ -7,18 +7,32 @@
 
 import Application
 import Domain
-import Infrastructure
 import SwiftUI
 
 struct ContentView: View {
-    @State private var store: PartnershipStore?
+    let session: PartnershipSession
+
+    @State private var pairing = MultipeerPairing()
     @State private var failureMessage: String?
 
     var body: some View {
-        if let store {
+        if let store = session.store {
             screen(for: store)
-        } else {
+                .task(id: store.state) {
+                    guard store.state.pairing != nil else {
+                        giveUp(with: "パートナーシップは終了しました")
+                        return
+                    }
+                    await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+                }
+        } else if pairing.phase == .idle {
             rolePicker
+        } else {
+            PairingView(phase: pairing.phase, onCancel: pairing.reset)
+                .task(id: pairing.phase) {
+                    guard pairing.phase == .done else { return }
+                    await enter()
+                }
         }
     }
 }
@@ -47,7 +61,7 @@ private extension ContentView {
                 Section {
                     ForEach(Role.allCases, id: \.self) { role in
                         Button {
-                            Task { await start(as: .owner(role)) }
+                            begin(as: .owner(role))
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(role.label)
@@ -61,12 +75,12 @@ private extension ContentView {
                 } header: {
                     Text("役割を選んで始める")
                 } footer: {
-                    Text("役割は後から入れ替えられません。変えるにはペアリングからやり直します。")
+                    Text("役割は後から入れ替えられません。始め直しても、最初に選んだ役割のままになります。")
                 }
 
                 Section {
                     Button("相手の招待を受ける") {
-                        Task { await start(as: .participant) }
+                        begin(as: .participant)
                     }
                 } footer: {
                     Text("始めた側が選ばなかったほうの役割になります。")
@@ -77,30 +91,48 @@ private extension ContentView {
         }
     }
 
-    func start(as side: PairingSide) async {
-        let agreement = await LocalPairing().pair(as: side)
-        let paired: PartnershipState
-        do {
-            paired = try PartnershipState().establishingPairing(ownerRole: agreement.ownerRole)
-        } catch {
-            failureMessage = error.message
-            return
-        }
+    func begin(as side: PairingSide) {
+        failureMessage = nil
+        pairing.start(as: side)
+    }
 
-        let started = PartnershipStore(
-            role: agreement.role,
-            synchronizer: InMemorySynchronizer(initialState: paired)
-        )
-        do {
-            try await started.start()
-        } catch {
-            failureMessage = error.message
+    func enter() async {
+        guard let outcome = pairing.outcome else {
+            giveUp(with: "ペアリングの結果を受け取れませんでした")
             return
         }
-        store = started
+        let synchronizer = CloudKitSynchronizer(
+            rootRecordID: outcome.rootRecordID,
+            isOwner: outcome.isOwner,
+            container: PartnershipShare.container
+        )
+
+        do {
+            let state = try await synchronizer.start()
+            guard let ownerRole = state.pairing?.ownerRole else {
+                giveUp(with: "相手の設定がまだ届いていません")
+                return
+            }
+            let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
+            await NudgeNotifications.requestPermission()
+            session.store = PartnershipStore(
+                role: agreement.role,
+                synchronizer: synchronizer,
+                state: state
+            )
+        } catch {
+            giveUp(with: error.message)
+        }
+    }
+
+    // 入場の失敗を出せる画面がないので、選び直せる最初の画面まで戻す。
+    func giveUp(with message: String) {
+        failureMessage = message
+        session.store = nil
+        pairing.reset()
     }
 }
 
-#Preview {
-    ContentView()
+#Preview("役割の選択") {
+    ContentView(session: PartnershipSession())
 }

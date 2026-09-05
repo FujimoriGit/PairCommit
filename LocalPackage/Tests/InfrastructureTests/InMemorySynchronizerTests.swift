@@ -25,22 +25,4 @@ struct InMemorySynchronizerTests {
         let loaded = await synchronizer.load()
         #expect(loaded == state)
     }
-
-    @Test("相手側の変更は remoteChanges のストリームに届く")
-    func remoteChangeIsDeliveredToSubscribers() async throws {
-        // Given
-        let synchronizer = InMemorySynchronizer()
-        let stream = await synchronizer.remoteChanges()
-        let (state, _) = try PartnershipState().draftingVision(
-            statement: "s", doneCriteria: "c", by: .player
-        )
-
-        // When
-        await synchronizer.simulateRemoteChange(state)
-
-        // Then
-        var iterator = stream.makeAsyncIterator()
-        let received = await iterator.next()
-        #expect(received == state)
-    }
 }

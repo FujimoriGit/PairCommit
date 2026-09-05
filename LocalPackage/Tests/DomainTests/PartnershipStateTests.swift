@@ -296,6 +296,30 @@ struct PartnershipStateTests {
             try state.settingReaction(.angry, on: taskID, by: .manager)
         }
     }
+
+    // MARK: - 同期での往復
+
+    @Test("状態は JSON に載せて往復しても失われない（同期はこの形で運ぶ）")
+    func stateSurvivesJSONRoundTrip() throws {
+        // Given
+        let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let (paired, visionID) = try PartnershipState()
+            .establishingPairing(ownerRole: .manager)
+            .draftingVision(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: deadline, by: .player)
+        let (active, taskID) = try paired
+            .proposingVision(visionID, by: .player)
+            .approvingVision(visionID, by: .manager)
+            .creatingTask(title: "毎朝30分歩く", deadline: deadline, by: .manager)
+        let state = try active.settingReaction(.angry, on: taskID, by: .player)
+
+        // When
+        let restored = try JSONDecoder().decode(
+            PartnershipState.self, from: JSONEncoder().encode(state)
+        )
+
+        // Then
+        #expect(restored == state)
+    }
 }
 
 // MARK: - テストヘルパー
