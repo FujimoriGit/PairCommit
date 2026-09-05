@@ -20,12 +20,14 @@ case "$MODE" in
     cp -R "$SNAPSHOTS" "$recorded"
     ;;
   add)
-    added="$RUNNER_TEMP/added-snapshots.tar"
+    added="$RUNNER_TEMP/added-snapshots"
     if [ -z "$(git ls-files --others --exclude-standard "$SNAPSHOTS")" ]; then
       echo "基準画像に変更なし"
       exit 0
     fi
-    git ls-files --others --exclude-standard -z "$SNAPSHOTS" | tar -cf "$added" --null -T -
+    rm -rf "$added"
+    mkdir -p "$added"
+    git ls-files --others --exclude-standard -z "$SNAPSHOTS" | tar -cf - --null -T - | tar -xf - -C "$added"
     ;;
   *)
     echo "不明なモード: $MODE" >&2
@@ -46,7 +48,9 @@ for attempt in 1 2 3; do
   else
     # reset は untracked のファイルも reset 先の内容で黙って上書きする。押し負けている
     # 間に同じ名前の画像が先端へ入っていたら、そちらを控えで塗り替えない。
-    tar -xf "$added" --keep-old-files
+    (cd "$added" && find . -type f -print0) | while IFS= read -r -d '' file; do
+      [ -e "$file" ] || { mkdir -p "$(dirname "$file")"; cp "$added/$file" "$file"; }
+    done
   fi
   git add "$SNAPSHOTS"
 
