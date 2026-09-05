@@ -29,27 +29,29 @@ private extension PartnershipHistoryView {
                 description: Text("ビジョンを閉じるとここに残ります")
             )
         } else {
-            List(state.closedVisions) { vision in
+            List(state.closedVisions) { closed in
                 NavigationLink {
-                    VisionHistoryView(vision: vision, tasks: state.tasks(for: vision.id))
+                    VisionHistoryView(
+                        vision: closed.vision,
+                        outcome: closed.outcome,
+                        tasks: state.tasks(for: closed.id)
+                    )
                 } label: {
-                    row(vision)
+                    row(closed)
                 }
             }
         }
     }
 
-    func row(_ vision: Vision) -> some View {
+    func row(_ closed: ClosedVision) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(vision.statement)
+            Text(closed.vision.statement)
                 .font(.headline)
             HStack(spacing: 8) {
-                if let outcome = vision.outcome {
-                    Text(outcome.result)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                DeadlineText(deadline: vision.deadline)
+                Text(closed.outcome.result)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                DeadlineText(deadline: closed.vision.deadline)
             }
         }
     }

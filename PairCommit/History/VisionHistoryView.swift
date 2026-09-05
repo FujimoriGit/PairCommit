@@ -10,6 +10,7 @@ import SwiftUI
 
 struct VisionHistoryView: View {
     let vision: Vision
+    let outcome: Vision.Outcome
     let tasks: [TaskItem]
 
     var body: some View {
@@ -29,9 +30,7 @@ private extension VisionHistoryView {
         Section("ビジョン") {
             Text(vision.statement)
                 .font(.headline)
-            if let outcome = vision.outcome {
-                LabeledContent("結果", value: outcome.result)
-            }
+            LabeledContent("結果", value: outcome.result)
             LabeledContent("達成基準", value: vision.doneCriteria)
             if let why = vision.why {
                 LabeledContent("動機", value: why)
@@ -73,7 +72,7 @@ private extension VisionHistoryView {
 #Preview("記録のビジョン") {
     let vision = Vision.preview(status: .achieved, deadline: .preview(daysLater: -10))
     NavigationStack {
-        VisionHistoryView(vision: vision, tasks: [
+        VisionHistoryView(vision: vision, outcome: .achieved, tasks: [
             .preview(visionID: vision.id, title: "毎日30分歩く", status: .approved, reaction: .happy),
             .preview(visionID: vision.id, title: "間食をやめる", status: .cancelled, reaction: .angry),
             .preview(visionID: vision.id, title: "体重を記録する", status: .approved)

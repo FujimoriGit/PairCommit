@@ -30,8 +30,8 @@ public struct PartnershipState: Sendable, Codable, Equatable {
         visions.last { $0.status == .achieved }
     }
 
-    public var closedVisions: [Vision] {
-        visions.filter { $0.outcome != nil }.sorted { $0.createdAt > $1.createdAt }
+    public var closedVisions: [ClosedVision] {
+        visions.compactMap(ClosedVision.init).sorted { $0.vision.createdAt > $1.vision.createdAt }
     }
 }
 

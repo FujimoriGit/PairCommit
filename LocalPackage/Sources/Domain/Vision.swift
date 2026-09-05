@@ -54,7 +54,7 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         self.createdAt = createdAt
     }
 
-    public var outcome: Outcome? {
+    var outcome: Outcome? {
         switch status {
         case .achieved: .achieved
         case .abandoned: .abandoned
