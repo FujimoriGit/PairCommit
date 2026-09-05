@@ -127,13 +127,20 @@ private extension ContentView {
     }
 
     func reset() async {
-        if let outcome = pairing.outcome {
-            try? await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
+        guard let outcome = pairing.outcome else {
+            returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+            return
         }
+        do {
+            try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
+        } catch {
+            returnToPicker(with: "リセットできませんでした")
+            return
+        }
+        await NudgeNotifications.withdrawAll()
         returnToPicker(with: nil)
     }
 
-    // 入場の失敗を出せる画面がないので、選び直せる最初の画面まで戻す。
     func returnToPicker(with message: String?) {
         failureMessage = message
         session.store = nil
