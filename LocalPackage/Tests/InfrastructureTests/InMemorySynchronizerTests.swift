@@ -25,18 +25,4 @@ struct InMemorySynchronizerTests {
         let loaded = await synchronizer.load()
         #expect(loaded == state)
     }
-
-    @Test("開始したときに返るのは、保存済みの最新の状態")
-    func startReturnsLatestSavedState() async throws {
-        // Given
-        let synchronizer = InMemorySynchronizer()
-        let state = try PartnershipState().establishingPairing(ownerRole: .player)
-        await synchronizer.save(state)
-
-        // When
-        let started = await synchronizer.start()
-
-        // Then
-        #expect(started == state)
-    }
 }

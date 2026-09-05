@@ -75,7 +75,7 @@ private extension ContentView {
                 } header: {
                     Text("役割を選んで始める")
                 } footer: {
-                    Text("役割は後から入れ替えられません。変えるにはペアリングからやり直します。")
+                    Text("役割は後から入れ替えられません。始め直しても、最初に選んだ役割のままになります。")
                 }
 
                 Section {
