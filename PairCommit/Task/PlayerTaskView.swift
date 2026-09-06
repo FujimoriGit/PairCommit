@@ -40,8 +40,8 @@ private extension PlayerTaskView {
                 FailureRow(message: failureMessage)
             }
         } else {
-            ContentUnavailableView(
-                "進行中のビジョンがありません",
+            EmptyStateView(
+                title: "進行中のビジョンがありません",
                 systemImage: "flag",
                 description: Text("管理者の承認を待っています")
             )
