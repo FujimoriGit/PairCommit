@@ -23,8 +23,8 @@ private extension PartnershipHistoryView {
     @ViewBuilder
     var content: some View {
         if state.closedVisions.isEmpty {
-            ContentUnavailableView(
-                "まだ記録がありません",
+            EmptyStateView(
+                title: "まだ記録がありません",
                 systemImage: "clock.arrow.circlepath",
                 description: Text("ビジョンを閉じるとここに残ります")
             )
