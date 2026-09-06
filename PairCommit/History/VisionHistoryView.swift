@@ -32,9 +32,6 @@ private extension VisionHistoryView {
                 .font(.headline)
             LabeledContent("結果", value: outcome.result)
             LabeledContent("達成基準", value: vision.doneCriteria)
-            if let why = vision.why {
-                LabeledContent("動機", value: why)
-            }
             if let deadline = vision.deadline {
                 LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
             }
