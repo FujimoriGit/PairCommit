@@ -187,11 +187,6 @@ private extension PlayerTaskView {
     PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]), now: .preview)
 }
 
-#Preview("プレイヤーのビジョンなし") {
-    PlayerTaskView(store: .preview(role: .player, visions: []), now: .preview)
-        .environment(\.resettingPartnership) { nil }
-}
-
 #Preview("プレイヤーの催促") {
     let vision = Vision.preview(status: .active)
     PlayerTaskView(
