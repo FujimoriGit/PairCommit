@@ -57,8 +57,8 @@ private extension ManagerTaskView {
                 Text("進行中のタスクはすべて取り消されます")
             }
         } else {
-            EmptyStateView(
-                title: "進行中のビジョンがありません",
+            ContentUnavailableView(
+                "進行中のビジョンがありません",
                 systemImage: "flag",
                 description: Text("ビジョンを承認するとタスクを作れます")
             )

@@ -42,14 +42,14 @@ private extension ManagerVisionView {
     @ViewBuilder
     var waiting: some View {
         if let achieved = store.state.lastAchievedVision {
-            EmptyStateView(
-                title: "🎉 達成しました",
+            ContentUnavailableView(
+                "🎉 達成しました",
                 systemImage: "flag.checkered",
                 description: Text("\(achieved.statement)\n\nプレイヤーの次の起案を待っています")
             )
         } else {
-            EmptyStateView(
-                title: "承認待ちのビジョンはありません",
+            ContentUnavailableView(
+                "承認待ちのビジョンはありません",
                 systemImage: "tray",
                 description: Text("プレイヤーの起案を待っています")
             )
