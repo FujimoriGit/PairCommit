@@ -230,6 +230,11 @@ private extension ManagerTaskView {
     ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
 }
 
+#Preview("管理者のビジョンなし") {
+    ManagerTaskView(store: .preview(role: .manager, visions: []), now: .preview)
+        .environment(\.resettingPartnership) { nil }
+}
+
 #Preview("管理者の催促") {
     let vision = Vision.preview(status: .active)
     ManagerTaskView(
