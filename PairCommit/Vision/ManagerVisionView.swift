@@ -15,12 +15,10 @@ struct ManagerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle(Role.manager.label)
-                .partnershipReset()
-                .partnershipHistory(store.state)
-        }
+        content
+            .navigationTitle(Role.manager.label)
+            .partnershipReset()
+            .partnershipHistoryLink()
     }
 }
 
@@ -106,18 +104,26 @@ private extension ManagerVisionView {
 }
 
 #Preview("管理者の起案待ち") {
-    ManagerVisionView(store: .preview(role: .manager, visions: []))
-        .environment(\.resettingPartnership) { nil }
+    NavigationStack {
+        ManagerVisionView(store: .preview(role: .manager, visions: []))
+            .environment(\.resettingPartnership) { nil }
+    }
 }
 
 #Preview("管理者の承認待ち") {
-    ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
+    NavigationStack {
+        ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
+    }
 }
 
 #Preview("管理者の進行中") {
-    ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
+    NavigationStack {
+        ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
+    }
 }
 
 #Preview("管理者の達成直後") {
-    ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .achieved)]))
+    NavigationStack {
+        ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .achieved)]))
+    }
 }
