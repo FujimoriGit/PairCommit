@@ -217,3 +217,18 @@ private extension PlayerTaskView {
     }
     .tint(Role.player.accent)
 }
+
+#Preview("プレイヤーの感情ヒートマップ") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(store: .preview(
+            role: .player,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "毎日30分歩く", status: .approved, createdBy: .manager, reaction: .happy),
+                .preview(visionID: vision.id, title: "間食をやめる", status: .approved, createdBy: .manager, reaction: .angry),
+                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .uneasy)
+            ]
+        ), now: .preview)
+    }
+}

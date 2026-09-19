@@ -23,32 +23,34 @@ struct VisionCountdownTests {
         let countdown = vision.countdown(at: now, in: utc)
 
         // Then
-        #expect(countdown == .overdue)
+        #expect(countdown == .overdue(deadline))
         #expect(state.nudges(for: .manager, now: now) == [.visionOverdue(vision.id)])
     }
 
     @Test("期限の時刻より前なら、期限当日は残り0日になる")
     func beforeTheDeadlineTimeOnTheDayLeavesZeroDays() {
         // Given
-        let vision = vision(deadline: day(0, hoursLater: 10))
+        let deadline = day(0, hoursLater: 10)
+        let vision = vision(deadline: deadline)
 
         // When
         let countdown = vision.countdown(at: day(0, hoursLater: 1), in: utc)
 
         // Then
-        #expect(countdown == .days(0))
+        #expect(countdown == .days(0, until: deadline))
     }
 
     @Test("残り日数は時刻ではなく日付の差で数える")
     func remainingDaysCountCalendarDaysNotElapsedTime() {
         // Given
-        let vision = vision(deadline: day(2, hoursLater: -7))
+        let deadline = day(2, hoursLater: -7)
+        let vision = vision(deadline: deadline)
 
         // When
         let countdown = vision.countdown(at: day(0, hoursLater: 15), in: utc)
 
         // Then
-        #expect(countdown == .days(2))
+        #expect(countdown == .days(2, until: deadline))
     }
 
     @Test("期限の無いビジョンは数えない")

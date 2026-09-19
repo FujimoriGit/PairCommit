@@ -257,7 +257,7 @@ graph LR
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
 5. **ロール別UI** -> 済。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
    - Manager: タスク生成・採用・承認・差し戻し・取り消し、ビジョン承認・達成判断、催促の表示、感情ヒートマップ（行の色）。
-   - Player: ビジョン起案・タスク起案・完了報告・感情表明（😡😕😊）、催促の表示。
+   - Player: ビジョン起案・タスク起案・完了報告・感情表明（😡😕😊）、催促の表示、感情ヒートマップ（行の色）。
    - ロールはペアリングのときに固定する（未決事項5）。始める側が選び、受ける側は残りのロールになる。
 6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
 7. **催促ロジック（双方向）** -> 判定はドメインの純粋関数として済（`Nudge` / `nudges(for:now:)`）。アプリ内表示と端末の通知も済。残りはアプリを開いていない間に出す経路。
