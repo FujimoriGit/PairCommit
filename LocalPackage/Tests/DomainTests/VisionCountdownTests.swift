@@ -14,8 +14,8 @@ struct VisionCountdownTests {
     @Test("期限の時刻を過ぎたら、期限当日でも期限切れになり、催促と食い違わない")
     func passingTheDeadlineTimeOnTheDayIsOverdueLikeTheNudge() throws {
         // Given
-        let deadline = at(day: 0, hour: 18)
-        let now = at(day: 0, hour: 19)
+        let deadline = day(0, hoursLater: 10)
+        let now = day(0, hoursLater: 11)
         let state = try activeState(deadline: deadline)
         let vision = try #require(state.activeVision)
 
@@ -30,10 +30,10 @@ struct VisionCountdownTests {
     @Test("期限の時刻より前なら、期限当日は残り0日になる")
     func beforeTheDeadlineTimeOnTheDayLeavesZeroDays() {
         // Given
-        let vision = vision(deadline: at(day: 0, hour: 18))
+        let vision = vision(deadline: day(0, hoursLater: 10))
 
         // When
-        let countdown = vision.countdown(at: at(day: 0, hour: 9), in: utc)
+        let countdown = vision.countdown(at: day(0, hoursLater: 1), in: utc)
 
         // Then
         #expect(countdown == .days(0))
@@ -42,10 +42,10 @@ struct VisionCountdownTests {
     @Test("残り日数は時刻ではなく日付の差で数える")
     func remainingDaysCountCalendarDaysNotElapsedTime() {
         // Given
-        let vision = vision(deadline: at(day: 2, hour: 1))
+        let vision = vision(deadline: day(2, hoursLater: -7))
 
         // When
-        let countdown = vision.countdown(at: at(day: 0, hour: 23), in: utc)
+        let countdown = vision.countdown(at: day(0, hoursLater: 15), in: utc)
 
         // Then
         #expect(countdown == .days(2))
@@ -57,7 +57,7 @@ struct VisionCountdownTests {
         let vision = vision(deadline: nil)
 
         // When
-        let countdown = vision.countdown(at: at(day: 0, hour: 0), in: utc)
+        let countdown = vision.countdown(at: day(0), in: utc)
 
         // Then
         #expect(countdown == .unbounded)
@@ -72,9 +72,9 @@ private let utc: Calendar = {
     return calendar
 }()
 
-// 2027-01-15 00:00 UTC
-private func at(day: Int, hour: Int) -> Date {
-    Date(timeIntervalSince1970: 1_800_000_000 - 8 * 60 * 60 + Double(day * 24 + hour) * 60 * 60)
+// 2027-01-15 08:00 UTC
+private func day(_ offset: Int, hoursLater hours: Int = 0) -> Date {
+    Date(timeIntervalSince1970: 1_800_000_000 + Double(offset * 24 + hours) * 60 * 60)
 }
 
 private func vision(deadline: Date?) -> Vision {
@@ -85,7 +85,7 @@ private func vision(deadline: Date?) -> Vision {
         deadline: deadline,
         why: nil,
         status: .active,
-        createdAt: at(day: -10, hour: 0)
+        createdAt: day(-10)
     )
 }
 
