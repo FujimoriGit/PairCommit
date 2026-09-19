@@ -30,8 +30,7 @@ struct ContentView: View {
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
-                    await NudgeNotifications.withdrawAll()
-                    returnToPicker(with: "パートナーシップは終了しました")
+                    await returnToPicker(with: "パートナーシップは終了しました")
                     return
                 }
                 await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
@@ -40,11 +39,11 @@ struct ContentView: View {
             ReconnectingView(
                 failureMessage: failureMessage,
                 onRetry: { failureMessage = nil },
-                onStartOver: { returnToPicker(with: nil) }
+                onStartOver: { Task { await returnToPicker(with: nil) } }
             )
             .task(id: failureMessage == nil) {
                 guard failureMessage == nil else { return }
-                await enter(saved)
+                await enter(saved, whenPartnerMissing: "パートナーシップは終了しました")
             }
         } else if pairing.phase == .idle {
             rolePicker
@@ -53,12 +52,12 @@ struct ContentView: View {
                 .task(id: pairing.phase) {
                     guard pairing.phase == .done else { return }
                     guard let outcome = pairing.outcome else {
-                        returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+                        await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
                         return
                     }
                     SavedPairing.save(outcome)
                     savedPairing = outcome
-                    await enter(outcome)
+                    await enter(outcome, whenPartnerMissing: "相手の設定がまだ届いていません")
                 }
         }
     }
@@ -123,7 +122,7 @@ private extension ContentView {
         pairing.start(as: side)
     }
 
-    func enter(_ outcome: MultipeerPairing.Outcome) async {
+    func enter(_ outcome: MultipeerPairing.Outcome, whenPartnerMissing missingMessage: String) async {
         let synchronizer = CloudKitSynchronizer(
             rootRecordID: outcome.rootRecordID,
             isOwner: outcome.isOwner,
@@ -139,7 +138,7 @@ private extension ContentView {
             return
         }
         guard let ownerRole = state.pairing?.ownerRole else {
-            returnToPicker(with: "相手の設定がまだ届いていません")
+            await returnToPicker(with: missingMessage)
             return
         }
         let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
@@ -160,12 +159,12 @@ private extension ContentView {
         } catch {
             return error.localizedDescription
         }
-        await NudgeNotifications.withdrawAll()
-        returnToPicker(with: nil)
+        await returnToPicker(with: nil)
         return nil
     }
 
-    func returnToPicker(with message: String?) {
+    func returnToPicker(with message: String?) async {
+        await NudgeNotifications.withdrawAll()
         SavedPairing.clear()
         savedPairing = nil
         failureMessage = message

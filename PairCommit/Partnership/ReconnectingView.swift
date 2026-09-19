@@ -5,6 +5,7 @@
 //  Created by Daiki Fujimori on 2026/09/19
 //
 
+import Prefire
 import SwiftUI
 
 struct ReconnectingView: View {
@@ -31,6 +32,7 @@ struct ReconnectingView: View {
 
 #Preview("前回の相手とつなぎ直し中") {
     ReconnectingView(failureMessage: nil, onRetry: {}, onStartOver: {})
+        .prefireIgnored()
 }
 
 #Preview("前回の相手とつなぎ直せない") {
