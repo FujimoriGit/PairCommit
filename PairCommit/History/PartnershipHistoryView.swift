@@ -14,7 +14,6 @@ struct PartnershipHistoryView: View {
     var body: some View {
         content
             .navigationTitle("2人の記録")
-            .toolbarTitleDisplayMode(.large)
     }
 }
 
