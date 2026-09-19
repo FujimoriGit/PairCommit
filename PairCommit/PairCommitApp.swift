@@ -17,7 +17,7 @@ struct PairCommitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(session: delegate.session)
+            ContentView(session: delegate.session, savedPairing: SavedPairing.load())
         }
     }
 }

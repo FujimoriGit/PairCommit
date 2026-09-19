@@ -16,7 +16,6 @@ struct ManagerVisionView: View {
 
     var body: some View {
         content
-            .navigationTitle(Role.manager.label)
             .partnershipReset()
             .partnershipHistoryLink()
     }
