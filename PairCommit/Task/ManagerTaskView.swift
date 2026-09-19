@@ -19,7 +19,6 @@ struct ManagerTaskView: View {
 
     var body: some View {
         content
-            .toolbarTitleDisplayMode(.inline)
             .partnershipReset()
             .partnershipHistoryLink()
     }
