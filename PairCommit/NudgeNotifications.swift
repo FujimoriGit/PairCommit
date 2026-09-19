@@ -27,7 +27,6 @@ enum NudgeNotifications {
         // 配信済みの催促は出し直さない。同じ識別子で add し直すと、差し替わると同時にもう一度鳴る。
         for (id, nudge) in wanted where !delivered.contains(id) {
             let content = UNMutableNotificationContent()
-            content.title = "PairCommit"
             content.body = nudge.message(in: state)
             content.sound = .default
             let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
