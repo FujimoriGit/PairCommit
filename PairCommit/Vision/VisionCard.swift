@@ -38,17 +38,12 @@ struct VisionCard: View {
 private extension VisionCard {
     var remaining: String {
         guard let deadline = vision.deadline else { return "期限なし" }
-        let calendar = Calendar.current
-        let days = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: now),
-            to: calendar.startOfDay(for: deadline)
-        ).day ?? 0
-        let date = deadline.formatted(Date.FormatStyle.monthDay)
-        return switch days {
-        case ..<0: "\(date)の期限を過ぎています"
-        case 0: "今日まで"
-        default: "残り\(days)日（\(date)まで）"
+        let date = deadline.formatted(Date.FormatStyle.yearMonthDay)
+        return switch vision.countdown(at: now, in: .current) {
+        case .unbounded: "期限なし"
+        case .overdue: "\(date)の期限を過ぎています"
+        case .days(0): "今日まで"
+        case .days(let days): "残り\(days)日（\(date)まで）"
         }
     }
 }
@@ -59,6 +54,10 @@ private extension VisionCard {
 
 #Preview("ビジョンカードの期限なし") {
     VisionCard(vision: .preview(status: .active), now: .preview)
+}
+
+#Preview("ビジョンカードの期限当日") {
+    VisionCard(vision: .preview(status: .active, deadline: .preview), now: .preview)
 }
 
 #Preview("ビジョンカードの期限切れ") {
