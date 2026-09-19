@@ -33,9 +33,11 @@ enum NudgeNotifications {
 
         // 誰も操作しなければプッシュは来ないので、期限が過ぎるだけの催促は先に予約しておく。
         // 予約も同じ識別子で出すので、鳴ったあとは配信済みとして上の重複除けに掛かる。
+        // 未配信の予約は同じ識別子の add で置き換わるので、消すのは予約しなくなったものだけにする。
         // 予約できるのはアプリごとに64件までで、超えた分は発火の遅いものから黙って捨てられる。
-        await withdrawPending()
-        for (nudge, startsAt) in state.upcomingNudges(for: role, now: now) {
+        let upcoming = state.upcomingNudges(for: role, now: now)
+        await withdrawPending(keeping: Set(upcoming.keys.map(identifier(of:))))
+        for (nudge, startsAt) in upcoming {
             // 0 以下の間隔を渡すと例外で落ちる
             let interval = max(startsAt.timeIntervalSince(now), 1)
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
@@ -47,7 +49,7 @@ enum NudgeNotifications {
         let center = UNUserNotificationCenter.current()
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
         center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(prefix) })
-        await withdrawPending()
+        await withdrawPending(keeping: [])
     }
 }
 
@@ -76,9 +78,11 @@ private extension NudgeNotifications {
         return UNNotificationRequest(identifier: identifier(of: nudge), content: content, trigger: trigger)
     }
 
-    static func withdrawPending() async {
+    static func withdrawPending(keeping kept: Set<String>) async {
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests().map(\.identifier)
-        center.removePendingNotificationRequests(withIdentifiers: pending.filter { $0.hasPrefix(prefix) })
+        center.removePendingNotificationRequests(
+            withIdentifiers: pending.filter { $0.hasPrefix(prefix) && !kept.contains($0) }
+        )
     }
 }

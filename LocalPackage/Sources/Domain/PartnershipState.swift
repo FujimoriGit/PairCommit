@@ -179,7 +179,7 @@ extension PartnershipState {
         approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
     ) -> [Nudge] {
         nudgeWindows(for: role, dueSoonWithin: dueSoonWithin, approvalStalledAfter: approvalStalledAfter)
-            .filter { $0.startsAt < now && $0.endsAt.map { now <= $0 } ?? true }
+            .filter { $0.startsAt < now && now <= ($0.endsAt ?? .distantFuture) }
             .map(\.nudge)
     }
 
