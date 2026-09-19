@@ -25,7 +25,7 @@ struct ReconnectingView: View {
                 Button("役割の選択からやり直す", role: .destructive, action: onStartOver)
             }
         } else {
-            ProgressView("前回の相手とつないでいます…")
+            ProgressView("相手とつないでいます…")
         }
     }
 }

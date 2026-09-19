@@ -13,12 +13,14 @@ struct ContentView: View {
     let session: PartnershipSession
 
     @State private var savedPairing: MultipeerPairing.Outcome?
+    @State private var isResuming: Bool
     @State private var pairing = MultipeerPairing()
     @State private var failureMessage: String?
 
     init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil) {
         self.session = session
         _savedPairing = State(initialValue: savedPairing)
+        _isResuming = State(initialValue: savedPairing != nil)
     }
 
     var body: some View {
@@ -43,7 +45,7 @@ struct ContentView: View {
             )
             .task(id: failureMessage == nil) {
                 guard failureMessage == nil else { return }
-                await enter(saved, whenPartnerMissing: "パートナーシップは終了しました")
+                await enter(saved, resuming: isResuming)
             }
         } else if pairing.phase == .idle {
             rolePicker
@@ -57,7 +59,8 @@ struct ContentView: View {
                     }
                     SavedPairing.save(outcome)
                     savedPairing = outcome
-                    await enter(outcome, whenPartnerMissing: "相手の設定がまだ届いていません")
+                    isResuming = false
+                    await enter(outcome, resuming: false)
                 }
         }
     }
@@ -122,7 +125,7 @@ private extension ContentView {
         pairing.start(as: side)
     }
 
-    func enter(_ outcome: MultipeerPairing.Outcome, whenPartnerMissing missingMessage: String) async {
+    func enter(_ outcome: MultipeerPairing.Outcome, resuming: Bool) async {
         let synchronizer = CloudKitSynchronizer(
             rootRecordID: outcome.rootRecordID,
             isOwner: outcome.isOwner,
@@ -138,7 +141,7 @@ private extension ContentView {
             return
         }
         guard let ownerRole = state.pairing?.ownerRole else {
-            await returnToPicker(with: missingMessage)
+            await returnToPicker(with: resuming ? "パートナーシップは終了しました" : "相手の設定がまだ届いていません")
             return
         }
         let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
