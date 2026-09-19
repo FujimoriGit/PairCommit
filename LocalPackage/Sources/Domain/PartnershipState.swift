@@ -204,6 +204,35 @@ extension PartnershipState {
         }
         return found.filter { $0.recipient == role }
     }
+
+    /// まだ始まっていない催促と、それが始まる時刻。その時刻を過ぎると `nudges(for:now:)` に現れる。
+    public func upcomingNudges(
+        for role: Role,
+        now: Date = Date(),
+        dueSoonWithin: TimeInterval = Nudge.dueSoonWithin,
+        approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
+    ) -> [Nudge: Date] {
+        guard let vision = activeVision else { return [:] }
+
+        var found: [Nudge: Date] = [:]
+        if let deadline = vision.deadline {
+            found[.visionOverdue(vision.id)] = deadline
+        }
+        for task in tasks(for: vision.id) {
+            switch task.status {
+            case .todo:
+                if let deadline = task.deadline {
+                    found[.taskOverdue(task.id)] = deadline
+                    found[.taskDueSoon(task.id)] = deadline.addingTimeInterval(-dueSoonWithin)
+                }
+            case .reported:
+                found[.approvalStalled(task.id)] = task.statusChangedAt.addingTimeInterval(approvalStalledAfter)
+            case .proposed, .approved, .cancelled:
+                break
+            }
+        }
+        return found.filter { $0.key.recipient == role && $0.value > now }
+    }
 }
 
 // MARK: - Private
