@@ -34,7 +34,7 @@ private extension PlayerVisionView {
             if let active = store.state.activeVision {
                 summary(of: active, note: "進行中")
             } else if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
-                summary(of: proposed, note: "管理者の承認を待っています")
+                summary(of: proposed, note: "\(Role.manager.label)の承認を待っています")
             } else if let draft = store.state.visions.last(where: { $0.status == .draft }) {
                 draftDetail(draft)
             } else {
@@ -114,7 +114,7 @@ private extension PlayerVisionView {
         Form {
             visionFields(vision)
             Section {
-                Button("管理者に提出する") {
+                Button("\(Role.manager.label)に提出する") {
                     perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
                 }
             }
