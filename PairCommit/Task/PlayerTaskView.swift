@@ -101,6 +101,9 @@ private extension PlayerTaskView {
             HStack {
                 Text(task.title)
                 Spacer()
+                if !task.status.isOpen, let reaction = task.reaction {
+                    Text(reaction.emoji)
+                }
                 DeadlineText(deadline: task.deadline)
                 Text(task.status.label)
                     .font(.caption)
@@ -114,12 +117,14 @@ private extension PlayerTaskView {
                     perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
                 }
                 .buttonStyle(.borderless)
+                .font(.subheadline)
             }
         }
+        .listRowBackground(task.reaction.map { $0.tint.opacity(0.15) })
     }
 
     func reactions(for task: TaskItem) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 0) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button(reaction.emoji) {
                     perform { state throws(DomainError) in
@@ -130,6 +135,8 @@ private extension PlayerTaskView {
                         )
                     }
                 }
+                .font(.largeTitle)
+                .frame(maxWidth: .infinity, minHeight: 56)
                 .opacity(task.reaction == reaction ? 1 : 0.3)
             }
         }
