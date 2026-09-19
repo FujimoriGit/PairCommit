@@ -181,7 +181,7 @@ extension PartnershipState {
         guard let vision = activeVision else { return [] }
 
         var found: [Nudge] = []
-        if let deadline = vision.deadline, deadline < now {
+        if vision.isOverdue(at: now) {
             found.append(.visionOverdue(vision.id))
         }
         for task in tasks(for: vision.id) {
