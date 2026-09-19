@@ -18,6 +18,7 @@ struct ManagerVisionView: View {
         content
             .partnershipReset()
             .partnershipHistoryLink()
+            .tint(store.role.accent)
     }
 }
 
@@ -107,26 +108,22 @@ private extension ManagerVisionView {
         ManagerVisionView(store: .preview(role: .manager, visions: []))
             .environment(\.resettingPartnership) { nil }
     }
-    .tint(Role.manager.accent)
 }
 
 #Preview("管理者の承認待ち") {
     NavigationStack {
         ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
     }
-    .tint(Role.manager.accent)
 }
 
 #Preview("管理者の進行中") {
     NavigationStack {
         ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
     }
-    .tint(Role.manager.accent)
 }
 
 #Preview("管理者の達成直後") {
     NavigationStack {
         ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .achieved)]))
     }
-    .tint(Role.manager.accent)
 }

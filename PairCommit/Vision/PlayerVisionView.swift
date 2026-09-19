@@ -22,6 +22,7 @@ struct PlayerVisionView: View {
         content
             .partnershipReset()
             .partnershipHistoryLink()
+            .tint(store.role.accent)
     }
 }
 
@@ -159,33 +160,28 @@ private extension PlayerVisionView {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: []))
     }
-    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーの提出待ち") {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
     }
-    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーの承認待ち") {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]))
     }
-    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーの達成直後") {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]))
     }
-    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーの下読みつき起案") {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: []), reviewing: PreviewCriteriaReview())
     }
-    .tint(Role.player.accent)
 }
