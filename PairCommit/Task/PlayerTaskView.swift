@@ -31,10 +31,12 @@ private extension PlayerTaskView {
         if let vision = store.state.activeVision {
             Form {
                 nudgeSection
-                visionSection(vision)
                 proposal
                 taskList(store.state.tasks(for: vision.id))
                 FailureRow(message: failureMessage)
+            }
+            .safeAreaInset(edge: .top) {
+                VisionCard(vision: vision, now: now)
             }
         } else {
             ContentUnavailableView(
@@ -77,16 +79,6 @@ private extension PlayerTaskView {
                     Label(nudge.message(in: store.state), systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                 }
-            }
-        }
-    }
-
-    func visionSection(_ vision: Vision) -> some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
             }
         }
     }
