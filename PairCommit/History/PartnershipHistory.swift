@@ -20,7 +20,7 @@ extension View {
     }
 
     // 遷移先をリンクの側に置くと、リンクを持つ画面が入れ替わったときに開いている記録も閉じる
-    func partnershipHistory(_ state: PartnershipState) -> some View {
+    func partnershipHistoryDestination(_ state: PartnershipState) -> some View {
         navigationDestination(for: PartnershipHistoryRoute.self) { _ in
             PartnershipHistoryView(state: state)
         }

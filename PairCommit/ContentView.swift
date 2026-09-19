@@ -19,7 +19,7 @@ struct ContentView: View {
         if let store = session.store {
             NavigationStack {
                 screen(for: store)
-                    .partnershipHistory(store.state)
+                    .partnershipHistoryDestination(store.state)
             }
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
