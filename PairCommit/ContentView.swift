@@ -72,12 +72,12 @@ private extension ContentView {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(role.label)
                                     .font(.headline)
-                                    .foregroundStyle(role.accent)
                                 Text(role.summary)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .tint(role.accent)
                     }
                 } header: {
                     Text("役割を選んで始める")
