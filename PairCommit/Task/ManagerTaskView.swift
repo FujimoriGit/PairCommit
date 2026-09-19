@@ -32,10 +32,12 @@ private extension ManagerTaskView {
         if let vision = store.state.activeVision {
             Form {
                 nudgeSection
-                visionSection(vision)
                 creation
                 taskList(store.state.tasks(for: vision.id))
                 FailureRow(message: failureMessage)
+            }
+            .safeAreaInset(edge: .top) {
+                VisionCard(vision: vision, now: now)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -82,17 +84,6 @@ private extension ManagerTaskView {
             }
             .buttonStyle(.borderedProminent)
             .disabled(!input.isComplete)
-        }
-    }
-
-    func visionSection(_ vision: Vision) -> some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            LabeledContent("達成基準", value: vision.doneCriteria)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
-            }
         }
     }
 
