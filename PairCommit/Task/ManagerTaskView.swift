@@ -201,6 +201,7 @@ private extension ManagerTaskView {
             ]
         ), now: .preview)
     }
+    .tint(Role.manager.accent)
 }
 
 #Preview("管理者のタスク承認待ち") {
@@ -216,12 +217,14 @@ private extension ManagerTaskView {
             ]
         ), now: .preview)
     }
+    .tint(Role.manager.accent)
 }
 
 #Preview("管理者のタスクなし") {
     NavigationStack {
         ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
     }
+    .tint(Role.manager.accent)
 }
 
 #Preview("管理者の催促") {
@@ -243,6 +246,7 @@ private extension ManagerTaskView {
             now: .preview
         )
     }
+    .tint(Role.manager.accent)
 }
 
 #Preview("管理者の感情ヒートマップ") {
@@ -262,4 +266,5 @@ private extension ManagerTaskView {
             now: .preview
         )
     }
+    .tint(Role.manager.accent)
 }

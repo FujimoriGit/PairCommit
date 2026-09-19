@@ -21,6 +21,7 @@ struct ContentView: View {
                 screen(for: store)
                     .partnershipHistoryDestination(store.state)
             }
+            .tint(store.role.accent)
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
@@ -71,6 +72,7 @@ private extension ContentView {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(role.label)
                                     .font(.headline)
+                                    .foregroundStyle(role.accent)
                                 Text(role.summary)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)

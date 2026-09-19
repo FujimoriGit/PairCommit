@@ -167,6 +167,7 @@ private extension PlayerTaskView {
             ]
         ), now: .preview)
     }
+    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーのタスク採用待ち") {
@@ -181,12 +182,14 @@ private extension PlayerTaskView {
             ]
         ), now: .preview)
     }
+    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーのタスクなし") {
     NavigationStack {
         PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]), now: .preview)
     }
+    .tint(Role.player.accent)
 }
 
 #Preview("プレイヤーの催促") {
@@ -209,4 +212,5 @@ private extension PlayerTaskView {
             now: .preview
         )
     }
+    .tint(Role.player.accent)
 }
