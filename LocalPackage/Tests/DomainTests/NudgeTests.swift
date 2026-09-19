@@ -170,6 +170,20 @@ struct NudgeTests {
         #expect(Set(upcoming.keys) == [.taskOverdue(taskID)])
     }
 
+    @Test("催促が始まるちょうどその瞬間も、予定か今の催促のどちらかに入る")
+    func theStartingInstantIsNeitherLostNorDoubled() throws {
+        // Given
+        let ready = try activeVision(deadline: day(1))
+
+        // When
+        let upcoming = ready.state.upcomingNudges(for: .manager, now: day(1))
+        let nudges = ready.state.nudges(for: .manager, now: day(1))
+
+        // Then
+        #expect(upcoming[.visionOverdue(ready.visionID)] != nil)
+        #expect(nudges.isEmpty)
+    }
+
     @Test("相手に向けた催促は予定に入らない")
     func upcomingNudgesReachOnlyTheirRecipient() throws {
         // Given
