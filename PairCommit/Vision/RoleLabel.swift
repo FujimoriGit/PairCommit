@@ -10,8 +10,8 @@ import Domain
 extension Role {
     var label: String {
         switch self {
-        case .manager: "管理者"
-        case .player: "プレイヤー"
+        case .manager: "見届ける人"
+        case .player: "挑む人"
         }
     }
 

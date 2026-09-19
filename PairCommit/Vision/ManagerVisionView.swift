@@ -45,13 +45,13 @@ private extension ManagerVisionView {
             ContentUnavailableView(
                 "🎉 達成しました",
                 systemImage: "flag.checkered",
-                description: Text("\(achieved.statement)\n\nプレイヤーの次の起案を待っています")
+                description: Text("\(achieved.statement)\n\n\(Role.player.label)の次の起案を待っています")
             )
         } else {
             ContentUnavailableView(
                 "承認待ちのビジョンはありません",
                 systemImage: "tray",
-                description: Text("プレイヤーの起案を待っています")
+                description: Text("\(Role.player.label)の起案を待っています")
             )
         }
     }

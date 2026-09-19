@@ -43,7 +43,7 @@ private extension PlayerTaskView {
             ContentUnavailableView(
                 "進行中のビジョンがありません",
                 systemImage: "flag",
-                description: Text("管理者の承認を待っています")
+                description: Text("\(Role.manager.label)の承認を待っています")
             )
         }
     }
