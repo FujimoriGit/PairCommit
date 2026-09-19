@@ -62,7 +62,7 @@ private extension VisionHistoryView {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .listRowBackground(task.reaction.map { $0.tint.opacity(0.15) })
+        .listRowBackground(task.reaction?.rowBackground)
     }
 }
 

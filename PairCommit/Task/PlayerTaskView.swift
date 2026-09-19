@@ -121,13 +121,13 @@ private extension PlayerTaskView {
                 .font(.subheadline)
             }
         }
-        .listRowBackground(task.reaction.map { $0.tint.opacity(0.15) })
+        .listRowBackground(task.reaction?.rowBackground)
     }
 
     func reactions(for task: TaskItem) -> some View {
         HStack(spacing: 0) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
-                Button(reaction.emoji) {
+                Button {
                     perform { state throws(DomainError) in
                         try state.settingReaction(
                             task.reaction == reaction ? nil : reaction,
@@ -135,9 +135,12 @@ private extension PlayerTaskView {
                             by: store.role
                         )
                     }
+                } label: {
+                    Text(reaction.emoji)
+                        .font(.largeTitle)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .contentShape(.rect)
                 }
-                .font(.largeTitle)
-                .frame(maxWidth: .infinity, minHeight: 56)
                 .opacity(task.reaction == reaction ? 1 : 0.3)
             }
         }
