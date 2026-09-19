@@ -37,13 +37,11 @@ struct VisionCard: View {
 
 private extension VisionCard {
     var remaining: String {
-        guard let deadline = vision.deadline else { return "期限なし" }
-        let date = deadline.formatted(Date.FormatStyle.yearMonthDay)
-        return switch vision.countdown(at: now, in: .current) {
+        switch vision.countdown(at: now, in: .current) {
         case .unbounded: "期限なし"
-        case .overdue: "\(date)の期限を過ぎています"
-        case .days(0): "今日まで"
-        case .days(let days): "残り\(days)日（\(date)まで）"
+        case .overdue(let deadline): "\(deadline.formatted(Date.FormatStyle.yearMonthDay))の期限を過ぎています"
+        case .days(0, _): "今日まで"
+        case .days(let days, let deadline): "残り\(days)日（\(deadline.formatted(Date.FormatStyle.yearMonthDay))まで）"
         }
     }
 }
@@ -58,6 +56,18 @@ private extension VisionCard {
 
 #Preview("ビジョンカードの期限当日") {
     VisionCard(vision: .preview(status: .active, deadline: .preview), now: .preview)
+}
+
+#Preview("ビジョンカードの長文") {
+    VisionCard(
+        vision: .preview(
+            statement: "来年の春までに10kg痩せて、健康診断の全項目でA判定を取り、フルマラソンを完走する",
+            doneCriteria: "体重68kg以下を4週続けて保ち、次回の健康診断で全項目A判定、春の大会で制限時間内に完走する",
+            status: .active,
+            deadline: .preview(daysLater: 30)
+        ),
+        now: .preview
+    )
 }
 
 #Preview("ビジョンカードの期限切れ") {
