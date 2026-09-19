@@ -12,8 +12,16 @@ import SwiftUI
 struct ContentView: View {
     let session: PartnershipSession
 
+    @State private var savedPairing: MultipeerPairing.Outcome?
+    @State private var isResuming: Bool
     @State private var pairing = MultipeerPairing()
     @State private var failureMessage: String?
+
+    init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil) {
+        self.session = session
+        _savedPairing = State(initialValue: savedPairing)
+        _isResuming = State(initialValue: savedPairing != nil)
+    }
 
     var body: some View {
         if let store = session.store {
@@ -24,11 +32,20 @@ struct ContentView: View {
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
-                    await NudgeNotifications.withdrawAll()
-                    returnToPicker(with: "パートナーシップは終了しました")
+                    await returnToPicker(with: "パートナーシップは終了しました")
                     return
                 }
                 await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+            }
+        } else if pairing.phase == .idle, let saved = savedPairing {
+            ReconnectingView(
+                failureMessage: failureMessage,
+                onRetry: { failureMessage = nil },
+                onStartOver: { Task { await returnToPicker(with: nil) } }
+            )
+            .task(id: failureMessage == nil) {
+                guard failureMessage == nil else { return }
+                await enter(saved, resuming: isResuming)
             }
         } else if pairing.phase == .idle {
             rolePicker
@@ -36,7 +53,14 @@ struct ContentView: View {
             PairingView(phase: pairing.phase, onCancel: pairing.reset)
                 .task(id: pairing.phase) {
                     guard pairing.phase == .done else { return }
-                    await enter()
+                    guard let outcome = pairing.outcome else {
+                        await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+                        return
+                    }
+                    SavedPairing.save(outcome)
+                    savedPairing = outcome
+                    isResuming = false
+                    await enter(outcome, resuming: false)
                 }
         }
     }
@@ -101,50 +125,51 @@ private extension ContentView {
         pairing.start(as: side)
     }
 
-    func enter() async {
-        guard let outcome = pairing.outcome else {
-            returnToPicker(with: "ペアリングの結果を受け取れませんでした")
-            return
-        }
+    func enter(_ outcome: MultipeerPairing.Outcome, resuming: Bool) async {
         let synchronizer = CloudKitSynchronizer(
             rootRecordID: outcome.rootRecordID,
             isOwner: outcome.isOwner,
             container: PartnershipShare.container
         )
 
+        let state: PartnershipState
         do {
-            let state = try await synchronizer.start()
-            guard let ownerRole = state.pairing?.ownerRole else {
-                returnToPicker(with: "相手の設定がまだ届いていません")
-                return
-            }
-            let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
-            await NudgeNotifications.requestPermission()
-            session.store = PartnershipStore(
-                role: agreement.role,
-                synchronizer: synchronizer,
-                state: state
-            )
+            state = try await synchronizer.start()
         } catch {
-            returnToPicker(with: error.message)
+            failureMessage = error.message
+            pairing.reset()
+            return
         }
+        guard let ownerRole = state.pairing?.ownerRole else {
+            await returnToPicker(with: resuming ? "パートナーシップは終了しました" : "相手の設定がまだ届いていません")
+            return
+        }
+        let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
+        await NudgeNotifications.requestPermission()
+        session.store = PartnershipStore(
+            role: agreement.role,
+            synchronizer: synchronizer,
+            state: state
+        )
     }
 
     func reset() async -> String? {
-        guard let outcome = pairing.outcome else {
-            return "ペアリングの結果を受け取れませんでした"
+        guard let outcome = savedPairing else {
+            return "端末に残したペアを読めませんでした"
         }
         do {
             try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
         } catch {
             return error.localizedDescription
         }
-        await NudgeNotifications.withdrawAll()
-        returnToPicker(with: nil)
+        await returnToPicker(with: nil)
         return nil
     }
 
-    func returnToPicker(with message: String?) {
+    func returnToPicker(with message: String?) async {
+        await NudgeNotifications.withdrawAll()
+        SavedPairing.clear()
+        savedPairing = nil
         failureMessage = message
         session.store = nil
         pairing.reset()
