@@ -17,12 +17,10 @@ struct PlayerTaskView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle(Role.player.label)
-                .partnershipReset()
-                .partnershipHistory(store.state)
-        }
+        content
+            .navigationTitle(Role.player.label)
+            .partnershipReset()
+            .partnershipHistoryLink()
     }
 }
 
@@ -160,49 +158,57 @@ private extension PlayerTaskView {
 }
 
 #Preview("プレイヤーのタスク報告前") {
-    let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
-    PlayerTaskView(store: .preview(
-        role: .player,
-        visions: [vision],
-        tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview(daysLater: 30)),
-            .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .angry)
-        ]
-    ), now: .preview)
-}
-
-#Preview("プレイヤーのタスク採用待ち") {
-    let vision = Vision.preview(status: .active)
-    PlayerTaskView(store: .preview(
-        role: .player,
-        visions: [vision],
-        tasks: [
-            .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy)
-        ]
-    ), now: .preview)
-}
-
-#Preview("プレイヤーのタスクなし") {
-    PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]), now: .preview)
-}
-
-#Preview("プレイヤーの催促") {
-    let vision = Vision.preview(status: .active)
-    PlayerTaskView(
-        store: .preview(
+    NavigationStack {
+        let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
+        PlayerTaskView(store: .preview(
             role: .player,
             visions: [vision],
             tasks: [
-                .preview(
-                    visionID: vision.id,
-                    title: "週3でジムに行く",
-                    status: .todo,
-                    createdBy: .manager,
-                    deadline: .preview(daysLater: -1)
-                )
+                .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview(daysLater: 30)),
+                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .angry)
             ]
-        ),
-        now: .preview
-    )
+        ), now: .preview)
+    }
+}
+
+#Preview("プレイヤーのタスク採用待ち") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(store: .preview(
+            role: .player,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
+                .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy)
+            ]
+        ), now: .preview)
+    }
+}
+
+#Preview("プレイヤーのタスクなし") {
+    NavigationStack {
+        PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]), now: .preview)
+    }
+}
+
+#Preview("プレイヤーの催促") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(
+            store: .preview(
+                role: .player,
+                visions: [vision],
+                tasks: [
+                    .preview(
+                        visionID: vision.id,
+                        title: "週3でジムに行く",
+                        status: .todo,
+                        createdBy: .manager,
+                        deadline: .preview(daysLater: -1)
+                    )
+                ]
+            ),
+            now: .preview
+        )
+    }
 }

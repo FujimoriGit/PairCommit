@@ -19,12 +19,10 @@ struct PlayerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle(Role.player.label)
-                .partnershipReset()
-                .partnershipHistory(store.state)
-        }
+        content
+            .navigationTitle(Role.player.label)
+            .partnershipReset()
+            .partnershipHistoryLink()
     }
 }
 
@@ -159,21 +157,31 @@ private extension PlayerVisionView {
 }
 
 #Preview("プレイヤーの起案前") {
-    PlayerVisionView(store: .preview(role: .player, visions: []))
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: []))
+    }
 }
 
 #Preview("プレイヤーの提出待ち") {
-    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
+    }
 }
 
 #Preview("プレイヤーの承認待ち") {
-    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]))
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]))
+    }
 }
 
 #Preview("プレイヤーの達成直後") {
-    PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]))
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]))
+    }
 }
 
 #Preview("プレイヤーの下読みつき起案") {
-    PlayerVisionView(store: .preview(role: .player, visions: []), reviewing: PreviewCriteriaReview())
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: []), reviewing: PreviewCriteriaReview())
+    }
 }
