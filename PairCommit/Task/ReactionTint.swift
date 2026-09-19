@@ -16,4 +16,8 @@ extension Reaction {
         case .happy: .green
         }
     }
+
+    var rowBackground: Color {
+        tint.opacity(0.15)
+    }
 }
