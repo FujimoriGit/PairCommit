@@ -20,7 +20,6 @@ struct PlayerVisionView: View {
 
     var body: some View {
         content
-            .navigationTitle(Role.player.label)
             .partnershipReset()
             .partnershipHistoryLink()
     }
