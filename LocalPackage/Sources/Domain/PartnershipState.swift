@@ -29,6 +29,10 @@ public struct PartnershipState: Sendable, Codable, Equatable {
     public var lastAchievedVision: Vision? {
         visions.last { $0.status == .achieved }
     }
+
+    public var closedVisions: [ClosedVision] {
+        visions.compactMap(ClosedVision.init).sorted { $0.vision.createdAt > $1.vision.createdAt }
+    }
 }
 
 // MARK: - ペアリング
