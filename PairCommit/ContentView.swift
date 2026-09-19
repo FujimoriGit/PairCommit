@@ -17,16 +17,19 @@ struct ContentView: View {
 
     var body: some View {
         if let store = session.store {
-            screen(for: store)
-                .environment(\.resettingPartnership) { await reset() }
-                .task(id: store.state) {
-                    guard store.state.pairing != nil else {
-                        await NudgeNotifications.withdrawAll()
-                        returnToPicker(with: "パートナーシップは終了しました")
-                        return
-                    }
-                    await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+            NavigationStack {
+                screen(for: store)
+                    .partnershipHistoryDestination(store.state)
+            }
+            .environment(\.resettingPartnership) { await reset() }
+            .task(id: store.state) {
+                guard store.state.pairing != nil else {
+                    await NudgeNotifications.withdrawAll()
+                    returnToPicker(with: "パートナーシップは終了しました")
+                    return
                 }
+                await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+            }
         } else if pairing.phase == .idle {
             rolePicker
         } else {

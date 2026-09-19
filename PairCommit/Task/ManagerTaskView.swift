@@ -18,12 +18,10 @@ struct ManagerTaskView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle(Role.manager.label)
-                .partnershipReset()
-                .partnershipHistory(store.state)
-        }
+        content
+            .navigationTitle(Role.manager.label)
+            .partnershipReset()
+            .partnershipHistoryLink()
     }
 }
 
@@ -202,66 +200,76 @@ private extension ManagerTaskView {
 }
 
 #Preview("管理者のタスク採用待ち") {
-    let vision = Vision.preview(status: .active)
-    ManagerTaskView(store: .preview(
-        role: .manager,
-        visions: [vision],
-        tasks: [
-            .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
-        ]
-    ), now: .preview)
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        ManagerTaskView(store: .preview(
+            role: .manager,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
+                .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
+            ]
+        ), now: .preview)
+    }
 }
 
 #Preview("管理者のタスク承認待ち") {
-    let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
-    ManagerTaskView(store: .preview(
-        role: .manager,
-        visions: [vision],
-        tasks: [
-            .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview(daysLater: 30)),
-            .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
-            .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
-        ]
-    ), now: .preview)
+    NavigationStack {
+        let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
+        ManagerTaskView(store: .preview(
+            role: .manager,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy, deadline: .preview(daysLater: 30)),
+                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
+                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
+            ]
+        ), now: .preview)
+    }
 }
 
 #Preview("管理者のタスクなし") {
-    ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
+    NavigationStack {
+        ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
+    }
 }
 
 #Preview("管理者の催促") {
-    let vision = Vision.preview(status: .active)
-    ManagerTaskView(
-        store: .preview(
-            role: .manager,
-            visions: [vision],
-            tasks: [
-                .preview(
-                    visionID: vision.id,
-                    title: "週3でジムに行く",
-                    status: .reported,
-                    statusChangedAt: .preview(daysLater: -3)
-                )
-            ]
-        ),
-        now: .preview
-    )
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        ManagerTaskView(
+            store: .preview(
+                role: .manager,
+                visions: [vision],
+                tasks: [
+                    .preview(
+                        visionID: vision.id,
+                        title: "週3でジムに行く",
+                        status: .reported,
+                        statusChangedAt: .preview(daysLater: -3)
+                    )
+                ]
+            ),
+            now: .preview
+        )
+    }
 }
 
 #Preview("管理者の感情ヒートマップ") {
-    let vision = Vision.preview(status: .active)
-    ManagerTaskView(
-        store: .preview(
-            role: .manager,
-            visions: [vision],
-            tasks: [
-                .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, reaction: .angry),
-                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
-                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .todo, reaction: .happy),
-                .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
-            ]
-        ),
-        now: .preview
-    )
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        ManagerTaskView(
+            store: .preview(
+                role: .manager,
+                visions: [vision],
+                tasks: [
+                    .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, reaction: .angry),
+                    .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
+                    .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .todo, reaction: .happy),
+                    .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
+                ]
+            ),
+            now: .preview
+        )
+    }
 }
