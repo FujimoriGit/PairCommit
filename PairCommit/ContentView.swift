@@ -12,8 +12,14 @@ import SwiftUI
 struct ContentView: View {
     let session: PartnershipSession
 
+    @State private var savedPairing: MultipeerPairing.Outcome?
     @State private var pairing = MultipeerPairing()
     @State private var failureMessage: String?
+
+    init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil) {
+        self.session = session
+        _savedPairing = State(initialValue: savedPairing)
+    }
 
     var body: some View {
         if let store = session.store {
@@ -30,12 +36,16 @@ struct ContentView: View {
                 }
                 await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
             }
-        } else if pairing.phase == .idle, let saved = SavedPairing.load() {
-            reconnecting
-                .task(id: failureMessage == nil) {
-                    guard failureMessage == nil else { return }
-                    await enter(saved)
-                }
+        } else if pairing.phase == .idle, let saved = savedPairing {
+            ReconnectingView(
+                failureMessage: failureMessage,
+                onRetry: { failureMessage = nil },
+                onStartOver: { returnToPicker(with: nil) }
+            )
+            .task(id: failureMessage == nil) {
+                guard failureMessage == nil else { return }
+                await enter(saved)
+            }
         } else if pairing.phase == .idle {
             rolePicker
         } else {
@@ -46,6 +56,8 @@ struct ContentView: View {
                         returnToPicker(with: "ペアリングの結果を受け取れませんでした")
                         return
                     }
+                    SavedPairing.save(outcome)
+                    savedPairing = outcome
                     await enter(outcome)
                 }
         }
@@ -111,27 +123,6 @@ private extension ContentView {
         pairing.start(as: side)
     }
 
-    @ViewBuilder
-    var reconnecting: some View {
-        if let failureMessage {
-            ContentUnavailableView {
-                Label("相手とつながりませんでした", systemImage: "wifi.exclamationmark")
-            } description: {
-                Text(failureMessage)
-            } actions: {
-                Button("もう一度試す") {
-                    self.failureMessage = nil
-                }
-                .buttonStyle(.borderedProminent)
-                Button("役割の選択からやり直す", role: .destructive) {
-                    returnToPicker(with: nil)
-                }
-            }
-        } else {
-            ProgressView("前回の相手とつないでいます…")
-        }
-    }
-
     func enter(_ outcome: MultipeerPairing.Outcome) async {
         let synchronizer = CloudKitSynchronizer(
             rootRecordID: outcome.rootRecordID,
@@ -143,19 +134,12 @@ private extension ContentView {
         do {
             state = try await synchronizer.start()
         } catch {
-            // 残したペアは消さない。つながらないだけで、ペアが終わったとは限らない。
             failureMessage = error.message
             pairing.reset()
             return
         }
         guard let ownerRole = state.pairing?.ownerRole else {
             returnToPicker(with: "相手の設定がまだ届いていません")
-            return
-        }
-        do {
-            try SavedPairing.save(outcome)
-        } catch {
-            returnToPicker(with: error.localizedDescription)
             return
         }
         let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
@@ -168,8 +152,8 @@ private extension ContentView {
     }
 
     func reset() async -> String? {
-        guard let outcome = SavedPairing.load() else {
-            return "ペアリングの結果を受け取れませんでした"
+        guard let outcome = savedPairing else {
+            return "端末に残したペアを読めませんでした"
         }
         do {
             try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
@@ -183,6 +167,7 @@ private extension ContentView {
 
     func returnToPicker(with message: String?) {
         SavedPairing.clear()
+        savedPairing = nil
         failureMessage = message
         session.store = nil
         pairing.reset()

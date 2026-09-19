@@ -13,27 +13,37 @@ enum SavedPairing {
     static func load() -> MultipeerPairing.Outcome? {
         let defaults = UserDefaults.standard
         guard
-            let data = defaults.data(forKey: rootRecordIDKey),
-            let rootRecordID = try? NSKeyedUnarchiver.unarchivedObject(ofClass: CKRecord.ID.self, from: data)
+            let recordName = defaults.string(forKey: recordNameKey),
+            let zoneName = defaults.string(forKey: zoneNameKey),
+            let ownerName = defaults.string(forKey: ownerNameKey)
         else { return nil }
-        return .init(rootRecordID: rootRecordID, isOwner: defaults.bool(forKey: isOwnerKey))
+        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
+        return .init(
+            rootRecordID: CKRecord.ID(recordName: recordName, zoneID: zoneID),
+            isOwner: defaults.bool(forKey: isOwnerKey)
+        )
     }
 
-    static func save(_ outcome: MultipeerPairing.Outcome) throws {
-        let data = try NSKeyedArchiver.archivedData(withRootObject: outcome.rootRecordID, requiringSecureCoding: true)
-        UserDefaults.standard.set(data, forKey: rootRecordIDKey)
-        UserDefaults.standard.set(outcome.isOwner, forKey: isOwnerKey)
+    static func save(_ outcome: MultipeerPairing.Outcome) {
+        let defaults = UserDefaults.standard
+        defaults.set(outcome.rootRecordID.recordName, forKey: recordNameKey)
+        defaults.set(outcome.rootRecordID.zoneID.zoneName, forKey: zoneNameKey)
+        defaults.set(outcome.rootRecordID.zoneID.ownerName, forKey: ownerNameKey)
+        defaults.set(outcome.isOwner, forKey: isOwnerKey)
     }
 
     static func clear() {
-        UserDefaults.standard.removeObject(forKey: rootRecordIDKey)
-        UserDefaults.standard.removeObject(forKey: isOwnerKey)
+        for key in [recordNameKey, zoneNameKey, ownerNameKey, isOwnerKey] {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 }
 
 // MARK: - Private
 
 private extension SavedPairing {
-    static let rootRecordIDKey = "pairing.rootRecordID"
+    static let recordNameKey = "pairing.recordName"
+    static let zoneNameKey = "pairing.zoneName"
+    static let ownerNameKey = "pairing.ownerName"
     static let isOwnerKey = "pairing.isOwner"
 }
