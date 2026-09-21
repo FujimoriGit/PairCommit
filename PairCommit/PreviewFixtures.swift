@@ -24,6 +24,7 @@ extension Vision {
     static func preview(
         id: UUID = UUID(),
         statement: String = "半年で10kg痩せて健康診断オールA",
+        doneCriteria: String = "体重68kg以下、次回の健康診断で全項目A判定",
         status: Status,
         deadline: Date? = nil,
         createdAt: Date = .preview
@@ -31,7 +32,7 @@ extension Vision {
         .init(
             id: id,
             statement: statement,
-            doneCriteria: "体重68kg以下、次回の健康診断で全項目A判定",
+            doneCriteria: doneCriteria,
             deadline: deadline,
             why: nil,
             status: status,
