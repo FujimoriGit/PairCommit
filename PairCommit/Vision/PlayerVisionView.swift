@@ -21,9 +21,9 @@ struct PlayerVisionView: View {
     var body: some View {
         Screen(role: store.role) {
             content
-                .partnershipReset()
-                .partnershipHistoryLink()
         }
+        .partnershipReset()
+        .partnershipHistoryLink()
     }
 }
 
