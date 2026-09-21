@@ -12,7 +12,7 @@ extension Role {
     var accent: Color {
         switch self {
         case .manager: .indigo
-        case .player: .purple
+        case .player: .cyan
         }
     }
 }
