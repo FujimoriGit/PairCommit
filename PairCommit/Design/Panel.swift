@@ -9,7 +9,6 @@ import SwiftUI
 
 struct Panel<Content: View>: View {
     var title: String?
-    var tint: Color?
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -21,6 +20,6 @@ struct Panel<Content: View>: View {
             }
             content
         }
-        .card(tinted: tint)
+        .card()
     }
 }

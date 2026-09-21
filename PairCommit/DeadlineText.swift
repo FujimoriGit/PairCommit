@@ -14,10 +14,8 @@ struct DeadlineText: View {
     @ViewBuilder
     var body: some View {
         if let deadline {
-            Chip(
-                text: deadline.formatted(Date.FormatStyle.monthDay),
-                tint: deadline < now ? .red : .secondary
-            )
+            Text(deadline.formatted(Date.FormatStyle.monthDay))
+                .marker(deadline < now ? .red : .secondary)
         }
     }
 }

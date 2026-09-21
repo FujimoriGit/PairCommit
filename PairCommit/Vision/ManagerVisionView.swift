@@ -15,7 +15,7 @@ struct ManagerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        Screen(role: store.role, title: title) {
+        Screen(role: store.role) {
             content
         }
         .partnershipReset()
@@ -40,14 +40,6 @@ private extension ManagerVisionView {
             return .proposed(proposed)
         }
         return .waiting
-    }
-
-    var title: String {
-        switch stage {
-        case .active: "進行中のビジョン"
-        case .proposed: "承認する"
-        case .waiting: "起案を待っています"
-        }
     }
 
     @ViewBuilder

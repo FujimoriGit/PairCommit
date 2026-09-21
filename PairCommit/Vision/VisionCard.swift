@@ -44,13 +44,11 @@ private extension VisionCard {
             Label(remaining, systemImage: symbol)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white)
-            if let progress {
-                bar(progress)
-            }
+            bar
         }
     }
 
-    func bar(_ progress: Double) -> some View {
+    var bar: some View {
         Capsule()
             .fill(.white.opacity(0.25))
             .frame(height: 6)
@@ -58,7 +56,7 @@ private extension VisionCard {
                 GeometryReader { proxy in
                     Capsule()
                         .fill(.white)
-                        .frame(width: proxy.size.width * progress)
+                        .frame(width: proxy.size.width * (progress ?? 0))
                 }
             }
     }

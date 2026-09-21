@@ -18,7 +18,7 @@ struct ManagerTaskView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        Screen(role: store.role, title: "タスク") {
+        Screen(role: store.role) {
             content
         }
         .partnershipReset()
@@ -53,8 +53,12 @@ private extension ManagerTaskView {
             let tasks = store.state.tasks(for: vision.id)
             VisionCard(vision: vision, role: store.role, now: now)
             NudgeCard(nudges: store.state.nudges(for: store.role, now: now), state: store.state)
-            judgementList(tasks.filter(needsJudgement))
-            taskList(tasks.filter { !needsJudgement($0) })
+            if tasks.isEmpty {
+                emptiness
+            } else {
+                judgementList(tasks.filter(needsJudgement))
+                taskList(tasks.filter { !needsJudgement($0) })
+            }
             creation
             FailureNote(message: failureMessage)
         } else {
@@ -78,18 +82,20 @@ private extension ManagerTaskView {
 
     @ViewBuilder
     func taskList(_ tasks: [TaskItem]) -> some View {
-        SectionHeader(text: "タスク")
-        if tasks.isEmpty {
-            Placeholder(
-                symbol: "checklist",
-                title: "まだタスクがありません",
-                message: "やることを追加すると、ここに並びます"
-            )
-        } else {
+        if !tasks.isEmpty {
+            SectionHeader(text: "タスク")
             ForEach(tasks) { task in
                 row(task)
             }
         }
+    }
+
+    var emptiness: some View {
+        Placeholder(
+            symbol: "checklist",
+            title: "まだタスクがありません",
+            message: "やることを追加すると、ここに並びます"
+        )
     }
 
     func needsJudgement(_ task: TaskItem) -> Bool {
@@ -109,7 +115,8 @@ private extension ManagerTaskView {
                     Text(reaction.emoji)
                 }
                 DeadlineText(deadline: task.deadline, now: now)
-                Chip(text: task.status.label, tint: task.status.tint)
+                Text(task.status.label)
+                    .marker(task.status.tint)
             }
             actions(for: task)
         }

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct PartnershipHistoryView: View {
     let state: PartnershipState
+    let role: Role
 
     var body: some View {
         ScrollView {
@@ -19,7 +20,7 @@ struct PartnershipHistoryView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 36)
         }
-        .background(Backdrop())
+        .background(Backdrop(colors: [role.accent]))
         .navigationTitle("2人の記録")
     }
 }
@@ -41,7 +42,8 @@ private extension PartnershipHistoryView {
                     VisionHistoryView(
                         vision: closed.vision,
                         outcome: closed.outcome,
-                        tasks: state.tasks(for: closed.id)
+                        tasks: state.tasks(for: closed.id),
+                        role: role
                     )
                 } label: {
                     row(closed)
@@ -58,7 +60,8 @@ private extension PartnershipHistoryView {
                     .font(.system(.headline, design: .rounded))
                     .multilineTextAlignment(.leading)
                 HStack(spacing: 8) {
-                    Chip(text: closed.outcome.result, tint: closed.outcome.tint)
+                    Text(closed.outcome.result)
+                        .marker(closed.outcome.tint)
                     Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -82,12 +85,12 @@ private extension PartnershipHistoryView {
                 status: .abandoned,
                 createdAt: .preview(daysLater: -160)
             )
-        ]))
+        ]), role: .manager)
     }
 }
 
 #Preview("記録なし") {
     NavigationStack {
-        PartnershipHistoryView(state: PartnershipState())
+        PartnershipHistoryView(state: PartnershipState(), role: .manager)
     }
 }

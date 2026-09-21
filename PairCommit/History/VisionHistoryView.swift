@@ -12,6 +12,7 @@ struct VisionHistoryView: View {
     let vision: Vision
     let outcome: Vision.Outcome
     let tasks: [TaskItem]
+    let role: Role
 
     var body: some View {
         ScrollView {
@@ -23,7 +24,7 @@ struct VisionHistoryView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 36)
         }
-        .background(Backdrop())
+        .background(Backdrop(colors: [role.accent]))
         .navigationTitle("記録")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -55,7 +56,8 @@ private extension VisionHistoryView {
             if let reaction = task.reaction {
                 Text(reaction.emoji)
             }
-            Chip(text: task.status.label, tint: task.status.tint)
+            Text(task.status.label)
+                .marker(task.status.tint)
         }
         .card(tinted: task.reaction?.tint)
     }
@@ -68,6 +70,6 @@ private extension VisionHistoryView {
             .preview(visionID: vision.id, title: "毎日30分歩く", status: .approved, reaction: .happy),
             .preview(visionID: vision.id, title: "間食をやめる", status: .cancelled, reaction: .angry),
             .preview(visionID: vision.id, title: "体重を記録する", status: .approved)
-        ])
+        ], role: .manager)
     }
 }

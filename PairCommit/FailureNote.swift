@@ -16,7 +16,7 @@ struct FailureNote: View {
             Label(message, systemImage: "exclamationmark.circle.fill")
                 .font(.subheadline)
                 .foregroundStyle(.red)
-                .card(tinted: .red)
+                .card()
         }
     }
 }

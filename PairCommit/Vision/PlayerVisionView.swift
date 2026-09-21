@@ -19,7 +19,7 @@ struct PlayerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        Screen(role: store.role, title: title) {
+        Screen(role: store.role) {
             content
         }
         .partnershipReset()
@@ -48,15 +48,6 @@ private extension PlayerVisionView {
             return .draft(draft)
         }
         return .blank
-    }
-
-    var title: String {
-        switch stage {
-        case .active: "進行中のビジョン"
-        case .proposed: "承認を待っています"
-        case .draft: "提出する"
-        case .blank: "ビジョンを起案する"
-        }
     }
 
     @ViewBuilder

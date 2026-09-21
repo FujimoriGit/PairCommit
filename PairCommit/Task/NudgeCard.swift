@@ -22,7 +22,7 @@ struct NudgeCard: View {
                         .foregroundStyle(.orange)
                 }
             }
-            .card(tinted: .orange)
+            .card()
         }
     }
 }

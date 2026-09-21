@@ -64,7 +64,7 @@ private extension SoftButtonStyle {
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(fill)
                 .frame(maxWidth: .infinity, minHeight: 42)
-                .background(fill.opacity(0.14), in: .capsule)
+                .background(Color(.tertiarySystemFill), in: .capsule)
                 .opacity(configuration.isPressed ? 0.7 : 1)
         }
 

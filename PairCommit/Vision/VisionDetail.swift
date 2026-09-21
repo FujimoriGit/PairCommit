@@ -16,7 +16,8 @@ struct VisionDetail: View {
     var body: some View {
         Panel {
             if let note {
-                Chip(text: note, tint: noteTint)
+                Text(note)
+                    .marker(noteTint)
             }
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))

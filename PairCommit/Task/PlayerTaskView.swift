@@ -17,7 +17,7 @@ struct PlayerTaskView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        Screen(role: store.role, title: "タスク") {
+        Screen(role: store.role) {
             content
         }
         .partnershipReset()
@@ -68,7 +68,8 @@ private extension PlayerTaskView {
                     .font(.system(.body, design: .rounded, weight: .semibold))
                 Spacer(minLength: 8)
                 DeadlineText(deadline: task.deadline, now: now)
-                Chip(text: task.status.label, tint: task.status.tint)
+                Text(task.status.label)
+                    .marker(task.status.tint)
             }
             if task.status.isOpen {
                 reactions(for: task)
@@ -80,7 +81,9 @@ private extension PlayerTaskView {
                 Button("完了を報告する") {
                     perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
                 }
-                .buttonStyle(.soft)
+                .buttonStyle(.plain)
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                .foregroundStyle(.tint)
             }
         }
         .card(tinted: task.reaction?.tint)
@@ -107,17 +110,16 @@ private extension PlayerTaskView {
 
     func reactionLabel(_ reaction: Reaction, chosen: Bool) -> some View {
         Text(reaction.emoji)
-            .font(.title)
-            .frame(maxWidth: .infinity, minHeight: 52)
+            .font(.largeTitle)
+            .frame(maxWidth: .infinity, minHeight: 64)
             .background(
                 chosen ? reaction.tint.opacity(0.22) : Color(.tertiarySystemFill),
-                in: .rect(cornerRadius: 14)
+                in: .rect(cornerRadius: 16)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(reaction.tint, lineWidth: chosen ? 2 : 0)
             }
-            .opacity(chosen ? 1 : 0.55)
             .contentShape(.rect)
     }
 

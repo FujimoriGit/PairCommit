@@ -27,7 +27,7 @@ struct ContentView: View {
         if let store = session.store {
             NavigationStack {
                 screen(for: store)
-                    .partnershipHistoryDestination(store.state)
+                    .partnershipHistoryDestination(store.state, role: store.role)
             }
             .tint(store.role.accent)
             .environment(\.resettingPartnership) { await reset() }
