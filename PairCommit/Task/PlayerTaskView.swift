@@ -11,6 +11,7 @@ import SwiftUI
 
 struct PlayerTaskView: View {
     let store: PartnershipStore
+    let vision: Vision
     var now = Date()
 
     @State private var input = TaskInput()
@@ -30,19 +31,11 @@ struct PlayerTaskView: View {
 private extension PlayerTaskView {
     @ViewBuilder
     var content: some View {
-        if let vision = store.state.activeVision {
-            VisionCard(vision: vision, role: store.role, now: now)
-            NudgeCard(nudges: store.state.nudges(for: store.role, now: now), state: store.state)
-            taskList(store.state.tasks(for: vision.id))
-            proposal
-            FailureNote(message: failureMessage)
-        } else {
-            Placeholder(
-                symbol: "flag",
-                title: "進行中のビジョンがありません",
-                message: "\(Role.manager.label)の承認を待っています"
-            )
-        }
+        VisionCard(vision: vision, role: store.role, now: now)
+        NudgeCard(nudges: store.state.nudges(for: store.role, now: now), state: store.state)
+        taskList(store.state.tasks(for: vision.id))
+        proposal
+        FailureNote(message: failureMessage)
     }
 
     @ViewBuilder
@@ -175,7 +168,7 @@ private extension PlayerTaskView {
                 .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview(daysLater: 30)),
                 .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .angry)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }
 
@@ -189,13 +182,14 @@ private extension PlayerTaskView {
                 .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
                 .preview(visionID: vision.id, title: "週3でジムに行く", status: .reported, reaction: .happy)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }
 
 #Preview("プレイヤーのタスクなし") {
     NavigationStack {
-        PlayerTaskView(store: .preview(role: .player, visions: [.preview(status: .active)]), now: .preview)
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(store: .preview(role: .player, visions: [vision]), vision: vision, now: .preview)
     }
 }
 
@@ -216,6 +210,7 @@ private extension PlayerTaskView {
                     )
                 ]
             ),
+            vision: vision,
             now: .preview
         )
     }
@@ -232,6 +227,6 @@ private extension PlayerTaskView {
                 .preview(visionID: vision.id, title: "間食をやめる", status: .approved, createdBy: .manager, reaction: .angry),
                 .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .uneasy)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }

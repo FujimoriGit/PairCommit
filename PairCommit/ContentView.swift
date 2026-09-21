@@ -74,9 +74,9 @@ private extension ContentView {
     func screen(for store: PartnershipStore) -> some View {
         switch (store.role, store.state.activeVision) {
         case (.manager, .none): ManagerVisionView(store: store)
-        case (.manager, .some): ManagerTaskView(store: store)
+        case (.manager, .some(let vision)): ManagerTaskView(store: store, vision: vision)
         case (.player, .none): PlayerVisionView(store: store, reviewing: criteriaReviewing)
-        case (.player, .some): PlayerTaskView(store: store)
+        case (.player, .some(let vision)): PlayerTaskView(store: store, vision: vision)
         }
     }
 

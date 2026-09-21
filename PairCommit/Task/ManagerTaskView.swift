@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ManagerTaskView: View {
     let store: PartnershipStore
+    let vision: Vision
     var now = Date()
 
     @State private var input = TaskInput()
@@ -24,10 +25,8 @@ struct ManagerTaskView: View {
         .partnershipReset()
         .partnershipHistoryLink()
         .toolbar {
-            if store.state.activeVision != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    judgement
-                }
+            ToolbarItem(placement: .topBarTrailing) {
+                judgement
             }
         }
         .confirmationDialog(
@@ -49,25 +48,17 @@ struct ManagerTaskView: View {
 private extension ManagerTaskView {
     @ViewBuilder
     var content: some View {
-        if let vision = store.state.activeVision {
-            let tasks = store.state.tasks(for: vision.id)
-            VisionCard(vision: vision, role: store.role, now: now)
-            NudgeCard(nudges: store.state.nudges(for: store.role, now: now), state: store.state)
-            if tasks.isEmpty {
-                emptiness
-            } else {
-                judgementList(tasks.filter(needsJudgement))
-                taskList(tasks.filter { !needsJudgement($0) })
-            }
-            creation
-            FailureNote(message: failureMessage)
+        let tasks = store.state.tasks(for: vision.id)
+        VisionCard(vision: vision, role: store.role, now: now)
+        NudgeCard(nudges: store.state.nudges(for: store.role, now: now), state: store.state)
+        if tasks.isEmpty {
+            emptiness
         } else {
-            Placeholder(
-                symbol: "flag",
-                title: "進行中のビジョンがありません",
-                message: "ビジョンを承認するとタスクを作れます"
-            )
+            judgementList(tasks.filter(needsJudgement))
+            taskList(tasks.filter { !needsJudgement($0) })
         }
+        creation
+        FailureNote(message: failureMessage)
     }
 
     @ViewBuilder
@@ -190,7 +181,6 @@ private extension ManagerTaskView {
     }
 
     func close(as outcome: Vision.Outcome) {
-        guard let vision = store.state.activeVision else { return }
         perform { state throws(DomainError) in try state.closingVision(vision.id, as: outcome, by: store.role) }
     }
 
@@ -231,7 +221,7 @@ private extension ManagerTaskView {
                 .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
                 .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }
 
@@ -246,13 +236,14 @@ private extension ManagerTaskView {
                 .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
                 .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }
 
 #Preview("管理者のタスクなし") {
     NavigationStack {
-        ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
+        let vision = Vision.preview(status: .active)
+        ManagerTaskView(store: .preview(role: .manager, visions: [vision]), vision: vision, now: .preview)
     }
 }
 
@@ -272,6 +263,7 @@ private extension ManagerTaskView {
                     )
                 ]
             ),
+            vision: vision,
             now: .preview
         )
     }
@@ -291,6 +283,7 @@ private extension ManagerTaskView {
                     .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
                 ]
             ),
+            vision: vision,
             now: .preview
         )
     }
