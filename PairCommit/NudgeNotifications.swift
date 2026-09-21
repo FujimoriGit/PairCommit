@@ -6,6 +6,7 @@
 //
 
 import Domain
+import Foundation
 import UserNotifications
 
 /// 催促を端末の通知として出す。何を催促するかはドメインが決め、ここは出すだけ。
@@ -38,10 +39,7 @@ enum NudgeNotifications {
         let upcoming = state.upcomingNudges(for: role, now: now)
         await withdrawPending(keeping: Set(upcoming.keys.map(identifier(of:))))
         for (nudge, startsAt) in upcoming {
-            // 0 以下の間隔を渡すと例外で落ちる
-            let interval = max(startsAt.timeIntervalSince(now), 1)
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-            try? await center.add(request(for: nudge, in: state, trigger: trigger))
+            try? await center.add(request(for: nudge, in: state, trigger: trigger(at: startsAt, after: now)))
         }
     }
 
@@ -76,6 +74,18 @@ private extension NudgeNotifications {
         content.body = nudge.message(in: state)
         content.sound = .default
         return UNNotificationRequest(identifier: identifier(of: nudge), content: content, trigger: trigger)
+    }
+
+    // 経過秒で予約すると、端末の時計を直しても追随しない。期限は絶対時刻なので、鳴る時刻も絶対時刻で渡す。
+    static func trigger(at startsAt: Date, after now: Date) -> UNCalendarNotificationTrigger {
+        let fireAt = max(startsAt, now.addingTimeInterval(1))
+        return .init(
+            dateMatching: Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second],
+                from: fireAt
+            ),
+            repeats: false
+        )
     }
 
     static func withdrawPending(keeping kept: Set<String>) async {
