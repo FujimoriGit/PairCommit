@@ -20,15 +20,15 @@ struct ManagerTaskView: View {
     var body: some View {
         Screen(role: store.role) {
             content
-        }
-        .partnershipReset()
-        .partnershipHistoryLink()
-        .toolbar {
-            if store.state.activeVision != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    judgement
+                .partnershipReset()
+                .partnershipHistoryLink()
+                .toolbar {
+                    if store.state.activeVision != nil {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            judgement
+                        }
+                    }
                 }
-            }
         }
         .confirmationDialog(
             "このビジョンを閉じますか",
