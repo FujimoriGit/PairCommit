@@ -106,7 +106,7 @@ private extension PlayerVisionView {
                         systemImage: review.isVerifiable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
                     )
                     .font(.subheadline)
-                    .foregroundStyle(review.isVerifiable ? Color(.deepGreen) : Color(.deepOrange))
+                    .foregroundStyle(review.isVerifiable ? .green : .orange)
                 }
             }
         }

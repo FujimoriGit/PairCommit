@@ -32,7 +32,7 @@ extension Vision.Outcome {
 
     var tint: Color {
         switch self {
-        case .achieved: Color(.deepGreen)
+        case .achieved: .green
         case .abandoned: .secondary
         }
     }

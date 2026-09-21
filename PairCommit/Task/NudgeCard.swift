@@ -19,7 +19,7 @@ struct NudgeCard: View {
                 ForEach(nudges, id: \.self) { nudge in
                     Label(nudge.message(in: state), systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color(.deepOrange))
+                        .foregroundStyle(.orange)
                 }
             }
             .card()

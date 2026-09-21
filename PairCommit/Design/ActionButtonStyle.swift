@@ -65,7 +65,7 @@ private extension SoftButtonStyle {
 
         var fill: AnyShapeStyle {
             guard isEnabled else { return AnyShapeStyle(Color.secondary) }
-            return configuration.role == .destructive ? AnyShapeStyle(Color(.deepRed)) : AnyShapeStyle(.tint)
+            return configuration.role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
         }
     }
 }
