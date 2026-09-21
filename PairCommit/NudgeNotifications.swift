@@ -76,12 +76,13 @@ private extension NudgeNotifications {
         return UNNotificationRequest(identifier: identifier(of: nudge), content: content, trigger: trigger)
     }
 
-    // 経過秒で予約すると、端末の時計を直しても追随しない。期限は絶対時刻なので、鳴る時刻も絶対時刻で渡す。
+    // 経過秒で予約すると、端末の時計を直しても追随しない。タイムゾーンを外すと、成分は発火を待つ時点の
+    // タイムゾーンで読まれるので、移動するとずれる。期限は絶対時刻なので、鳴る時刻も絶対時刻で渡す。
     static func trigger(at startsAt: Date, after now: Date) -> UNCalendarNotificationTrigger {
         let fireAt = max(startsAt, now.addingTimeInterval(1))
         return .init(
             dateMatching: Calendar.current.dateComponents(
-                [.year, .month, .day, .hour, .minute, .second],
+                [.timeZone, .year, .month, .day, .hour, .minute, .second],
                 from: fireAt
             ),
             repeats: false
