@@ -12,9 +12,15 @@ struct SectionHeader: View {
 
     var body: some View {
         Text(text)
-            .font(.system(.subheadline, design: .rounded, weight: .bold))
-            .foregroundStyle(.secondary)
+            .sectionTitle()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 4)
+    }
+}
+
+extension View {
+    func sectionTitle() -> some View {
+        font(.system(.subheadline, design: .rounded, weight: .bold))
+            .foregroundStyle(.secondary)
     }
 }

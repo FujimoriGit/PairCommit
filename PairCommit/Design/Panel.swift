@@ -15,8 +15,7 @@ struct Panel<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             if let title {
                 Text(title)
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .sectionTitle()
             }
             content
         }
