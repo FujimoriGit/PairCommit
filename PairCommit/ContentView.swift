@@ -130,6 +130,7 @@ private extension ContentView {
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .background(role.accent.gradient, in: .circle)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(role.label)
                     .font(.system(.headline, design: .rounded))

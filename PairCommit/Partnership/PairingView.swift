@@ -20,6 +20,7 @@ struct PairingView: View {
                 .frame(width: 96, height: 96)
                 .background(Color(.secondarySystemGroupedBackground), in: .circle)
                 .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+                .accessibilityHidden(true)
 
             VStack(spacing: 10) {
                 Text("相手と繋ぐ")
