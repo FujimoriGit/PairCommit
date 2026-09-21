@@ -4,12 +4,16 @@
 <dict>
 	<key>CFBundleDisplayName</key>
 	<string>ふたりの帆柱</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>近くにいる相手の端末を見つけてペアリングするために使います。</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_paircommit-pr._tcp</string>
 		<string>_paircommit-pr._udp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>近くにいる相手の端末を見つけてペアリングするために使います。</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>
