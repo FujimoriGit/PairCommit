@@ -22,9 +22,7 @@ struct VisionDetail: View {
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))
             field("達成基準", vision.doneCriteria)
-            if let deadline = vision.deadline {
-                field("期限", deadline.formatted(Date.FormatStyle.yearMonthDay))
-            }
+            field("期限", deadline)
         }
     }
 }
@@ -32,6 +30,10 @@ struct VisionDetail: View {
 // MARK: - Private
 
 private extension VisionDetail {
+    var deadline: String {
+        vision.deadline.map { $0.formatted(Date.FormatStyle.yearMonthDay) } ?? "期限なし"
+    }
+
     func field(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
