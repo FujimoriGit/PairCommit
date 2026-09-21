@@ -12,8 +12,15 @@ struct PartnershipHistoryView: View {
     let state: PartnershipState
 
     var body: some View {
-        content
-            .navigationTitle("2人の記録")
+        ScrollView {
+            VStack(spacing: 14) {
+                content
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 36)
+        }
+        .background(Backdrop())
+        .navigationTitle("2人の記録")
     }
 }
 
@@ -23,13 +30,13 @@ private extension PartnershipHistoryView {
     @ViewBuilder
     var content: some View {
         if state.closedVisions.isEmpty {
-            ContentUnavailableView(
-                "まだ記録がありません",
-                systemImage: "clock.arrow.circlepath",
-                description: Text("ビジョンを閉じるとここに残ります")
+            Placeholder(
+                symbol: "clock.arrow.circlepath",
+                title: "まだ記録がありません",
+                message: "ビジョンを閉じるとここに残ります"
             )
         } else {
-            List(state.closedVisions) { closed in
+            ForEach(state.closedVisions) { closed in
                 NavigationLink {
                     VisionHistoryView(
                         vision: closed.vision,
@@ -39,21 +46,30 @@ private extension PartnershipHistoryView {
                 } label: {
                     row(closed)
                 }
+                .buttonStyle(.plain)
             }
         }
     }
 
     func row(_ closed: ClosedVision) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(closed.vision.statement)
-                .font(.headline)
-            HStack(spacing: 8) {
-                Text(closed.outcome.result)
-                Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案")
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(closed.vision.statement)
+                    .font(.system(.headline, design: .rounded))
+                    .multilineTextAlignment(.leading)
+                HStack(spacing: 8) {
+                    Chip(text: closed.outcome.result, tint: closed.outcome.tint)
+                    Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.tertiary)
         }
+        .card()
     }
 }
 

@@ -15,79 +15,94 @@ struct ManagerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        content
-            .partnershipReset()
-            .partnershipHistoryLink()
-            .tint(store.role.accent)
+        Screen(role: store.role, title: title) {
+            content
+        }
+        .partnershipReset()
+        .partnershipHistoryLink()
     }
 }
 
 // MARK: - Private
 
 private extension ManagerVisionView {
+    enum Stage {
+        case active(Vision)
+        case proposed(Vision)
+        case waiting
+    }
+
+    var stage: Stage {
+        if let active = store.state.activeVision {
+            return .active(active)
+        }
+        if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
+            return .proposed(proposed)
+        }
+        return .waiting
+    }
+
+    var title: String {
+        switch stage {
+        case .active: "進行中のビジョン"
+        case .proposed: "承認する"
+        case .waiting: "起案を待っています"
+        }
+    }
+
+    @ViewBuilder
     var content: some View {
-        Group {
-            if let active = store.state.activeVision {
-                summary(of: active, note: "進行中")
-            } else if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
-                review(proposed)
-            } else {
-                waiting
-            }
+        switch stage {
+        case .active(let vision):
+            summary(of: vision)
+        case .proposed(let vision):
+            review(vision)
+        case .waiting:
+            waiting
         }
     }
 
     @ViewBuilder
     var waiting: some View {
         if let achieved = store.state.lastAchievedVision {
-            ContentUnavailableView(
-                "🎉 達成しました",
-                systemImage: "flag.checkered",
-                description: Text("\(achieved.statement)\n\n\(Role.player.label)の次の起案を待っています")
-            )
+            VStack(spacing: 16) {
+                AchievementBanner(vision: achieved)
+                Placeholder(
+                    symbol: "tray",
+                    title: "次の起案を待っています",
+                    message: "\(Role.player.label)がビジョンを起案するとここに出ます"
+                )
+            }
         } else {
-            ContentUnavailableView(
-                "承認待ちのビジョンはありません",
-                systemImage: "tray",
-                description: Text("\(Role.player.label)の起案を待っています")
+            Placeholder(
+                symbol: "tray",
+                title: "承認待ちのビジョンはありません",
+                message: "\(Role.player.label)の起案を待っています"
             )
         }
     }
 
     func review(_ vision: Vision) -> some View {
-        Form {
-            visionFields(vision)
-            Section {
+        VStack(spacing: 16) {
+            VisionDetail(vision: vision, note: "承認待ち")
+            VStack(spacing: 10) {
                 Button("承認する") {
                     perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
                 }
+                .buttonStyle(.filled)
                 Button("起案者に差し戻す") {
                     perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
                 }
+                .buttonStyle(.soft(.destructive))
             }
-            FailureRow(message: failureMessage)
+            FailureNote(message: failureMessage)
         }
     }
 
-    func summary(of vision: Vision, note: String) -> some View {
-        Form {
-            Section {
-                Text(note)
-                    .foregroundStyle(.secondary)
-            }
-            visionFields(vision)
-            FailureRow(message: failureMessage)
-        }
-    }
-
-    func visionFields(_ vision: Vision) -> some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            LabeledContent("達成基準", value: vision.doneCriteria)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
-            }
+    func summary(of vision: Vision) -> some View {
+        VStack(spacing: 16) {
+            VisionDetail(vision: vision, note: "進行中", noteTint: .green)
+            FailureNote(message: failureMessage)
         }
     }
 

@@ -12,24 +12,34 @@ struct PairingView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 28) {
-            Text("相手と繋ぐ")
-                .font(.title2.bold())
+        VStack(spacing: 24) {
+            Spacer()
+            Image(systemName: "dot.radiowaves.left.and.right")
+                .font(.system(size: 42, weight: .light))
+                .foregroundStyle(.tint)
+                .frame(width: 96, height: 96)
+                .background(Color(.secondarySystemGroupedBackground), in: .circle)
+                .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
 
-            Text(phase.label)
-                .font(.headline)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+            VStack(spacing: 10) {
+                Text("相手と繋ぐ")
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                Text(phase.label)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text("2台を近くに置いたまま待ってください。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .multilineTextAlignment(.center)
 
-            Text("2台を近くに置いたまま待ってください。")
-                .font(.footnote)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-
+            Spacer()
             Button("やめる", action: onCancel)
-                .buttonStyle(.bordered)
+                .buttonStyle(.soft)
         }
-        .padding()
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Backdrop())
     }
 }
 

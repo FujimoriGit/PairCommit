@@ -6,6 +6,7 @@
 //
 
 import Domain
+import SwiftUI
 
 extension Vision.Outcome {
     var label: String {
@@ -26,6 +27,13 @@ extension Vision.Outcome {
         switch self {
         case .achieved: "達成にする"
         case .abandoned: "取りやめにする"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .achieved: .green
+        case .abandoned: .secondary
         }
     }
 }

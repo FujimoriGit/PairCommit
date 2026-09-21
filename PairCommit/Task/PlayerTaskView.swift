@@ -17,10 +17,11 @@ struct PlayerTaskView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        content
-            .partnershipReset()
-            .partnershipHistoryLink()
-            .tint(store.role.accent)
+        Screen(role: store.role, title: "タスク") {
+            content
+        }
+        .partnershipReset()
+        .partnershipHistoryLink()
     }
 }
 
@@ -30,102 +31,63 @@ private extension PlayerTaskView {
     @ViewBuilder
     var content: some View {
         if let vision = store.state.activeVision {
-            Form {
-                nudgeSection
-                proposal
-                taskList(store.state.tasks(for: vision.id))
-                FailureRow(message: failureMessage)
-            }
-            .safeAreaInset(edge: .top) {
-                VisionCard(vision: vision, now: now)
-            }
+            VisionCard(vision: vision, role: store.role, now: now)
+            NudgeCard(nudges: store.state.nudges(for: store.role, now: now), state: store.state)
+            taskList(store.state.tasks(for: vision.id))
+            proposal
+            FailureNote(message: failureMessage)
         } else {
-            ContentUnavailableView(
-                "進行中のビジョンがありません",
-                systemImage: "flag",
-                description: Text("\(Role.manager.label)の承認を待っています")
+            Placeholder(
+                symbol: "flag",
+                title: "進行中のビジョンがありません",
+                message: "\(Role.manager.label)の承認を待っています"
             )
         }
     }
 
-    var proposal: some View {
-        Section("タスクを起案する") {
-            TextField("やること", text: $input.title)
-            DeadlineField(deadline: $input.deadline)
-            Button("起案する") {
-                let entered = input
-                Task {
-                    do throws(PartnershipFailure) {
-                        try await store.perform { state throws(DomainError) in
-                            try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
-                        }
-                        failureMessage = nil
-                        input = .init()
-                    } catch {
-                        failureMessage = error.message
-                    }
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!input.isComplete)
-        }
-    }
-
     @ViewBuilder
-    var nudgeSection: some View {
-        let nudges = store.state.nudges(for: store.role, now: now)
-        if !nudges.isEmpty {
-            Section {
-                ForEach(nudges, id: \.self) { nudge in
-                    Label(nudge.message(in: store.state), systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
-            }
-        }
-    }
-
     func taskList(_ tasks: [TaskItem]) -> some View {
-        Section("タスク") {
-            if tasks.isEmpty {
-                Text("まだタスクがありません")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(tasks) { task in
-                    row(task)
-                }
+        SectionHeader(text: "タスク")
+        if tasks.isEmpty {
+            Placeholder(
+                symbol: "checklist",
+                title: "まだタスクがありません",
+                message: "やることを起案すると、ここに並びます"
+            )
+        } else {
+            ForEach(tasks) { task in
+                row(task)
             }
         }
     }
 
     func row(_ task: TaskItem) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(task.title)
-                Spacer()
-                if !task.status.isOpen, let reaction = task.reaction {
-                    Text(reaction.emoji)
-                }
-                DeadlineText(deadline: task.deadline)
-                Text(task.status.label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                Spacer(minLength: 8)
+                DeadlineText(deadline: task.deadline, now: now)
+                Chip(text: task.status.label, tint: task.status.tint)
             }
             if task.status.isOpen {
                 reactions(for: task)
+            } else if let reaction = task.reaction {
+                Text(reaction.emoji)
+                    .font(.title2)
             }
             if task.status == .todo {
                 Button("完了を報告する") {
                     perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
                 }
-                .buttonStyle(.borderless)
-                .font(.subheadline)
+                .buttonStyle(.soft)
             }
         }
-        .listRowBackground(task.reaction?.rowBackground)
+        .card(tinted: task.reaction?.tint)
     }
 
     func reactions(for task: TaskItem) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 8) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button {
                     perform { state throws(DomainError) in
@@ -136,15 +98,53 @@ private extension PlayerTaskView {
                         )
                     }
                 } label: {
-                    Text(reaction.emoji)
-                        .font(.largeTitle)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .contentShape(.rect)
+                    reactionLabel(reaction, chosen: task.reaction == reaction)
                 }
-                .opacity(task.reaction == reaction ? 1 : 0.3)
+                .buttonStyle(.plain)
             }
         }
-        .buttonStyle(.borderless)
+    }
+
+    func reactionLabel(_ reaction: Reaction, chosen: Bool) -> some View {
+        Text(reaction.emoji)
+            .font(.title)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(
+                chosen ? reaction.tint.opacity(0.22) : Color(.tertiarySystemFill),
+                in: .rect(cornerRadius: 14)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(reaction.tint, lineWidth: chosen ? 2 : 0)
+            }
+            .opacity(chosen ? 1 : 0.55)
+            .contentShape(.rect)
+    }
+
+    var proposal: some View {
+        Panel(title: "タスクを起案する") {
+            TextField("やること", text: $input.title)
+                .fieldBox()
+            DeadlineField(deadline: $input.deadline)
+            Button("起案する", action: create)
+                .buttonStyle(.filled)
+                .disabled(!input.isComplete)
+        }
+    }
+
+    func create() {
+        let entered = input
+        Task {
+            do throws(PartnershipFailure) {
+                try await store.perform { state throws(DomainError) in
+                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
+                }
+                failureMessage = nil
+                input = .init()
+            } catch {
+                failureMessage = error.message
+            }
+        }
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {

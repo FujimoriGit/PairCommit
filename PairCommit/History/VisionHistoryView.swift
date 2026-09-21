@@ -14,10 +14,16 @@ struct VisionHistoryView: View {
     let tasks: [TaskItem]
 
     var body: some View {
-        Form {
-            visionSection
-            taskSection
+        ScrollView {
+            VStack(spacing: 14) {
+                VisionDetail(vision: vision, note: outcome.result, noteTint: outcome.tint)
+                SectionHeader(text: "タスク")
+                taskList
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 36)
         }
+        .background(Backdrop())
         .navigationTitle("記録")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -26,43 +32,32 @@ struct VisionHistoryView: View {
 // MARK: - Private
 
 private extension VisionHistoryView {
-    var visionSection: some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            LabeledContent("結果", value: outcome.result)
-            LabeledContent("達成基準", value: vision.doneCriteria)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
-            }
-        }
-    }
-
-    var taskSection: some View {
-        Section("タスク") {
-            if tasks.isEmpty {
-                Text("タスクはありませんでした")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(tasks) { task in
-                    row(task)
-                }
+    @ViewBuilder
+    var taskList: some View {
+        if tasks.isEmpty {
+            Placeholder(
+                symbol: "checklist",
+                title: "タスクはありませんでした",
+                message: "このビジョンにタスクは作られませんでした"
+            )
+        } else {
+            ForEach(tasks) { task in
+                row(task)
             }
         }
     }
 
     func row(_ task: TaskItem) -> some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(task.title)
-            Spacer()
+                .font(.system(.body, design: .rounded, weight: .semibold))
+            Spacer(minLength: 8)
             if let reaction = task.reaction {
                 Text(reaction.emoji)
             }
-            Text(task.status.label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Chip(text: task.status.label, tint: task.status.tint)
         }
-        .listRowBackground(task.reaction?.rowBackground)
+        .card(tinted: task.reaction?.tint)
     }
 }
 

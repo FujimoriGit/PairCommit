@@ -87,38 +87,67 @@ private extension ContentView {
 
     var rolePicker: some View {
         NavigationStack {
-            List {
-                Section {
+            ScrollView {
+                VStack(spacing: 16) {
                     ForEach(Role.allCases, id: \.self) { role in
                         Button {
                             begin(as: .owner(role))
                         } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(role.label)
-                                    .font(.headline)
-                                Text(role.summary)
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.secondary)
-                            }
+                            roleCard(role)
                         }
-                        .tint(role.accent)
+                        .buttonStyle(.plain)
                     }
-                } header: {
-                    Text("役割を選んで始める")
-                } footer: {
-                    Text("役割は後から入れ替えられません。始め直しても、最初に選んだ役割のままになります。")
-                }
 
-                Section {
-                    Button("相手の招待を受ける") {
-                        begin(as: .participant)
+                    Text("役割は後から入れ替えられません。始め直しても、最初に選んだ役割のままになります。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Panel {
+                        Button("相手の招待を受ける") {
+                            begin(as: .participant)
+                        }
+                        .buttonStyle(.filled)
+                        Text("始めた側が選ばなかったほうの役割になります。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                } footer: {
-                    Text("始めた側が選ばなかったほうの役割になります。")
+
+                    FailureNote(message: failureMessage)
                 }
-                FailureRow(message: failureMessage)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 36)
             }
+            .background(Backdrop())
             .navigationTitle("どちらで使いますか")
+        }
+    }
+
+    func roleCard(_ role: Role) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: role.symbol)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(role.accent.gradient, in: .circle)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(role.label)
+                    .font(.system(.headline, design: .rounded))
+                Text(role.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.tertiary)
+                .padding(.top, 4)
+        }
+        .card()
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(role.accent.opacity(0.35), lineWidth: 1)
         }
     }
 

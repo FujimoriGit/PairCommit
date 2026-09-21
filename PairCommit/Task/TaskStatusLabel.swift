@@ -6,6 +6,7 @@
 //
 
 import Domain
+import SwiftUI
 
 extension TaskItem.Status {
     var label: String {
@@ -15,6 +16,14 @@ extension TaskItem.Status {
         case .reported: "承認待ち"
         case .approved: "完了"
         case .cancelled: "取り消し"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .proposed, .reported: .orange
+        case .approved: .green
+        case .todo, .cancelled: .secondary
         }
     }
 }

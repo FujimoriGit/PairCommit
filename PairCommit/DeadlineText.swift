@@ -9,12 +9,15 @@ import SwiftUI
 
 struct DeadlineText: View {
     let deadline: Date?
+    var now = Date()
 
+    @ViewBuilder
     var body: some View {
         if let deadline {
-            Text(deadline.formatted(Date.FormatStyle.monthDay))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Chip(
+                text: deadline.formatted(Date.FormatStyle.monthDay),
+                tint: deadline < now ? .red : .secondary
+            )
         }
     }
 }
