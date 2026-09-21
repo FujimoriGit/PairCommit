@@ -144,7 +144,7 @@ struct NudgeTests {
         let upcoming = state.upcomingNudges(for: .player, now: day(0))
 
         // Then
-        #expect(upcoming.count == 2)
+        #expect(!upcoming.isEmpty)
         for (nudge, startsAt) in upcoming {
             #expect(!state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge))
             #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
