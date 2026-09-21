@@ -12,7 +12,7 @@ extension Role {
     var accent: Color {
         switch self {
         case .manager: .indigo
-        case .player: .cyan
+        case .player: .deepTeal
         }
     }
 
@@ -22,4 +22,11 @@ extension Role {
         case .player: "figure.run"
         }
     }
+}
+
+// MARK: - Private
+
+private extension Color {
+    // systemTeal も systemCyan も白地で 2.6:1 しかなく、tint はボタンの文字色になる。
+    static let deepTeal = Color(red: 11 / 255, green: 114 / 255, blue: 133 / 255)
 }
