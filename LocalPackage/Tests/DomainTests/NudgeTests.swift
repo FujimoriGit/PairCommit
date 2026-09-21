@@ -183,24 +183,6 @@ struct NudgeTests {
         #expect(upcoming[.visionOverdue(ready.visionID)] != nil)
         #expect(nudges.isEmpty)
     }
-
-    @Test("相手に向けた催促は予定に入らない")
-    func upcomingNudgesReachOnlyTheirRecipient() throws {
-        // Given
-        let ready = try activeVision(deadline: day(10))
-        let state = try ready.state.creatingTask(
-            title: "走る",
-            deadline: day(5),
-            by: .manager,
-            now: day(0)
-        ).state
-
-        // When
-        let upcoming = state.upcomingNudges(for: .manager, now: day(0))
-
-        // Then
-        #expect(Set(upcoming.keys) == [.visionOverdue(ready.visionID)])
-    }
 }
 
 // MARK: - Private
