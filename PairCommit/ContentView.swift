@@ -98,7 +98,7 @@ private extension ContentView {
                                     .font(.headline)
                                 Text(role.summary)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.secondary)
                             }
                         }
                         .tint(role.accent)
