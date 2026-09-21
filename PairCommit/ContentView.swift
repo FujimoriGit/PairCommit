@@ -29,7 +29,6 @@ struct ContentView: View {
                 screen(for: store)
                     .partnershipHistoryDestination(store.state, role: store.role)
             }
-            .tint(store.role.accent)
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
