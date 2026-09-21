@@ -50,7 +50,7 @@ private extension PlayerVisionView {
     var content: some View {
         switch stage {
         case .proposed(let vision):
-            summary(of: vision, note: "\(Role.manager.label)の承認待ち", tint: Color(.deepOrange))
+            summary(of: vision, note: "\(Role.manager.label)の承認待ち")
         case .draft(let vision):
             draftDetail(vision)
         case .blank:
@@ -106,7 +106,7 @@ private extension PlayerVisionView {
                         systemImage: review.isVerifiable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
                     )
                     .font(.subheadline)
-                    .foregroundStyle(review.isVerifiable ? .green : .orange)
+                    .foregroundStyle(review.isVerifiable ? Color(.deepGreen) : Color(.deepOrange))
                 }
             }
         }
@@ -123,9 +123,9 @@ private extension PlayerVisionView {
         }
     }
 
-    func summary(of vision: Vision, note: String, tint: Color) -> some View {
+    func summary(of vision: Vision, note: String) -> some View {
         VStack(spacing: 16) {
-            VisionDetail(vision: vision, note: note, noteTint: tint)
+            VisionDetail(vision: vision, note: note)
             FailureNote(message: failureMessage)
         }
     }
