@@ -79,6 +79,7 @@ private extension NudgeNotifications {
     // 経過秒で予約すると、端末の時計を直しても追随しない。タイムゾーンを外すと、成分は発火を待つ時点の
     // タイムゾーンで読まれるので、移動するとずれる。期限は絶対時刻なので、鳴る時刻も絶対時刻で渡す。
     static func trigger(at startsAt: Date, after now: Date) -> UNCalendarNotificationTrigger {
+        // `repeats: false` では、すでに過ぎた時刻の成分を渡すと一度も発火しない。
         let fireAt = max(startsAt, now.addingTimeInterval(1))
         return .init(
             dateMatching: Calendar.current.dateComponents(
