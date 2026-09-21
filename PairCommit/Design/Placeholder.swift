@@ -10,7 +10,7 @@ import SwiftUI
 struct Placeholder: View {
     let symbol: String
     let title: String
-    let message: String
+    var message: String?
 
     var body: some View {
         VStack(spacing: 10) {
@@ -20,9 +20,11 @@ struct Placeholder: View {
                 .accessibilityHidden(true)
             Text(title)
                 .font(.system(.headline, design: .rounded))
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            if let message {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)

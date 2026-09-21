@@ -33,8 +33,7 @@ private extension VisionHistoryView {
         if tasks.isEmpty {
             Placeholder(
                 symbol: "checklist",
-                title: "タスクはありませんでした",
-                message: "このビジョンにタスクは作られませんでした"
+                title: "タスクはありませんでした"
             )
         } else {
             ForEach(tasks) { task in
