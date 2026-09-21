@@ -244,7 +244,6 @@ graph LR
 - 誰も操作しないまま期限が過ぎただけの催促を出す経路。相手の変更がなければプッシュが飛ばないので、時刻が進んだだけでは何も起きない。
 - 署名と capability（Team・iCloud コンテナ・Push Notifications・Background Modes の Remote notifications）。プッシュはこれが入るまで配送されない。
 - 見た目。「見た目（決定）」のうち、画面を変えることになるもの。アクセント色は標準のまま。
-- アプリアイコン。`AppIcon.appiconset` は空。リリースに要る。画像は手で用意する。
 
 **保留**: 実機での検証。Apple Developer Program には加入済み。MC はシミュレータ同士では繋がらないので、ペアリングから先は実機2台でしか動かせない。1台だけで使う入り口（`LocalPairing`）は、ペアリングを本物にしたときに落とした。
 
