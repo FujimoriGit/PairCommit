@@ -101,6 +101,9 @@ private extension PlayerTaskView {
             HStack {
                 Text(task.title)
                 Spacer()
+                if !task.status.isOpen, let reaction = task.reaction {
+                    Text(reaction.emoji)
+                }
                 DeadlineText(deadline: task.deadline)
                 Text(task.status.label)
                     .font(.caption)
@@ -114,14 +117,16 @@ private extension PlayerTaskView {
                     perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
                 }
                 .buttonStyle(.borderless)
+                .font(.subheadline)
             }
         }
+        .listRowBackground(task.reaction?.rowBackground)
     }
 
     func reactions(for task: TaskItem) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 0) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
-                Button(reaction.emoji) {
+                Button {
                     perform { state throws(DomainError) in
                         try state.settingReaction(
                             task.reaction == reaction ? nil : reaction,
@@ -129,6 +134,11 @@ private extension PlayerTaskView {
                             by: store.role
                         )
                     }
+                } label: {
+                    Text(reaction.emoji)
+                        .font(.largeTitle)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .contentShape(.rect)
                 }
                 .opacity(task.reaction == reaction ? 1 : 0.3)
             }
@@ -201,5 +211,20 @@ private extension PlayerTaskView {
             ),
             now: .preview
         )
+    }
+}
+
+#Preview("プレイヤーの感情ヒートマップ") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(store: .preview(
+            role: .player,
+            visions: [vision],
+            tasks: [
+                .preview(visionID: vision.id, title: "毎日30分歩く", status: .approved, createdBy: .manager, reaction: .happy),
+                .preview(visionID: vision.id, title: "間食をやめる", status: .approved, createdBy: .manager, reaction: .angry),
+                .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .uneasy)
+            ]
+        ), now: .preview)
     }
 }
