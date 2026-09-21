@@ -84,6 +84,8 @@ private extension PlayerTaskView {
                 .buttonStyle(.plain)
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(.tint)
+                .frame(minHeight: 44)
+                .contentShape(.rect)
             }
         }
         .card(tinted: task.reaction?.tint)

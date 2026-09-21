@@ -17,21 +17,21 @@ struct VisionCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ビジョン")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.white)
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(3)
             Text(vision.doneCriteria)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(.white)
                 .lineLimit(3)
             countdown
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(role.accent.gradient, in: .rect(cornerRadius: 24))
+        .background(role.accent, in: .rect(cornerRadius: 24))
         .shadow(color: role.accent.opacity(0.3), radius: 12, y: 6)
     }
 }
