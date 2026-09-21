@@ -17,6 +17,7 @@ struct Placeholder: View {
             Image(systemName: symbol)
                 .font(.system(size: 34, weight: .light))
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
             Text(title)
                 .font(.system(.headline, design: .rounded))
             Text(message)

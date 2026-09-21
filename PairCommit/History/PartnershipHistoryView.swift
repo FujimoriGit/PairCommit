@@ -66,6 +66,7 @@ private extension PartnershipHistoryView {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.bold))
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .card()
     }

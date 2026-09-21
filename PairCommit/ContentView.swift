@@ -143,6 +143,7 @@ private extension ContentView {
                 .font(.footnote.weight(.bold))
                 .foregroundStyle(.tertiary)
                 .padding(.top, 4)
+                .accessibilityHidden(true)
         }
         .card(outlined: role.accent.opacity(0.35))
     }
