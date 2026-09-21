@@ -9,11 +9,13 @@ import Domain
 import SwiftUI
 
 struct NudgeCard: View {
-    let nudges: [Nudge]
     let state: PartnershipState
+    let role: Role
+    let now: Date
 
     @ViewBuilder
     var body: some View {
+        let nudges = state.nudges(for: role, now: now)
         if !nudges.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(nudges, id: \.self) { nudge in
