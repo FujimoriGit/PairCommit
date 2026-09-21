@@ -144,7 +144,7 @@ private extension ManagerTaskView {
             }
             actions(for: task)
         }
-        .listRowBackground(task.reaction.map { $0.tint.opacity(0.15) })
+        .listRowBackground(task.reaction?.rowBackground)
         .swipeActions {
             if task.status.isOpen {
                 Button("取り消す", role: .destructive) {
