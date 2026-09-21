@@ -178,37 +178,70 @@ extension PartnershipState {
         dueSoonWithin: TimeInterval = Nudge.dueSoonWithin,
         approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
     ) -> [Nudge] {
-        guard let vision = activeVision else { return [] }
+        nudgeWindows(for: role, dueSoonWithin: dueSoonWithin, approvalStalledAfter: approvalStalledAfter)
+            .filter { $0.startsAt < now && now <= ($0.endsAt ?? .distantFuture) }
+            .map(\.nudge)
+    }
 
-        var found: [Nudge] = []
-        if vision.isOverdue(at: now) {
-            found.append(.visionOverdue(vision.id))
-        }
-        for task in tasks(for: vision.id) {
-            switch task.status {
-            case .todo:
-                if let deadline = task.deadline {
-                    if deadline < now {
-                        found.append(.taskOverdue(task.id))
-                    } else if deadline.timeIntervalSince(now) <= dueSoonWithin {
-                        found.append(.taskDueSoon(task.id))
-                    }
-                }
-            case .reported:
-                if now.timeIntervalSince(task.statusChangedAt) >= approvalStalledAfter {
-                    found.append(.approvalStalled(task.id))
-                }
-            case .proposed, .approved, .cancelled:
-                break
-            }
-        }
-        return found.filter { $0.recipient == role }
+    /// まだ始まっていない催促と、それが始まる時刻。その時刻を過ぎると `nudges(for:now:)` に現れる。
+    public func upcomingNudges(
+        for role: Role,
+        now: Date = Date(),
+        dueSoonWithin: TimeInterval = Nudge.dueSoonWithin,
+        approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
+    ) -> [Nudge: Date] {
+        let windows = nudgeWindows(for: role, dueSoonWithin: dueSoonWithin, approvalStalledAfter: approvalStalledAfter)
+        return Dictionary(
+            windows.filter { $0.startsAt >= now }.map { ($0.nudge, $0.startsAt) },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 }
 
 // MARK: - Private
 
 private extension PartnershipState {
+    struct NudgeWindow {
+        let nudge: Nudge
+        let startsAt: Date
+        let endsAt: Date?
+    }
+
+    func nudgeWindows(
+        for role: Role,
+        dueSoonWithin: TimeInterval,
+        approvalStalledAfter: TimeInterval
+    ) -> [NudgeWindow] {
+        guard let vision = activeVision else { return [] }
+
+        var found: [NudgeWindow] = []
+        if let deadline = vision.deadline {
+            found.append(.init(nudge: .visionOverdue(vision.id), startsAt: deadline, endsAt: nil))
+        }
+        for task in tasks(for: vision.id) {
+            switch task.status {
+            case .todo:
+                if let deadline = task.deadline {
+                    found.append(.init(nudge: .taskOverdue(task.id), startsAt: deadline, endsAt: nil))
+                    found.append(.init(
+                        nudge: .taskDueSoon(task.id),
+                        startsAt: deadline.addingTimeInterval(-dueSoonWithin),
+                        endsAt: deadline
+                    ))
+                }
+            case .reported:
+                found.append(.init(
+                    nudge: .approvalStalled(task.id),
+                    startsAt: task.statusChangedAt.addingTimeInterval(approvalStalledAfter),
+                    endsAt: nil
+                ))
+            case .proposed, .approved, .cancelled:
+                break
+            }
+        }
+        return found.filter { $0.nudge.recipient == role }
+    }
+
     func updating(visions: [Vision]? = nil, tasks: [TaskItem]? = nil) -> Self {
         .init(
             pairing: pairing,
