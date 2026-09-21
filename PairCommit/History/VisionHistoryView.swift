@@ -15,16 +15,11 @@ struct VisionHistoryView: View {
     let role: Role
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                VisionDetail(vision: vision, note: outcome.result, noteTint: outcome.tint)
-                SectionHeader(text: "タスク")
-                taskList
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 36)
+        Screen(role: role) {
+            VisionDetail(vision: vision, note: outcome.result, noteTint: outcome.tint)
+            SectionHeader(text: "タスク")
+            taskList
         }
-        .background(Backdrop(colors: [role.accent]))
         .navigationTitle("記録")
         .navigationBarTitleDisplayMode(.inline)
     }

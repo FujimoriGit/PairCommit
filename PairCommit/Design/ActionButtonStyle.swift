@@ -14,10 +14,8 @@ struct FilledButtonStyle: ButtonStyle {
 }
 
 struct SoftButtonStyle: ButtonStyle {
-    var role: ButtonRole?
-
     func makeBody(configuration: Configuration) -> some View {
-        Surface(configuration: configuration, role: role)
+        Surface(configuration: configuration)
     }
 }
 
@@ -27,8 +25,6 @@ extension ButtonStyle where Self == FilledButtonStyle {
 
 extension ButtonStyle where Self == SoftButtonStyle {
     static var soft: Self { .init() }
-
-    static func soft(_ role: ButtonRole?) -> Self { .init(role: role) }
 }
 
 // MARK: - Private
@@ -56,7 +52,6 @@ private extension FilledButtonStyle {
 private extension SoftButtonStyle {
     struct Surface: View {
         let configuration: Configuration
-        let role: ButtonRole?
         @Environment(\.isEnabled) private var isEnabled
 
         var body: some View {
@@ -70,7 +65,7 @@ private extension SoftButtonStyle {
 
         var fill: AnyShapeStyle {
             guard isEnabled else { return AnyShapeStyle(Color.secondary) }
-            return role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
+            return configuration.role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
         }
     }
 }

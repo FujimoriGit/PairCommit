@@ -27,15 +27,11 @@ struct ManagerVisionView: View {
 
 private extension ManagerVisionView {
     enum Stage {
-        case active(Vision)
         case proposed(Vision)
         case waiting
     }
 
     var stage: Stage {
-        if let active = store.state.activeVision {
-            return .active(active)
-        }
         if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
             return .proposed(proposed)
         }
@@ -45,8 +41,6 @@ private extension ManagerVisionView {
     @ViewBuilder
     var content: some View {
         switch stage {
-        case .active(let vision):
-            summary(of: vision)
         case .proposed(let vision):
             review(vision)
         case .waiting:
@@ -85,15 +79,8 @@ private extension ManagerVisionView {
                 Button("起案者に差し戻す") {
                     perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
                 }
-                .buttonStyle(.soft(.destructive))
+                .buttonStyle(.soft)
             }
-            FailureNote(message: failureMessage)
-        }
-    }
-
-    func summary(of vision: Vision) -> some View {
-        VStack(spacing: 16) {
-            VisionDetail(vision: vision, note: "進行中", noteTint: .green)
             FailureNote(message: failureMessage)
         }
     }
@@ -120,12 +107,6 @@ private extension ManagerVisionView {
 #Preview("管理者の承認待ち") {
     NavigationStack {
         ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
-    }
-}
-
-#Preview("管理者の進行中") {
-    NavigationStack {
-        ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
     }
 }
 

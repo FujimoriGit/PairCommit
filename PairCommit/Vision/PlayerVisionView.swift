@@ -31,16 +31,12 @@ struct PlayerVisionView: View {
 
 private extension PlayerVisionView {
     enum Stage {
-        case active(Vision)
         case proposed(Vision)
         case draft(Vision)
         case blank
     }
 
     var stage: Stage {
-        if let active = store.state.activeVision {
-            return .active(active)
-        }
         if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
             return .proposed(proposed)
         }
@@ -53,8 +49,6 @@ private extension PlayerVisionView {
     @ViewBuilder
     var content: some View {
         switch stage {
-        case .active(let vision):
-            summary(of: vision, note: "進行中", tint: .green)
         case .proposed(let vision):
             summary(of: vision, note: "\(Role.manager.label)の承認待ち", tint: .orange)
         case .draft(let vision):

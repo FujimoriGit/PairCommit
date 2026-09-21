@@ -13,14 +13,9 @@ struct PartnershipHistoryView: View {
     let role: Role
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
-                content
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 36)
+        Screen(role: role) {
+            content
         }
-        .background(Backdrop(colors: [role.accent]))
         .navigationTitle("2人の記録")
     }
 }

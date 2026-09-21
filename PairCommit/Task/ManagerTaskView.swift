@@ -144,7 +144,7 @@ private extension ManagerTaskView {
                     Button("差し戻す") {
                         perform { state throws(DomainError) in try state.returningTask(task.id, by: store.role) }
                     }
-                    .buttonStyle(.soft(.destructive))
+                    .buttonStyle(.soft)
                     cancellation(of: task)
                 }
             }
@@ -156,10 +156,10 @@ private extension ManagerTaskView {
     }
 
     func cancellation(of task: TaskItem) -> some View {
-        Button("取り消す") {
+        Button("取り消す", role: .destructive) {
             perform { state throws(DomainError) in try state.cancellingTask(task.id, by: store.role) }
         }
-        .buttonStyle(.soft(.destructive))
+        .buttonStyle(.soft)
     }
 
     var creation: some View {

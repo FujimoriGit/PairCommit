@@ -78,14 +78,16 @@ private extension PlayerTaskView {
                     .font(.title2)
             }
             if task.status == .todo {
-                Button("完了を報告する") {
+                Button {
                     perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
+                } label: {
+                    Text("完了を報告する")
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.tint)
+                        .frame(minHeight: 44)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .foregroundStyle(.tint)
-                .frame(minHeight: 44)
-                .contentShape(.rect)
             }
         }
         .card(tinted: task.reaction?.tint)

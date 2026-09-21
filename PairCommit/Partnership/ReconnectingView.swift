@@ -35,8 +35,8 @@ private extension ReconnectingView {
                 )
                 Button("もう一度試す", action: onRetry)
                     .buttonStyle(.filled)
-                Button("役割の選択からやり直す", action: onStartOver)
-                    .buttonStyle(.soft(.destructive))
+                Button("役割の選択からやり直す", role: .destructive, action: onStartOver)
+                    .buttonStyle(.soft)
             }
         } else {
             ProgressView("相手とつないでいます…")

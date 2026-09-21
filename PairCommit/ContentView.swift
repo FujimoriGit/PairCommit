@@ -144,11 +144,7 @@ private extension ContentView {
                 .foregroundStyle(.tertiary)
                 .padding(.top, 4)
         }
-        .card()
-        .overlay {
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(role.accent.opacity(0.35), lineWidth: 1)
-        }
+        .card(outlined: role.accent.opacity(0.35))
     }
 
     func begin(as side: PairingSide) {
