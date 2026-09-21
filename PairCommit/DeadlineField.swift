@@ -15,18 +15,12 @@ struct DeadlineField: View {
             Toggle("期限を決める", isOn: decided)
                 .font(.subheadline)
             if let deadline {
-                HStack {
-                    Text("期限")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    DatePicker(
-                        "期限",
-                        selection: .init(get: { deadline }, set: { self.deadline = $0 }),
-                        displayedComponents: .date
-                    )
-                    .labelsHidden()
-                }
+                DatePicker(
+                    "期限",
+                    selection: .init(get: { deadline }, set: { self.deadline = $0 }),
+                    displayedComponents: .date
+                )
+                .font(.subheadline)
             }
         }
     }
