@@ -15,7 +15,7 @@ struct FailureNote: View {
         if let message {
             Label(message, systemImage: "exclamationmark.circle.fill")
                 .font(.subheadline)
-                .foregroundStyle(.red)
+                .foregroundStyle(Color(.deepRed))
                 .card()
         }
     }

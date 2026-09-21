@@ -15,7 +15,7 @@ struct DeadlineText: View {
     var body: some View {
         if let deadline {
             Text(deadline.formatted(Date.FormatStyle.monthDay))
-                .marker(deadline < now ? .red : .secondary)
+                .marker(deadline < now ? Color(.deepRed) : .secondary)
         }
     }
 }

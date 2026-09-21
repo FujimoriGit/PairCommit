@@ -11,7 +11,7 @@ import SwiftUI
 struct VisionDetail: View {
     let vision: Vision
     var note: String?
-    var noteTint: Color = .orange
+    var noteTint = Color(.deepOrange)
 
     var body: some View {
         Panel {

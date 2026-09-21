@@ -21,8 +21,8 @@ extension TaskItem.Status {
 
     var tint: Color {
         switch self {
-        case .proposed, .reported: .orange
-        case .approved: .green
+        case .proposed, .reported: Color(.deepOrange)
+        case .approved: Color(.deepGreen)
         case .todo, .cancelled: .secondary
         }
     }

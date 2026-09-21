@@ -50,7 +50,7 @@ private extension PlayerVisionView {
     var content: some View {
         switch stage {
         case .proposed(let vision):
-            summary(of: vision, note: "\(Role.manager.label)の承認待ち", tint: .orange)
+            summary(of: vision, note: "\(Role.manager.label)の承認待ち", tint: Color(.deepOrange))
         case .draft(let vision):
             draftDetail(vision)
         case .blank:
