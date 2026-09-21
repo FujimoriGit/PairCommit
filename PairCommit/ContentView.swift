@@ -36,7 +36,7 @@ struct ContentView: View {
                     await returnToPicker(with: "パートナーシップは終了しました")
                     return
                 }
-                await NudgeNotifications.post(store.state.nudges(for: store.role), in: store.state)
+                await NudgeNotifications.post(for: store.role, in: store.state)
             }
         } else if pairing.phase == .idle, let saved = savedPairing {
             ReconnectingView(

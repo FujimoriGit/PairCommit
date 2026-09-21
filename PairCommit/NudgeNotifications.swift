@@ -6,6 +6,7 @@
 //
 
 import Domain
+import Foundation
 import UserNotifications
 
 /// 催促を端末の通知として出す。何を催促するかはドメインが決め、ここは出すだけ。
@@ -14,8 +15,10 @@ enum NudgeNotifications {
         _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 
-    static func post(_ nudges: [Nudge], in state: PartnershipState) async {
+    static func post(for role: Role, in state: PartnershipState) async {
         let center = UNUserNotificationCenter.current()
+        let now = Date.now
+        let nudges = state.nudges(for: role, now: now)
         let wanted = Dictionary(nudges.map { (identifier(of: $0), $0) }, uniquingKeysWith: { first, _ in first })
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
 
@@ -26,11 +29,17 @@ enum NudgeNotifications {
 
         // 配信済みの催促は出し直さない。同じ識別子で add し直すと、差し替わると同時にもう一度鳴る。
         for (id, nudge) in wanted where !delivered.contains(id) {
-            let content = UNMutableNotificationContent()
-            content.body = nudge.message(in: state)
-            content.sound = .default
-            let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
-            try? await center.add(request)
+            try? await center.add(request(for: nudge, in: state, trigger: nil))
+        }
+
+        // 誰も操作しなければプッシュは来ないので、期限が過ぎるだけの催促は先に予約しておく。
+        // 予約も同じ識別子で出すので、鳴ったあとは配信済みとして上の重複除けに掛かる。
+        // 未配信の予約は同じ識別子の add で置き換わるので、消すのは予約しなくなったものだけにする。
+        // 予約できるのはアプリごとに64件までで、超えた分は発火の遅いものから黙って捨てられる。
+        let upcoming = state.upcomingNudges(for: role, now: now)
+        await withdrawPending(keeping: Set(upcoming.keys.map(identifier(of:))))
+        for (nudge, startsAt) in upcoming {
+            try? await center.add(request(for: nudge, in: state, trigger: trigger(at: startsAt, after: now)))
         }
     }
 
@@ -38,6 +47,7 @@ enum NudgeNotifications {
         let center = UNUserNotificationCenter.current()
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
         center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(prefix) })
+        await withdrawPending(keeping: [])
     }
 }
 
@@ -53,5 +63,38 @@ private extension NudgeNotifications {
         case .approvalStalled(let id): "\(prefix)approval-stalled.\(id)"
         case .visionOverdue(let id): "\(prefix)vision-overdue.\(id)"
         }
+    }
+
+    static func request(
+        for nudge: Nudge,
+        in state: PartnershipState,
+        trigger: UNNotificationTrigger?
+    ) -> UNNotificationRequest {
+        let content = UNMutableNotificationContent()
+        content.body = nudge.message(in: state)
+        content.sound = .default
+        return UNNotificationRequest(identifier: identifier(of: nudge), content: content, trigger: trigger)
+    }
+
+    // 経過秒で予約すると、端末の時計を直しても追随しない。タイムゾーンを外すと、成分は発火を待つ時点の
+    // タイムゾーンで読まれるので、移動するとずれる。期限は絶対時刻なので、鳴る時刻も絶対時刻で渡す。
+    static func trigger(at startsAt: Date, after now: Date) -> UNCalendarNotificationTrigger {
+        // `repeats: false` では、すでに過ぎた時刻の成分を渡すと一度も発火しない。
+        let fireAt = max(startsAt, now.addingTimeInterval(1))
+        return .init(
+            dateMatching: Calendar.current.dateComponents(
+                [.timeZone, .year, .month, .day, .hour, .minute, .second],
+                from: fireAt
+            ),
+            repeats: false
+        )
+    }
+
+    static func withdrawPending(keeping kept: Set<String>) async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests().map(\.identifier)
+        center.removePendingNotificationRequests(
+            withIdentifiers: pending.filter { $0.hasPrefix(prefix) && !kept.contains($0) }
+        )
     }
 }

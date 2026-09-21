@@ -128,6 +128,61 @@ struct NudgeTests {
         // Then
         #expect(nudges.isEmpty)
     }
+
+    @Test("予定された催促は、その時刻を過ぎると催促として現れる")
+    func anUpcomingNudgeAppearsOnceItsTimeHasPassed() throws {
+        // Given
+        let ready = try activeVision()
+        let state = try ready.state.creatingTask(
+            title: "走る",
+            deadline: day(5),
+            by: .manager,
+            now: day(0)
+        ).state
+
+        // When
+        let upcoming = state.upcomingNudges(for: .player, now: day(0))
+
+        // Then
+        #expect(!upcoming.isEmpty)
+        for (nudge, startsAt) in upcoming {
+            #expect(!state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge))
+            #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
+        }
+    }
+
+    @Test("すでに始まった催促は予定に入らない")
+    func aNudgeAlreadyInEffectIsNotUpcoming() throws {
+        // Given
+        let ready = try activeVision()
+        let state = try ready.state.creatingTask(
+            title: "走る",
+            deadline: day(5),
+            by: .manager,
+            now: day(0)
+        ).state
+        let taskID = state.tasks[0].id
+
+        // When
+        let upcoming = state.upcomingNudges(for: .player, now: day(3))
+
+        // Then
+        #expect(Set(upcoming.keys) == [.taskOverdue(taskID)])
+    }
+
+    @Test("催促が始まるちょうどその瞬間も、予定か今の催促のどちらかに入る")
+    func theStartingInstantIsNeitherLostNorDoubled() throws {
+        // Given
+        let ready = try activeVision(deadline: day(1))
+
+        // When
+        let upcoming = ready.state.upcomingNudges(for: .manager, now: day(1))
+        let nudges = ready.state.nudges(for: .manager, now: day(1))
+
+        // Then
+        #expect(upcoming[.visionOverdue(ready.visionID)] != nil)
+        #expect(nudges.isEmpty)
+    }
 }
 
 // MARK: - Private
