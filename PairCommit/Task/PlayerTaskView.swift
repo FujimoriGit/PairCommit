@@ -67,7 +67,7 @@ private extension PlayerTaskView {
                 Text(task.title)
                     .font(.system(.body, design: .rounded, weight: .semibold))
                 Spacer(minLength: 8)
-                DeadlineText(deadline: task.deadline, now: now)
+                DeadlineText(task: task, now: now)
                 Text(task.status.label)
                     .marker(task.status.tint)
             }

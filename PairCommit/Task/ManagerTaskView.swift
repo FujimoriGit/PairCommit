@@ -114,7 +114,7 @@ private extension ManagerTaskView {
                 if let reaction = task.reaction {
                     Text(reaction.emoji)
                 }
-                DeadlineText(deadline: task.deadline, now: now)
+                DeadlineText(task: task, now: now)
                 Text(task.status.label)
                     .marker(task.status.tint)
             }
