@@ -21,6 +21,7 @@ struct ManagerTaskView: View {
         content
             .partnershipReset()
             .partnershipHistoryLink()
+            .tint(store.role.accent)
     }
 }
 

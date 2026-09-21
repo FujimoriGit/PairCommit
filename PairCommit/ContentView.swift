@@ -97,9 +97,10 @@ private extension ContentView {
                                     .font(.headline)
                                 Text(role.summary)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.secondary)
                             }
                         }
+                        .tint(role.accent)
                     }
                 } header: {
                     Text("役割を選んで始める")

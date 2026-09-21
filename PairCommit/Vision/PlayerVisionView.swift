@@ -22,6 +22,7 @@ struct PlayerVisionView: View {
         content
             .partnershipReset()
             .partnershipHistoryLink()
+            .tint(store.role.accent)
     }
 }
 

@@ -20,6 +20,7 @@ struct PlayerTaskView: View {
         content
             .partnershipReset()
             .partnershipHistoryLink()
+            .tint(store.role.accent)
     }
 }
 
