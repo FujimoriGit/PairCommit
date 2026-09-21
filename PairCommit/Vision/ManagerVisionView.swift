@@ -51,14 +51,12 @@ private extension ManagerVisionView {
     @ViewBuilder
     var waiting: some View {
         if let achieved = store.state.lastAchievedVision {
-            VStack(spacing: 16) {
-                AchievementBanner(vision: achieved)
-                Placeholder(
-                    symbol: "tray",
-                    title: "次の起案を待っています",
-                    message: "\(Role.player.label)がビジョンを起案するとここに出ます"
-                )
-            }
+            AchievementBanner(vision: achieved)
+            Placeholder(
+                symbol: "tray",
+                title: "次の起案を待っています",
+                message: "\(Role.player.label)がビジョンを起案するとここに出ます"
+            )
         } else {
             Placeholder(
                 symbol: "tray",
@@ -68,21 +66,20 @@ private extension ManagerVisionView {
         }
     }
 
+    @ViewBuilder
     func review(_ vision: Vision) -> some View {
-        VStack(spacing: 16) {
-            VisionDetail(vision: vision, note: "承認待ち")
-            VStack(spacing: 10) {
-                Button("承認する") {
-                    perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
-                }
-                .buttonStyle(.filled)
-                Button("起案者に差し戻す") {
-                    perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
-                }
-                .buttonStyle(.soft)
+        VisionDetail(vision: vision, note: "承認待ち")
+        VStack(spacing: 10) {
+            Button("承認する") {
+                perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
             }
-            FailureNote(message: failureMessage)
+            .buttonStyle(.filled)
+            Button("起案者に差し戻す") {
+                perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
+            }
+            .buttonStyle(.soft)
         }
+        FailureNote(message: failureMessage)
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {

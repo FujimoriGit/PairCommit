@@ -58,30 +58,29 @@ private extension PlayerVisionView {
         }
     }
 
+    @ViewBuilder
     var draftForm: some View {
-        VStack(spacing: 16) {
-            if let achieved = store.state.lastAchievedVision {
-                AchievementBanner(vision: achieved)
-            }
-            Panel(title: "ビジョン") {
-                TextField("何を達成したいか", text: $input.statement, axis: .vertical)
-                    .lineLimit(2...4)
-                    .fieldBox()
-            }
-            Panel(title: "達成基準") {
-                TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
-                    .lineLimit(2...4)
-                    .fieldBox()
-            }
-            Panel {
-                DeadlineField(deadline: $input.deadline)
-            }
-            reviewSection
-            Button("起案する", action: draft)
-                .buttonStyle(.filled)
-                .disabled(!input.isComplete)
-            FailureNote(message: failureMessage)
+        if let achieved = store.state.lastAchievedVision {
+            AchievementBanner(vision: achieved)
         }
+        Panel(title: "ビジョン") {
+            TextField("何を達成したいか", text: $input.statement, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
+        }
+        Panel(title: "達成基準") {
+            TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
+        }
+        Panel {
+            DeadlineField(deadline: $input.deadline)
+        }
+        reviewSection
+        Button("起案する", action: draft)
+            .buttonStyle(.filled)
+            .disabled(!input.isComplete)
+        FailureNote(message: failureMessage)
     }
 
     @ViewBuilder
@@ -112,22 +111,20 @@ private extension PlayerVisionView {
         }
     }
 
+    @ViewBuilder
     func draftDetail(_ vision: Vision) -> some View {
-        VStack(spacing: 16) {
-            VisionDetail(vision: vision)
-            Button("\(Role.manager.label)に提出する") {
-                perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
-            }
-            .buttonStyle(.filled)
-            FailureNote(message: failureMessage)
+        VisionDetail(vision: vision)
+        Button("\(Role.manager.label)に提出する") {
+            perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
         }
+        .buttonStyle(.filled)
+        FailureNote(message: failureMessage)
     }
 
+    @ViewBuilder
     func summary(of vision: Vision, note: String) -> some View {
-        VStack(spacing: 16) {
-            VisionDetail(vision: vision, note: note)
-            FailureNote(message: failureMessage)
-        }
+        VisionDetail(vision: vision, note: note)
+        FailureNote(message: failureMessage)
     }
 
     func draft() {
