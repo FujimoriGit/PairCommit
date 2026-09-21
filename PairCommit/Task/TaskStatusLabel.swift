@@ -22,7 +22,7 @@ extension TaskItem.Status {
     var tint: Color {
         switch self {
         case .proposed, .reported: .orange
-        case .approved: Color(.deepGreen)
+        case .approved: .green
         case .todo, .cancelled: .secondary
         }
     }

@@ -15,7 +15,7 @@ struct AchievementBanner: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("🎉 達成しました")
                 .font(.system(.headline, design: .rounded))
-                .foregroundStyle(Color(.deepGreen))
+                .foregroundStyle(.green)
             Text(vision.statement)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
