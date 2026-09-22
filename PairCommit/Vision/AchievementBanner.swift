@@ -12,14 +12,14 @@ struct AchievementBanner: View {
     let vision: Vision
 
     var body: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("🎉 達成しました")
-                    .font(.headline)
-                Text(vision.statement)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 4)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("🎉 達成しました")
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(.green)
+            Text(vision.statement)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
+        .card()
     }
 }

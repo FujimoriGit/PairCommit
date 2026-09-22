@@ -11,13 +11,17 @@ struct DeadlineField: View {
     @Binding var deadline: Date?
 
     var body: some View {
-        Toggle("期限を決める", isOn: decided)
-        if let deadline {
-            DatePicker(
-                "期限",
-                selection: .init(get: { deadline }, set: { self.deadline = $0 }),
-                displayedComponents: .date
-            )
+        VStack(spacing: 10) {
+            Toggle("期限を決める", isOn: decided)
+                .font(.subheadline)
+            if let deadline {
+                DatePicker(
+                    "期限",
+                    selection: .init(get: { deadline }, set: { self.deadline = $0 }),
+                    displayedComponents: .date
+                )
+                .font(.subheadline)
+            }
         }
     }
 }

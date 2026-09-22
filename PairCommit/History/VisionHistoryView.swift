@@ -12,11 +12,13 @@ struct VisionHistoryView: View {
     let vision: Vision
     let outcome: Vision.Outcome
     let tasks: [TaskItem]
+    let role: Role
 
     var body: some View {
-        Form {
-            visionSection
-            taskSection
+        Screen(role: role) {
+            VisionDetail(vision: vision, note: outcome.result, noteTint: outcome.tint)
+            SectionHeader(text: "タスク")
+            taskList
         }
         .navigationTitle("記録")
         .navigationBarTitleDisplayMode(.inline)
@@ -26,43 +28,32 @@ struct VisionHistoryView: View {
 // MARK: - Private
 
 private extension VisionHistoryView {
-    var visionSection: some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            LabeledContent("結果", value: outcome.result)
-            LabeledContent("達成基準", value: vision.doneCriteria)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
-            }
-        }
-    }
-
-    var taskSection: some View {
-        Section("タスク") {
-            if tasks.isEmpty {
-                Text("タスクはありませんでした")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(tasks) { task in
-                    row(task)
-                }
+    @ViewBuilder
+    var taskList: some View {
+        if tasks.isEmpty {
+            Placeholder(
+                symbol: "checklist",
+                title: "タスクはありませんでした"
+            )
+        } else {
+            ForEach(tasks) { task in
+                row(task)
             }
         }
     }
 
     func row(_ task: TaskItem) -> some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(task.title)
-            Spacer()
+                .font(.system(.body, design: .rounded, weight: .semibold))
+            Spacer(minLength: 8)
             if let reaction = task.reaction {
                 Text(reaction.emoji)
             }
             Text(task.status.label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .marker(task.status.tint)
         }
-        .listRowBackground(task.reaction?.rowBackground)
+        .card(tinted: task.reaction?.tint)
     }
 }
 
@@ -73,6 +64,6 @@ private extension VisionHistoryView {
             .preview(visionID: vision.id, title: "毎日30分歩く", status: .approved, reaction: .happy),
             .preview(visionID: vision.id, title: "間食をやめる", status: .cancelled, reaction: .angry),
             .preview(visionID: vision.id, title: "体重を記録する", status: .approved)
-        ])
+        ], role: .manager)
     }
 }

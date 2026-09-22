@@ -19,75 +19,74 @@ struct PlayerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        content
-            .partnershipReset()
-            .partnershipHistoryLink()
-            .tint(store.role.accent)
+        Screen(role: store.role) {
+            content
+        }
+        .partnershipReset()
+        .partnershipHistoryLink()
     }
 }
 
 // MARK: - Private
 
 private extension PlayerVisionView {
+    enum Stage {
+        case proposed(Vision)
+        case draft(Vision)
+        case blank
+    }
+
+    var stage: Stage {
+        if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
+            return .proposed(proposed)
+        }
+        if let draft = store.state.visions.last(where: { $0.status == .draft }) {
+            return .draft(draft)
+        }
+        return .blank
+    }
+
+    @ViewBuilder
     var content: some View {
-        Group {
-            if let active = store.state.activeVision {
-                summary(of: active, note: "進行中")
-            } else if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
-                summary(of: proposed, note: "\(Role.manager.label)の承認を待っています")
-            } else if let draft = store.state.visions.last(where: { $0.status == .draft }) {
-                draftDetail(draft)
-            } else {
-                draftForm
-            }
+        switch stage {
+        case .proposed(let vision):
+            summary(of: vision, note: "\(Role.manager.label)の承認待ち")
+        case .draft(let vision):
+            draftDetail(vision)
+        case .blank:
+            draftForm
         }
     }
 
+    @ViewBuilder
     var draftForm: some View {
-        Form {
-            if let achieved = store.state.lastAchievedVision {
-                AchievementBanner(vision: achieved)
-            }
-            Section("ビジョン") {
-                TextField("何を達成したいか", text: $input.statement, axis: .vertical)
-            }
-            Section("達成基準") {
-                TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
-            }
-            Section {
-                DeadlineField(deadline: $input.deadline)
-            }
-            reviewSection
-            Section {
-                Button("起案する") {
-                    let entered = input
-                    Task {
-                        do throws(PartnershipFailure) {
-                            try await store.perform { state throws(DomainError) in
-                                try state.draftingVision(
-                                    statement: entered.statement,
-                                    doneCriteria: entered.doneCriteria,
-                                    deadline: entered.deadline,
-                                    by: store.role
-                                ).state
-                            }
-                            failureMessage = nil
-                            input = .init()
-                        } catch {
-                            failureMessage = error.message
-                        }
-                    }
-                }
-                .disabled(!input.isComplete)
-            }
-            FailureRow(message: failureMessage)
+        if let achieved = store.state.lastAchievedVision {
+            AchievementBanner(vision: achieved)
         }
+        Panel(title: "ビジョン") {
+            TextField("何を達成したいか", text: $input.statement, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
+        }
+        Panel(title: "達成基準") {
+            TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
+        }
+        Panel {
+            DeadlineField(deadline: $input.deadline)
+        }
+        reviewSection
+        Button("起案する", action: draft)
+            .buttonStyle(.filled)
+            .disabled(!input.isComplete)
+        FailureNote(message: failureMessage)
     }
 
     @ViewBuilder
     var reviewSection: some View {
         if let reviewing {
-            Section("達成基準の下読み") {
+            Panel(title: "達成基準の下読み") {
                 Button("この基準で判定できるか見てもらう") {
                     let entered = input
                     Task {
@@ -97,49 +96,53 @@ private extension PlayerVisionView {
                         )
                     }
                 }
+                .buttonStyle(.soft)
                 .disabled(!input.isComplete)
 
                 if let review {
                     Label(
                         review.advice,
-                        systemImage: review.isVerifiable ? "checkmark.circle" : "exclamationmark.triangle"
+                        systemImage: review.isVerifiable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
                     )
+                    .font(.subheadline)
                     .foregroundStyle(review.isVerifiable ? .green : .orange)
                 }
             }
         }
     }
 
+    @ViewBuilder
     func draftDetail(_ vision: Vision) -> some View {
-        Form {
-            visionFields(vision)
-            Section {
-                Button("\(Role.manager.label)に提出する") {
-                    perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
-                }
-            }
-            FailureRow(message: failureMessage)
+        VisionDetail(vision: vision)
+        Button("\(Role.manager.label)に提出する") {
+            perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
         }
+        .buttonStyle(.filled)
+        FailureNote(message: failureMessage)
     }
 
+    @ViewBuilder
     func summary(of vision: Vision, note: String) -> some View {
-        Form {
-            Section {
-                Text(note)
-                    .foregroundStyle(.secondary)
-            }
-            visionFields(vision)
-            FailureRow(message: failureMessage)
-        }
+        VisionDetail(vision: vision, note: note)
+        FailureNote(message: failureMessage)
     }
 
-    func visionFields(_ vision: Vision) -> some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            LabeledContent("達成基準", value: vision.doneCriteria)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
+    func draft() {
+        let entered = input
+        Task {
+            do throws(PartnershipFailure) {
+                try await store.perform { state throws(DomainError) in
+                    try state.draftingVision(
+                        statement: entered.statement,
+                        doneCriteria: entered.doneCriteria,
+                        deadline: entered.deadline,
+                        by: store.role
+                    ).state
+                }
+                failureMessage = nil
+                input = .init()
+            } catch {
+                failureMessage = error.message
             }
         }
     }

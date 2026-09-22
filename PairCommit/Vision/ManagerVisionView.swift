@@ -15,80 +15,71 @@ struct ManagerVisionView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        content
-            .partnershipReset()
-            .partnershipHistoryLink()
-            .tint(store.role.accent)
+        Screen(role: store.role) {
+            content
+        }
+        .partnershipReset()
+        .partnershipHistoryLink()
     }
 }
 
 // MARK: - Private
 
 private extension ManagerVisionView {
+    enum Stage {
+        case proposed(Vision)
+        case waiting
+    }
+
+    var stage: Stage {
+        if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
+            return .proposed(proposed)
+        }
+        return .waiting
+    }
+
+    @ViewBuilder
     var content: some View {
-        Group {
-            if let active = store.state.activeVision {
-                summary(of: active, note: "進行中")
-            } else if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
-                review(proposed)
-            } else {
-                waiting
-            }
+        switch stage {
+        case .proposed(let vision):
+            review(vision)
+        case .waiting:
+            waiting
         }
     }
 
     @ViewBuilder
     var waiting: some View {
         if let achieved = store.state.lastAchievedVision {
-            ContentUnavailableView(
-                "🎉 達成しました",
-                systemImage: "flag.checkered",
-                description: Text("\(achieved.statement)\n\n\(Role.player.label)の次の起案を待っています")
+            AchievementBanner(vision: achieved)
+            Placeholder(
+                symbol: "tray",
+                title: "次の起案を待っています",
+                message: "\(Role.player.label)がビジョンを起案するとここに出ます"
             )
         } else {
-            ContentUnavailableView(
-                "承認待ちのビジョンはありません",
-                systemImage: "tray",
-                description: Text("\(Role.player.label)の起案を待っています")
+            Placeholder(
+                symbol: "tray",
+                title: "承認待ちのビジョンはありません",
+                message: "\(Role.player.label)の起案を待っています"
             )
         }
     }
 
+    @ViewBuilder
     func review(_ vision: Vision) -> some View {
-        Form {
-            visionFields(vision)
-            Section {
-                Button("承認する") {
-                    perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
-                }
-                Button("起案者に差し戻す") {
-                    perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
-                }
+        VisionDetail(vision: vision, note: "承認待ち")
+        VStack(spacing: 10) {
+            Button("承認する") {
+                perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
             }
-            FailureRow(message: failureMessage)
-        }
-    }
-
-    func summary(of vision: Vision, note: String) -> some View {
-        Form {
-            Section {
-                Text(note)
-                    .foregroundStyle(.secondary)
+            .buttonStyle(.filled)
+            Button("起案者に差し戻す") {
+                perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
             }
-            visionFields(vision)
-            FailureRow(message: failureMessage)
+            .buttonStyle(.soft)
         }
-    }
-
-    func visionFields(_ vision: Vision) -> some View {
-        Section("ビジョン") {
-            Text(vision.statement)
-                .font(.headline)
-            LabeledContent("達成基準", value: vision.doneCriteria)
-            if let deadline = vision.deadline {
-                LabeledContent("期限", value: deadline.formatted(Date.FormatStyle.yearMonthDay))
-            }
-        }
+        FailureNote(message: failureMessage)
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {
@@ -113,12 +104,6 @@ private extension ManagerVisionView {
 #Preview("管理者の承認待ち") {
     NavigationStack {
         ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
-    }
-}
-
-#Preview("管理者の進行中") {
-    NavigationStack {
-        ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .active)]))
     }
 }
 

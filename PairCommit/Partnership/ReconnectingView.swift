@@ -14,15 +14,29 @@ struct ReconnectingView: View {
     let onStartOver: () -> Void
 
     var body: some View {
+        content
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Backdrop())
+    }
+}
+
+// MARK: - Private
+
+private extension ReconnectingView {
+    @ViewBuilder
+    var content: some View {
         if let failureMessage {
-            ContentUnavailableView {
-                Label("相手とつながりませんでした", systemImage: "wifi.exclamationmark")
-            } description: {
-                Text(failureMessage)
-            } actions: {
+            VStack(spacing: 14) {
+                Placeholder(
+                    symbol: "wifi.exclamationmark",
+                    title: "相手とつながりませんでした",
+                    message: failureMessage
+                )
                 Button("もう一度試す", action: onRetry)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.filled)
                 Button("役割の選択からやり直す", role: .destructive, action: onStartOver)
+                    .buttonStyle(.soft)
             }
         } else {
             ProgressView("相手とつないでいます…")

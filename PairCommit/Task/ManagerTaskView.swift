@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ManagerTaskView: View {
     let store: PartnershipStore
+    let vision: Vision
     var now = Date()
 
     @State private var input = TaskInput()
@@ -18,10 +19,27 @@ struct ManagerTaskView: View {
     @State private var failureMessage: String?
 
     var body: some View {
-        content
-            .partnershipReset()
-            .partnershipHistoryLink()
-            .tint(store.role.accent)
+        Screen(role: store.role) {
+            content
+        }
+        .partnershipReset()
+        .partnershipHistoryLink()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                judgement
+            }
+        }
+        .confirmationDialog(
+            "このビジョンを閉じますか",
+            isPresented: confirming,
+            presenting: outcome
+        ) { outcome in
+            Button(outcome.confirmation, role: .destructive) {
+                close(as: outcome)
+            }
+        } message: { _ in
+            Text("進行中のタスクはすべて取り消されます")
+        }
     }
 }
 
@@ -30,61 +48,119 @@ struct ManagerTaskView: View {
 private extension ManagerTaskView {
     @ViewBuilder
     var content: some View {
-        if let vision = store.state.activeVision {
-            Form {
-                nudgeSection
-                creation
-                taskList(store.state.tasks(for: vision.id))
-                FailureRow(message: failureMessage)
-            }
-            .safeAreaInset(edge: .top) {
-                VisionCard(vision: vision, now: now)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    judgement
-                }
-            }
-            .confirmationDialog(
-                "このビジョンを閉じますか",
-                isPresented: confirming,
-                presenting: outcome
-            ) { outcome in
-                Button(outcome.confirmation, role: .destructive) {
-                    perform { state throws(DomainError) in try state.closingVision(vision.id, as: outcome, by: store.role) }
-                }
-            } message: { _ in
-                Text("進行中のタスクはすべて取り消されます")
-            }
+        let tasks = store.state.tasks(for: vision.id)
+        VisionCard(vision: vision, role: store.role, now: now)
+        NudgeCard(state: store.state, role: store.role, now: now)
+        if tasks.isEmpty {
+            emptiness
         } else {
-            ContentUnavailableView(
-                "進行中のビジョンがありません",
-                systemImage: "flag",
-                description: Text("ビジョンを承認するとタスクを作れます")
-            )
+            judgementList(tasks.filter(needsJudgement))
+            taskList(tasks.filter { !needsJudgement($0) })
+        }
+        creation
+        FailureNote(message: failureMessage)
+    }
+
+    @ViewBuilder
+    func judgementList(_ tasks: [TaskItem]) -> some View {
+        if !tasks.isEmpty {
+            SectionHeader(text: "判断が要る")
+            ForEach(tasks) { task in
+                row(task)
+            }
         }
     }
 
-    var creation: some View {
-        Section("タスクを追加") {
-            TextField("やること", text: $input.title)
-            DeadlineField(deadline: $input.deadline)
-            Button("追加する") {
-                let entered = input
-                Task {
-                    do throws(PartnershipFailure) {
-                        try await store.perform { state throws(DomainError) in
-                            try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
-                        }
-                        failureMessage = nil
-                        input = .init()
-                    } catch {
-                        failureMessage = error.message
+    @ViewBuilder
+    func taskList(_ tasks: [TaskItem]) -> some View {
+        if !tasks.isEmpty {
+            SectionHeader(text: "タスク")
+            ForEach(tasks) { task in
+                row(task)
+            }
+        }
+    }
+
+    var emptiness: some View {
+        Placeholder(
+            symbol: "checklist",
+            title: "まだタスクがありません",
+            message: "やることを追加すると、ここに並びます"
+        )
+    }
+
+    func needsJudgement(_ task: TaskItem) -> Bool {
+        switch task.status {
+        case .proposed, .reported: true
+        case .todo, .approved, .cancelled: false
+        }
+    }
+
+    func row(_ task: TaskItem) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(task.title)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                Spacer(minLength: 8)
+                if let reaction = task.reaction {
+                    Text(reaction.emoji)
+                }
+                DeadlineText(task: task, now: now)
+                Text(task.status.label)
+                    .marker(task.status.tint)
+            }
+            actions(for: task)
+        }
+        .card(tinted: task.reaction?.tint)
+    }
+
+    @ViewBuilder
+    func actions(for task: TaskItem) -> some View {
+        switch task.status {
+        case .proposed:
+            VStack(spacing: 10) {
+                Button("採用する") {
+                    perform { state throws(DomainError) in try state.adoptingTask(task.id, by: store.role) }
+                }
+                .buttonStyle(.filled)
+                cancellation(of: task)
+            }
+        case .reported:
+            VStack(spacing: 10) {
+                Button("承認する") {
+                    perform { state throws(DomainError) in try state.approvingTask(task.id, by: store.role) }
+                }
+                .buttonStyle(.filled)
+                HStack(spacing: 10) {
+                    Button("差し戻す") {
+                        perform { state throws(DomainError) in try state.returningTask(task.id, by: store.role) }
                     }
+                    .buttonStyle(.soft)
+                    cancellation(of: task)
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!input.isComplete)
+        case .todo:
+            cancellation(of: task)
+        case .approved, .cancelled:
+            EmptyView()
+        }
+    }
+
+    func cancellation(of task: TaskItem) -> some View {
+        Button("取り消す", role: .destructive) {
+            perform { state throws(DomainError) in try state.cancellingTask(task.id, by: store.role) }
+        }
+        .buttonStyle(.soft)
+    }
+
+    var creation: some View {
+        Panel(title: "タスクを追加") {
+            TextField("やること", text: $input.title)
+                .fieldBox()
+            DeadlineField(deadline: $input.deadline)
+            Button("追加する", action: create)
+                .buttonStyle(.filled)
+                .disabled(!input.isComplete)
         }
     }
 
@@ -104,77 +180,22 @@ private extension ManagerTaskView {
         })
     }
 
-    @ViewBuilder
-    var nudgeSection: some View {
-        let nudges = store.state.nudges(for: store.role, now: now)
-        if !nudges.isEmpty {
-            Section {
-                ForEach(nudges, id: \.self) { nudge in
-                    Label(nudge.message(in: store.state), systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
-            }
-        }
+    func close(as outcome: Vision.Outcome) {
+        perform { state throws(DomainError) in try state.closingVision(vision.id, as: outcome, by: store.role) }
     }
 
-    func taskList(_ tasks: [TaskItem]) -> some View {
-        Section("タスク") {
-            if tasks.isEmpty {
-                Text("まだタスクがありません")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(tasks) { task in
-                    row(task)
+    func create() {
+        let entered = input
+        Task {
+            do throws(PartnershipFailure) {
+                try await store.perform { state throws(DomainError) in
+                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
                 }
+                failureMessage = nil
+                input = .init()
+            } catch {
+                failureMessage = error.message
             }
-        }
-    }
-
-    func row(_ task: TaskItem) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(task.title)
-                Spacer()
-                if let reaction = task.reaction {
-                    Text(reaction.emoji)
-                }
-                DeadlineText(deadline: task.deadline)
-                Text(task.status.label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            actions(for: task)
-        }
-        .listRowBackground(task.reaction?.rowBackground)
-        .swipeActions {
-            if task.status.isOpen {
-                Button("取り消す", role: .destructive) {
-                    perform { state throws(DomainError) in try state.cancellingTask(task.id, by: store.role) }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    func actions(for task: TaskItem) -> some View {
-        switch task.status {
-        case .proposed:
-            Button("採用する") {
-                perform { state throws(DomainError) in try state.adoptingTask(task.id, by: store.role) }
-            }
-            .buttonStyle(.borderless)
-        case .reported:
-            HStack(spacing: 16) {
-                Button("承認する") {
-                    perform { state throws(DomainError) in try state.approvingTask(task.id, by: store.role) }
-                }
-                Button("差し戻す") {
-                    perform { state throws(DomainError) in try state.returningTask(task.id, by: store.role) }
-                }
-            }
-            .buttonStyle(.borderless)
-        case .todo, .approved, .cancelled:
-            EmptyView()
         }
     }
 
@@ -200,7 +221,7 @@ private extension ManagerTaskView {
                 .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
                 .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }
 
@@ -215,13 +236,14 @@ private extension ManagerTaskView {
                 .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
                 .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved)
             ]
-        ), now: .preview)
+        ), vision: vision, now: .preview)
     }
 }
 
 #Preview("管理者のタスクなし") {
     NavigationStack {
-        ManagerTaskView(store: .preview(role: .manager, visions: [.preview(status: .active)]), now: .preview)
+        let vision = Vision.preview(status: .active)
+        ManagerTaskView(store: .preview(role: .manager, visions: [vision]), vision: vision, now: .preview)
     }
 }
 
@@ -241,6 +263,7 @@ private extension ManagerTaskView {
                     )
                 ]
             ),
+            vision: vision,
             now: .preview
         )
     }
@@ -260,6 +283,7 @@ private extension ManagerTaskView {
                     .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
                 ]
             ),
+            vision: vision,
             now: .preview
         )
     }

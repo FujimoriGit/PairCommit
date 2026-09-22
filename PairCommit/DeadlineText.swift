@@ -5,16 +5,26 @@
 //  Created by Daiki Fujimori on 2026/08/22
 //
 
+import Domain
 import SwiftUI
 
 struct DeadlineText: View {
-    let deadline: Date?
+    let task: TaskItem
+    var now = Date()
 
+    @ViewBuilder
     var body: some View {
-        if let deadline {
+        if let deadline = task.deadline {
             Text(deadline.formatted(Date.FormatStyle.monthDay))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .marker(isLate(deadline) ? .red : .secondary)
         }
+    }
+}
+
+// MARK: - Private
+
+private extension DeadlineText {
+    func isLate(_ deadline: Date) -> Bool {
+        task.status == .todo && deadline < now
     }
 }
