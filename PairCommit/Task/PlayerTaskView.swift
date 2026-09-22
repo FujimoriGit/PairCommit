@@ -101,6 +101,7 @@ private extension PlayerTaskView {
                     reactionLabel(reaction, chosen: task.reaction == reaction)
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(task.reaction == reaction ? .isSelected : [])
             }
         }
     }
