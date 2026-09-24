@@ -217,6 +217,29 @@ private extension PlayerTaskView {
     }
 }
 
+#Preview("プレイヤーの期限間近") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(
+            store: .preview(
+                role: .player,
+                visions: [vision],
+                tasks: [
+                    .preview(
+                        visionID: vision.id,
+                        title: "週3でジムに行く",
+                        status: .todo,
+                        createdBy: .manager,
+                        deadline: .preview(daysLater: 2)
+                    )
+                ]
+            ),
+            vision: vision,
+            now: .preview
+        )
+    }
+}
+
 #Preview("プレイヤーの感情ヒートマップ") {
     NavigationStack {
         let vision = Vision.preview(status: .active)
