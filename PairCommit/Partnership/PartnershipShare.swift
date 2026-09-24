@@ -12,12 +12,14 @@ import Foundation
 enum PartnershipShareError: LocalizedError {
     case shareURLUnavailable
     case metadataMissing
+    case saveResultMissing
     case deleteResultMissing
 
     var errorDescription: String? {
         switch self {
         case .shareURLUnavailable:  return "CKShareのURLが取得できなかった"
         case .metadataMissing:      return "共有メタデータが取得できなかった"
+        case .saveResultMissing:    return "保存した結果が返ってこなかった"
         case .deleteResultMissing:  return "削除した結果が返ってこなかった"
         }
     }
@@ -49,7 +51,9 @@ enum PartnershipShare {
         }
 
         // CloudKit の共有はカスタムゾーンが前提。
-        _ = try await database.modifyRecordZones(saving: [CKRecordZone(zoneID: zoneID)], deleting: [])
+        let created = try await database.modifyRecordZones(saving: [CKRecordZone(zoneID: zoneID)], deleting: [])
+        guard let result = created.saveResults[zoneID] else { throw PartnershipShareError.saveResultMissing }
+        _ = try result.get()
         let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
 
         let share = CKShare(rootRecord: pairing)
