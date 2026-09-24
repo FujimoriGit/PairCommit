@@ -27,7 +27,7 @@ private struct PartnershipReset: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let reset {
+                if reset != nil {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("リセット", systemImage: "arrow.counterclockwise") {
                             confirming = true
