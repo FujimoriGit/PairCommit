@@ -14,8 +14,8 @@ struct VisionInput {
     var deadline: Date?
     var why = ""
 
-    var isComplete: Bool { !statement.isEmpty && !doneCriteria.isEmpty }
-    var enteredWhy: String? { why.isEmpty ? nil : why }
+    var isComplete: Bool { !statement.isBlank && !doneCriteria.isBlank }
+    var enteredWhy: String? { why.isBlank ? nil : why }
 }
 
 extension VisionInput {

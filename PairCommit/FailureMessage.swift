@@ -28,6 +28,7 @@ extension DomainError {
         case .activeVisionAlreadyExists: "進行中のビジョンがすでにあります"
         case .noActiveVision: "進行中のビジョンがありません"
         case .alreadyPaired: "すでにペアが成立しています"
+        case .blankText: "空白だけの内容は登録できません"
         }
     }
 }

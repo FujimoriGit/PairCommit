@@ -118,6 +118,33 @@ struct PartnershipStateTests {
         #expect(vision.status == .draft)
     }
 
+    @Test("ビジョンの一文と達成基準は、空白だけでは起案できない")
+    func visionCannotBeDraftedWithBlankText() {
+        // Given
+        let state = PartnershipState()
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try state.draftingVision(statement: "  ", doneCriteria: "c", by: .player)
+        }
+        #expect(throws: DomainError.blankText) {
+            try state.draftingVision(statement: "s", doneCriteria: "\n", by: .player)
+        }
+    }
+
+    @Test("書き直しでも、ビジョンの一文と達成基準を空白だけにはできない")
+    func visionCannotBeRevisedToBlankText() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            statement: "s", doneCriteria: "c", by: .player
+        )
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try state.revisingVision(visionID, statement: " ", doneCriteria: "c", by: .player)
+        }
+    }
+
     @Test("ビジョンを書き直せるのはプレイヤーだけ（目的は管理者が握らない）")
     func onlyPlayerCanReviseVision() throws {
         // Given
@@ -382,6 +409,17 @@ struct PartnershipStateTests {
         // When / Then
         #expect(throws: DomainError.invalidTaskTransition(from: .todo)) {
             try state.approvingTask(taskID, by: .manager)
+        }
+    }
+
+    @Test("タスクの名前は、空白だけでは作れない")
+    func taskCannotBeCreatedWithBlankTitle() throws {
+        // Given
+        let (state, _) = try PartnershipState().activeVision()
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try state.creatingTask(title: "　", by: .manager)
         }
     }
 

@@ -65,6 +65,7 @@ extension PartnershipState {
         now: Date = Date()
     ) throws(DomainError) -> (state: Self, visionID: Vision.ID) {
         try requiring(role, is: .player)
+        try requiringText(statement, doneCriteria)
         let vision = Vision(
             id: id,
             statement: statement,
@@ -86,6 +87,7 @@ extension PartnershipState {
         by role: Role
     ) throws(DomainError) -> Self {
         try requiring(role, is: .player)
+        try requiringText(statement, doneCriteria)
         let draft = try requiringDraft(id)
         let revised = Vision(
             id: draft.id,
@@ -147,6 +149,7 @@ extension PartnershipState {
         now: Date = Date()
     ) throws(DomainError) -> (state: Self, taskID: TaskItem.ID) {
         guard let vision = activeVision else { throw DomainError.noActiveVision }
+        try requiringText(title)
         let task = TaskItem(
             id: id,
             visionID: vision.id,
@@ -280,6 +283,12 @@ private extension PartnershipState {
 
     func requiring(_ role: Role, is required: Role) throws(DomainError) {
         guard role == required else { throw DomainError.roleForbidden(required: required) }
+    }
+
+    func requiringText(_ texts: String...) throws(DomainError) {
+        guard texts.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
+            throw DomainError.blankText
+        }
     }
 
     func requiringDraft(_ id: Vision.ID) throws(DomainError) -> Vision {
