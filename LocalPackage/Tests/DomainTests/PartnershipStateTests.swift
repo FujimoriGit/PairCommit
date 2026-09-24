@@ -92,6 +92,81 @@ struct PartnershipStateTests {
         #expect(state.visions.first?.status == .draft)
     }
 
+    @Test("差し戻された起案は、プレイヤーが中身を書き直して出し直せる（起案の主導権はプレイヤー）")
+    func playerCanReviseVisionSentBackToDraft() throws {
+        // Given
+        let (proposed, visionID) = try PartnershipState().proposedVision()
+        let returned = try proposed.rejectingVision(visionID, by: .manager)
+        let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        // When
+        let state = try returned.revisingVision(
+            visionID,
+            statement: "半年で5kg痩せる",
+            doneCriteria: "体重計で65kgを切る",
+            deadline: deadline,
+            why: "健康診断で引っかかった",
+            by: .player
+        )
+
+        // Then
+        let vision = try #require(state.visions.first)
+        #expect(vision.statement == "半年で5kg痩せる")
+        #expect(vision.doneCriteria == "体重計で65kgを切る")
+        #expect(vision.deadline == deadline)
+        #expect(vision.why == "健康診断で引っかかった")
+        #expect(vision.status == .draft)
+    }
+
+    @Test("ビジョンを書き直せるのはプレイヤーだけ（目的は管理者が握らない）")
+    func onlyPlayerCanReviseVision() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            statement: "s", doneCriteria: "c", by: .player
+        )
+
+        // When / Then
+        #expect(throws: DomainError.roleForbidden(required: .player)) {
+            try state.revisingVision(visionID, statement: "s2", doneCriteria: "c2", by: .manager)
+        }
+    }
+
+    @Test("提出したあとのビジョンは書き直せない（管理者が見ている中身が変わらない）")
+    func proposedVisionCannotBeRevised() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().proposedVision()
+
+        // When / Then
+        #expect(throws: DomainError.invalidVisionTransition(from: .proposed)) {
+            try state.revisingVision(visionID, statement: "s2", doneCriteria: "c2", by: .player)
+        }
+    }
+
+    @Test("起案中のビジョンはプレイヤーが取り下げられ、記録にも残らない")
+    func playerCanDiscardDraftVision() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            statement: "s", doneCriteria: "c", by: .player
+        )
+
+        // When
+        let discarded = try state.discardingVision(visionID, by: .player)
+
+        // Then
+        #expect(discarded.visions.isEmpty)
+    }
+
+    @Test("進行中のビジョンは取り下げられない（閉じるのは管理者の達成判断）")
+    func activeVisionCannotBeDiscarded() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().activeVision()
+
+        // When / Then
+        #expect(throws: DomainError.invalidVisionTransition(from: .active)) {
+            try state.discardingVision(visionID, by: .player)
+        }
+    }
+
     @Test("起案中（draft）のビジョンをいきなり承認はできない（提出を経る）")
     func draftVisionCannotBeApprovedDirectly() throws {
         // Given

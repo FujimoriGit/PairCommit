@@ -103,7 +103,9 @@ private extension ManagerVisionView {
 
 #Preview("管理者の承認待ち") {
     NavigationStack {
-        ManagerVisionView(store: .preview(role: .manager, visions: [.preview(status: .proposed, deadline: .preview)]))
+        ManagerVisionView(store: .preview(role: .manager, visions: [
+            .preview(status: .proposed, deadline: .preview, why: "次の健康診断で再検査を言い渡されたくない"),
+        ]))
     }
 }
 

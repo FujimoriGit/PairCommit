@@ -22,6 +22,9 @@ struct VisionDetail: View {
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))
             field("達成基準", vision.doneCriteria)
+            if let why = vision.why {
+                field("動機", why)
+            }
             field("期限", deadline)
         }
     }

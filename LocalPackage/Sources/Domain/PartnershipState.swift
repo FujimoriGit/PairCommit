@@ -77,6 +77,34 @@ extension PartnershipState {
         return (updating(visions: visions + [vision]), vision.id)
     }
 
+    public func revisingVision(
+        _ id: Vision.ID,
+        statement: String,
+        doneCriteria: String,
+        deadline: Date? = nil,
+        why: String? = nil,
+        by role: Role
+    ) throws(DomainError) -> Self {
+        try requiring(role, is: .player)
+        let draft = try requiringDraft(id)
+        let revised = Vision(
+            id: draft.id,
+            statement: statement,
+            doneCriteria: doneCriteria,
+            deadline: deadline,
+            why: why,
+            status: draft.status,
+            createdAt: draft.createdAt
+        )
+        return updating(visions: visions.map { $0.id == id ? revised : $0 })
+    }
+
+    public func discardingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
+        try requiring(role, is: .player)
+        _ = try requiringDraft(id)
+        return updating(visions: visions.filter { $0.id != id })
+    }
+
     public func proposingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         return updating(visions: try transitioningVision(id, from: [.draft], to: .proposed))
@@ -252,6 +280,16 @@ private extension PartnershipState {
 
     func requiring(_ role: Role, is required: Role) throws(DomainError) {
         guard role == required else { throw DomainError.roleForbidden(required: required) }
+    }
+
+    func requiringDraft(_ id: Vision.ID) throws(DomainError) -> Vision {
+        guard let vision = visions.first(where: { $0.id == id }) else {
+            throw DomainError.visionNotFound(id)
+        }
+        guard vision.status == .draft else {
+            throw DomainError.invalidVisionTransition(from: vision.status)
+        }
+        return vision
     }
 
     func transitioningVision(
