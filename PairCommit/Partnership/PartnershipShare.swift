@@ -33,18 +33,22 @@ enum PartnershipShare {
     static func makeShare(initialState: PartnershipState) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
         let database = container.privateCloudDatabase
         let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
+        let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
+
+        // ゾーン名もレコード名も固定なので、前回のペアリングが途中で失敗していると共有が残っている。
+        // 相手が受け終えて ACK だけが届かなかった場合に備えて同じ役割なら使い回し、選び直したなら作り直す。
+        if let existing = try await fetchRoot(rootRecordID, from: database) {
+            let existingRole = try PartnershipRootRecord.decoding(existing).pairing?.ownerRole
+            if existingRole == initialState.pairing?.ownerRole,
+               let url = try await shareURL(of: existing, in: database) {
+                return (url, rootRecordID)
+            }
+            _ = try await database.modifyRecordZones(saving: [], deleting: [zoneID])
+        }
 
         // CloudKit の共有はカスタムゾーンが前提。
-        let zone = CKRecordZone(zoneID: zoneID)
-        _ = try await database.modifyRecordZones(saving: [zone], deleting: [])
-
-        let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
-        // ゾーン名もレコード名も固定なので、2回目からはサーバーにあるものを使う。
-        let pairing = try await fetchRoot(rootRecordID, from: database)
-            ?? PartnershipRootRecord.creating(initialState, id: rootRecordID)
-        if let url = try await shareURL(of: pairing, in: database) {
-            return (url, rootRecordID)
-        }
+        _ = try await database.modifyRecordZones(saving: [CKRecordZone(zoneID: zoneID)], deleting: [])
+        let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
 
         let share = CKShare(rootRecord: pairing)
         share[CKShare.SystemFieldKey.title] = "ふたりの帆柱" as CKRecordValue
@@ -109,7 +113,7 @@ private extension PartnershipShare {
     static func fetchRoot(_ id: CKRecord.ID, from database: CKDatabase) async throws -> CKRecord? {
         do {
             return try await database.record(for: id)
-        } catch let error as CKError where error.code == .unknownItem {
+        } catch let error as CKError where absent.contains(error.code) {
             return nil
         }
     }
