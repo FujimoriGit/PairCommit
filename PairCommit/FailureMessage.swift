@@ -36,6 +36,7 @@ extension SyncFailure {
     var message: String {
         switch self {
         case .unavailable: "相手と同期できませんでした"
+        case .outdated: "相手の操作と重なりました。もう一度お試しください"
         }
     }
 }

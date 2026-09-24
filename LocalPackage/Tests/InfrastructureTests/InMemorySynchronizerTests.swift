@@ -19,10 +19,26 @@ struct InMemorySynchronizerTests {
         let state = try PartnershipState().establishingPairing(ownerRole: .manager)
 
         // When
-        await synchronizer.save(state)
+        try await synchronizer.save(state, replacing: .init())
 
         // Then
         let loaded = await synchronizer.load()
         #expect(loaded == state)
+    }
+
+    @Test("もとにした状態から相手の保存で変わっていたら、保存せずに最新の状態を返す")
+    func saveOverOutdatedBaseFailsWithTheLatestState() async throws {
+        // Given
+        let synchronizer = InMemorySynchronizer()
+        let partners = try PartnershipState().establishingPairing(ownerRole: .manager)
+        try await synchronizer.save(partners, replacing: .init())
+        let mine = try PartnershipState().establishingPairing(ownerRole: .player)
+
+        // When / Then
+        await #expect(throws: SyncFailure.outdated(latest: partners)) {
+            try await synchronizer.save(mine, replacing: .init())
+        }
+        let loaded = await synchronizer.load()
+        #expect(loaded == partners)
     }
 }
