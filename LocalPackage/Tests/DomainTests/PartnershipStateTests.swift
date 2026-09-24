@@ -141,7 +141,7 @@ struct PartnershipStateTests {
 
         // When / Then
         #expect(throws: DomainError.blankText) {
-            try state.revisingVision(visionID, statement: " ", doneCriteria: "c", by: .player)
+            try state.revisingVision(visionID, statement: " ", doneCriteria: "c", deadline: nil, why: nil, by: .player)
         }
     }
 
@@ -154,7 +154,7 @@ struct PartnershipStateTests {
 
         // When / Then
         #expect(throws: DomainError.roleForbidden(required: .player)) {
-            try state.revisingVision(visionID, statement: "s2", doneCriteria: "c2", by: .manager)
+            try state.revisingVision(visionID, statement: "s2", doneCriteria: "c2", deadline: nil, why: nil, by: .manager)
         }
     }
 
@@ -165,7 +165,7 @@ struct PartnershipStateTests {
 
         // When / Then
         #expect(throws: DomainError.invalidVisionTransition(from: .proposed)) {
-            try state.revisingVision(visionID, statement: "s2", doneCriteria: "c2", by: .player)
+            try state.revisingVision(visionID, statement: "s2", doneCriteria: "c2", deadline: nil, why: nil, by: .player)
         }
     }
 
@@ -181,6 +181,19 @@ struct PartnershipStateTests {
 
         // Then
         #expect(discarded.visions.isEmpty)
+    }
+
+    @Test("ビジョンを取り下げられるのはプレイヤーだけ（管理者は起案を消せない）")
+    func onlyPlayerCanDiscardVision() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            statement: "s", doneCriteria: "c", by: .player
+        )
+
+        // When / Then
+        #expect(throws: DomainError.roleForbidden(required: .player)) {
+            try state.discardingVision(visionID, by: .manager)
+        }
     }
 
     @Test("進行中のビジョンは取り下げられない（閉じるのは管理者の達成判断）")

@@ -82,22 +82,14 @@ extension PartnershipState {
         _ id: Vision.ID,
         statement: String,
         doneCriteria: String,
-        deadline: Date? = nil,
-        why: String? = nil,
+        deadline: Date?,
+        why: String?,
         by role: Role
     ) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         try requiringText(statement, doneCriteria)
-        let draft = try requiringDraft(id)
-        let revised = Vision(
-            id: draft.id,
-            statement: statement,
-            doneCriteria: doneCriteria,
-            deadline: deadline,
-            why: why,
-            status: draft.status,
-            createdAt: draft.createdAt
-        )
+        let revised = try requiringDraft(id)
+            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: why)
         return updating(visions: visions.map { $0.id == id ? revised : $0 })
     }
 

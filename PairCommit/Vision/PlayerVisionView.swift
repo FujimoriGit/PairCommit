@@ -12,13 +12,20 @@ import SwiftUI
 
 struct PlayerVisionView: View {
     let store: PartnershipStore
-    var reviewing: (any CriteriaReviewing)?
+    let reviewing: (any CriteriaReviewing)?
 
-    @State private var input = VisionInput()
+    @State private var input: VisionInput
     @State private var review: CriteriaReview?
     @State private var failureMessage: String?
     @State private var revising: Vision.ID?
     @State private var confirmingDiscard = false
+
+    init(store: PartnershipStore, reviewing: (any CriteriaReviewing)? = nil, revising draft: Vision? = nil) {
+        self.store = store
+        self.reviewing = reviewing
+        _input = State(initialValue: draft.map { VisionInput($0) } ?? .init())
+        _revising = State(initialValue: draft?.id)
+    }
 
     var body: some View {
         Screen(role: store.role) {
@@ -85,6 +92,7 @@ private extension PlayerVisionView {
                 revising = nil
                 input = .init()
                 review = nil
+                failureMessage = nil
             }
             .buttonStyle(.soft)
         }
@@ -104,7 +112,7 @@ private extension PlayerVisionView {
                 .fieldBox()
         }
         Panel(title: "動機") {
-            TextField("なぜ達成したいか（任意）", text: $input.why, axis: .vertical)
+            TextField("なぜ達成したいか", text: $input.why, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
         }
@@ -153,6 +161,7 @@ private extension PlayerVisionView {
             Button("書き直す") {
                 input = .init(vision)
                 review = nil
+                failureMessage = nil
                 revising = vision.id
             }
             .buttonStyle(.soft)
@@ -243,6 +252,13 @@ private extension PlayerVisionView {
 #Preview("プレイヤーの提出待ち") {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
+    }
+}
+
+#Preview("プレイヤーの書き直し") {
+    let draft = Vision.preview(status: .draft, deadline: .preview, why: "次の健康診断で再検査を言い渡されたくない")
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft)
     }
 }
 
