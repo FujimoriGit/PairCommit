@@ -12,7 +12,7 @@ extension Nudge {
     func message(in state: PartnershipState) -> String {
         switch self {
         case .taskOverdue(let id): "「\(title(of: id, in: state))」の期限を過ぎています"
-        case .taskDueSoon(let id): "「\(title(of: id, in: state))」の期限は\(deadline(of: id, in: state))です"
+        case .taskDueSoon(let id): dueSoonMessage(of: id, in: state)
         case .approvalStalled(let id): "「\(title(of: id, in: state))」の完了報告が承認されないままです"
         case .visionOverdue: "ビジョンの期限を過ぎています。達成できたか判断してください"
         }
@@ -23,10 +23,17 @@ extension Nudge {
 
 private extension Nudge {
     func title(of id: TaskItem.ID, in state: PartnershipState) -> String {
-        state.tasks.first { $0.id == id }?.title ?? "タスク"
+        task(of: id, in: state)?.title ?? "タスク"
     }
 
-    func deadline(of id: TaskItem.ID, in state: PartnershipState) -> String {
-        state.tasks.first { $0.id == id }?.deadline?.formatted(Date.FormatStyle.monthDay) ?? "間もなく"
+    func dueSoonMessage(of id: TaskItem.ID, in state: PartnershipState) -> String {
+        guard let deadline = task(of: id, in: state)?.deadline else {
+            return "「\(title(of: id, in: state))」の期限を確かめてください"
+        }
+        return "「\(title(of: id, in: state))」の期限は\(deadline.formatted(Date.FormatStyle.monthDay))です"
+    }
+
+    func task(of id: TaskItem.ID, in state: PartnershipState) -> TaskItem? {
+        state.tasks.first { $0.id == id }
     }
 }
