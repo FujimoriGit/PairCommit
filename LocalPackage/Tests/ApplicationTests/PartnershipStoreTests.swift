@@ -178,11 +178,9 @@ struct PartnershipStoreTests {
     func performGivesUpWhenPartnerKeepsSavingFirst() async throws {
         // Given
         let latest = try PartnershipState().establishingPairing(ownerRole: .manager)
-        let store = PartnershipStore(
-            role: .player,
-            synchronizer: ContendedSynchronizer(latest: latest),
-            state: .init()
-        )
+        let synchronizer = InterruptibleSynchronizer()
+        synchronizer.failure = .outdated(latest: latest)
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When / Then
         await #expect(throws: PartnershipFailure.notSynchronized(.outdated(latest: latest))) {
@@ -245,22 +243,5 @@ private final class InterruptibleSynchronizer: PartnershipSyncing {
         }
         guard stored == base else { throw .outdated(latest: stored) }
         stored = state
-    }
-}
-
-/// 保存のたびに、相手が先に保存していたと返す同期層。
-private struct ContendedSynchronizer: PartnershipSyncing {
-    let latest: PartnershipState
-
-    func start() -> PartnershipState {
-        latest
-    }
-
-    func load() -> PartnershipState {
-        latest
-    }
-
-    func save(_ state: PartnershipState, replacing base: PartnershipState) throws(SyncFailure) {
-        throw .outdated(latest: latest)
     }
 }
