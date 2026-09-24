@@ -201,6 +201,7 @@ private extension PlayerVisionView {
                 }
                 failureMessage = nil
                 input = .init()
+                review = nil
             } catch {
                 failureMessage = error.message
             }
