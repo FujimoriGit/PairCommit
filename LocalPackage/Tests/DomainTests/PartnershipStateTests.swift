@@ -212,6 +212,17 @@ struct PartnershipStateTests {
         }
     }
 
+    @Test("提出したあとのビジョンは取り下げられない（承認するかを決めるのは管理者の番）")
+    func proposedVisionCannotBeDiscarded() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().proposedVision()
+
+        // When / Then
+        #expect(throws: DomainError.invalidVisionTransition(from: .proposed)) {
+            try state.discardingVision(visionID, by: .player)
+        }
+    }
+
     @Test("進行中のビジョンは取り下げられない（閉じるのは管理者の達成判断）")
     func activeVisionCannotBeDiscarded() throws {
         // Given
