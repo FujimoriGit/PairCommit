@@ -56,8 +56,11 @@ extension CloudKitSynchronizer: PartnershipSyncing {
         case .success:
             return
         case .failure(let error as CKError) where error.code == .serverRecordChanged:
-            // 読んでから書くまでの間に相手が保存した。
-            throw .outdated(latest: try await load())
+            guard let latest = error.serverRecord else {
+                logger.error("save: 衝突したレコードが返っていない")
+                throw .unavailable
+            }
+            throw .outdated(latest: try decoding(latest))
         case .failure(let error):
             logger.error("save: \(error, privacy: .public)")
             throw .unavailable

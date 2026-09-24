@@ -42,7 +42,7 @@ public final class PartnershipStore {
         _ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState
     ) async throws(PartnershipFailure) {
         let failure = await serialized { [self] in
-            await applying(transform, to: state, attempts: Self.attempts)
+            await apply(transform, to: state, remaining: Self.attempts)
         }
         if let failure {
             throw failure
@@ -55,11 +55,10 @@ public final class PartnershipStore {
 private extension PartnershipStore {
     static let attempts = 3
 
-    // 重なったときに手元の状態のまま保存し直すと、相手の変更を上書きして消してしまう。
-    func applying(
+    func apply(
         _ transform: @Sendable (PartnershipState) throws(DomainError) -> PartnershipState,
         to base: PartnershipState,
-        attempts: Int
+        remaining: Int
     ) async -> PartnershipFailure? {
         let next: PartnershipState
         do throws(DomainError) {
@@ -74,8 +73,8 @@ private extension PartnershipStore {
             return nil
         } catch {
             switch error {
-            case .outdated(let latest) where attempts > 1:
-                return await applying(transform, to: latest, attempts: attempts - 1)
+            case .outdated(let latest) where remaining > 1:
+                return await apply(transform, to: latest, remaining: remaining - 1)
             case .outdated(let latest):
                 state = latest
             case .unavailable:
