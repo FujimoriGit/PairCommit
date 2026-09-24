@@ -145,6 +145,27 @@ struct PartnershipStateTests {
         }
     }
 
+    @Test("前後の空白や改行は落として持つ")
+    func surroundingWhitespaceIsTrimmed() throws {
+        // Given
+        let (drafted, visionID) = try PartnershipState().draftingVision(
+            statement: "\n\nやる\n", doneCriteria: " c ", why: "　w\n", by: .player
+        )
+        let (active, _) = try drafted
+            .proposingVision(visionID, by: .player)
+            .approvingVision(visionID, by: .manager)
+
+        // When
+        let (state, taskID) = try active.creatingTask(title: " t\n", by: .manager)
+
+        // Then
+        let vision = try #require(state.visions.first)
+        #expect(vision.statement == "やる")
+        #expect(vision.doneCriteria == "c")
+        #expect(vision.why == "w")
+        #expect(state.tasks.first { $0.id == taskID }?.title == "t")
+    }
+
     @Test("空白だけの動機は、書かなかったものとして扱う（動機は推奨で必須ではない）")
     func blankWhyIsTreatedAsUnwritten() throws {
         // Given
