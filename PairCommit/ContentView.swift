@@ -74,9 +74,15 @@ private extension ContentView {
     func screen(for store: PartnershipStore) -> some View {
         switch (store.role, store.state.activeVision) {
         case (.manager, .none): ManagerVisionView(store: store)
-        case (.manager, .some(let vision)): ManagerTaskView(store: store, vision: vision)
+        case (.manager, .some(let vision)):
+            TimelineView(.everyMinute) { context in
+                ManagerTaskView(store: store, vision: vision, now: context.date)
+            }
         case (.player, .none): PlayerVisionView(store: store, reviewing: criteriaReviewing)
-        case (.player, .some(let vision)): PlayerTaskView(store: store, vision: vision)
+        case (.player, .some(let vision)):
+            TimelineView(.everyMinute) { context in
+                PlayerTaskView(store: store, vision: vision, now: context.date)
+            }
         }
     }
 

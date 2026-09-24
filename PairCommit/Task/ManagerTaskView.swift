@@ -12,7 +12,7 @@ import SwiftUI
 struct ManagerTaskView: View {
     let store: PartnershipStore
     let vision: Vision
-    var now = Date()
+    let now: Date
 
     @State private var input = TaskInput()
     @State private var outcome: Vision.Outcome?
