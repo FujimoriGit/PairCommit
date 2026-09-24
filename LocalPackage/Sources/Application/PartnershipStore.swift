@@ -39,13 +39,13 @@ public final class PartnershipStore {
     }
 
     public func perform(
-        _ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
     ) async throws(PartnershipFailure) {
         let failure = await serialized { [self] () -> PartnershipFailure? in
             let previous = state
             let next: PartnershipState
             do throws(DomainError) {
-                next = try transform(state)
+                next = try transform(state, role)
             } catch {
                 return .rejected(error)
             }

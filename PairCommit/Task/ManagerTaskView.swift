@@ -120,7 +120,7 @@ private extension ManagerTaskView {
         case .proposed:
             VStack(spacing: 10) {
                 Button("採用する") {
-                    perform { state throws(DomainError) in try state.adoptingTask(task.id, by: store.role) }
+                    perform { state, role throws(DomainError) in try state.adoptingTask(task.id, by: role) }
                 }
                 .buttonStyle(.filled)
                 cancellation(of: task)
@@ -128,12 +128,12 @@ private extension ManagerTaskView {
         case .reported:
             VStack(spacing: 10) {
                 Button("承認する") {
-                    perform { state throws(DomainError) in try state.approvingTask(task.id, by: store.role) }
+                    perform { state, role throws(DomainError) in try state.approvingTask(task.id, by: role) }
                 }
                 .buttonStyle(.filled)
                 HStack(spacing: 10) {
                     Button("差し戻す") {
-                        perform { state throws(DomainError) in try state.returningTask(task.id, by: store.role) }
+                        perform { state, role throws(DomainError) in try state.returningTask(task.id, by: role) }
                     }
                     .buttonStyle(.soft)
                     cancellation(of: task)
@@ -148,7 +148,7 @@ private extension ManagerTaskView {
 
     func cancellation(of task: TaskItem) -> some View {
         Button("取り消す", role: .destructive) {
-            perform { state throws(DomainError) in try state.cancellingTask(task.id, by: store.role) }
+            perform { state, role throws(DomainError) in try state.cancellingTask(task.id, by: role) }
         }
         .buttonStyle(.soft)
     }
@@ -181,15 +181,15 @@ private extension ManagerTaskView {
     }
 
     func close(as outcome: Vision.Outcome) {
-        perform { state throws(DomainError) in try state.closingVision(vision.id, as: outcome, by: store.role) }
+        perform { state, role throws(DomainError) in try state.closingVision(vision.id, as: outcome, by: role) }
     }
 
     func create() {
         let entered = input
         Task {
             do throws(PartnershipFailure) {
-                try await store.perform { state throws(DomainError) in
-                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
+                try await store.perform { state, role throws(DomainError) in
+                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: role).state
                 }
                 failureMessage = nil
                 input = .init()
@@ -199,7 +199,7 @@ private extension ManagerTaskView {
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {
+    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)

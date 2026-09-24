@@ -21,8 +21,8 @@ struct PartnershipStoreTests {
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When
-        try await store.perform { state throws(DomainError) in
-            try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+        try await store.perform { state, role throws(DomainError) in
+            try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
         }
 
         // Then
@@ -39,8 +39,8 @@ struct PartnershipStoreTests {
 
         // When / Then
         await #expect(throws: PartnershipFailure.rejected(.roleForbidden(required: .player))) {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s", doneCriteria: "c", by: .manager).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
             }
         }
         #expect(store.state == PartnershipState())
@@ -70,8 +70,8 @@ struct PartnershipStoreTests {
 
         // When
         let performing = Task {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
             }
         }
         await Task.yield()
@@ -94,14 +94,14 @@ struct PartnershipStoreTests {
 
         // When
         let first = Task {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s1", doneCriteria: "c1", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s1", doneCriteria: "c1", by: role).state
             }
         }
         await Task.yield()
         let second = Task {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s2", doneCriteria: "c2", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s2", doneCriteria: "c2", by: role).state
             }
         }
         await Task.yield()
@@ -123,8 +123,8 @@ struct PartnershipStoreTests {
 
         // When / Then
         await #expect(throws: PartnershipFailure.notSynchronized(.unavailable)) {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
             }
         }
         #expect(store.state == PartnershipState())

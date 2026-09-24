@@ -71,18 +71,18 @@ private extension ManagerVisionView {
         VisionDetail(vision: vision, note: "承認待ち")
         VStack(spacing: 10) {
             Button("承認する") {
-                perform { state throws(DomainError) in try state.approvingVision(vision.id, by: store.role) }
+                perform { state, role throws(DomainError) in try state.approvingVision(vision.id, by: role) }
             }
             .buttonStyle(.filled)
             Button("起案者に差し戻す") {
-                perform { state throws(DomainError) in try state.rejectingVision(vision.id, by: store.role) }
+                perform { state, role throws(DomainError) in try state.rejectingVision(vision.id, by: role) }
             }
             .buttonStyle(.soft)
         }
         FailureNote(message: failureMessage)
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {
+    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)

@@ -115,7 +115,7 @@ private extension PlayerVisionView {
     func draftDetail(_ vision: Vision) -> some View {
         VisionDetail(vision: vision)
         Button("\(Role.manager.label)に提出する") {
-            perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
+            perform { state, role throws(DomainError) in try state.proposingVision(vision.id, by: role) }
         }
         .buttonStyle(.filled)
         FailureNote(message: failureMessage)
@@ -131,12 +131,12 @@ private extension PlayerVisionView {
         let entered = input
         Task {
             do throws(PartnershipFailure) {
-                try await store.perform { state throws(DomainError) in
+                try await store.perform { state, role throws(DomainError) in
                     try state.draftingVision(
                         statement: entered.statement,
                         doneCriteria: entered.doneCriteria,
                         deadline: entered.deadline,
-                        by: store.role
+                        by: role
                     ).state
                 }
                 failureMessage = nil
@@ -147,7 +147,7 @@ private extension PlayerVisionView {
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {
+    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
