@@ -12,10 +12,12 @@ import SwiftUI
 struct ContentView: View {
     let session: PartnershipSession
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var savedPairing: MultipeerPairing.Outcome?
     @State private var isResuming: Bool
     @State private var pairing = MultipeerPairing()
     @State private var failureMessage: String?
+    @State private var refreshFailure: String?
 
     init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil) {
         self.session = session
@@ -27,9 +29,19 @@ struct ContentView: View {
         if let store = session.store {
             NavigationStack {
                 screen(for: store)
+                    .refreshable { await refresh(store) }
                     .partnershipHistoryDestination(store.state, role: store.role)
             }
             .tint(store.role.accent)
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await refresh(store) }
+            }
+            .alert("最新の状態を取得できませんでした", isPresented: showingRefreshFailure) {
+                Button("OK") { refreshFailure = nil }
+            } message: {
+                Text(refreshFailure ?? "")
+            }
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
@@ -180,6 +192,22 @@ private extension ContentView {
             synchronizer: synchronizer,
             state: state
         )
+    }
+
+    var showingRefreshFailure: Binding<Bool> {
+        Binding(get: { refreshFailure != nil }, set: { presented in
+            if !presented {
+                refreshFailure = nil
+            }
+        })
+    }
+
+    func refresh(_ store: PartnershipStore) async {
+        do throws(SyncFailure) {
+            try await store.refresh()
+        } catch {
+            refreshFailure = error.message
+        }
     }
 
     func reset() async -> String? {
