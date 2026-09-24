@@ -71,7 +71,7 @@ extension PartnershipState {
             statement: statement,
             doneCriteria: doneCriteria,
             deadline: deadline,
-            why: why,
+            why: nonBlank(why),
             status: .draft,
             createdAt: now
         )
@@ -89,7 +89,7 @@ extension PartnershipState {
         try requiring(role, is: .player)
         try requiringText(statement, doneCriteria)
         let revised = try requiringDraft(id)
-            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: why)
+            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: nonBlank(why))
         return updating(visions: visions.map { $0.id == id ? revised : $0 })
     }
 
@@ -278,9 +278,13 @@ private extension PartnershipState {
     }
 
     func requiringText(_ texts: String...) throws(DomainError) {
-        guard texts.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
+        guard texts.allSatisfy({ nonBlank($0) != nil }) else {
             throw DomainError.blankText
         }
+    }
+
+    func nonBlank(_ text: String?) -> String? {
+        text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? text : nil
     }
 
     func requiringDraft(_ id: Vision.ID) throws(DomainError) -> Vision {

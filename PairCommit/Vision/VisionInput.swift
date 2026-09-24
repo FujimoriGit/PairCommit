@@ -15,7 +15,6 @@ struct VisionInput {
     var why = ""
 
     var isComplete: Bool { !statement.isBlank && !doneCriteria.isBlank }
-    var enteredWhy: String? { why.isBlank ? nil : why }
 }
 
 extension VisionInput {

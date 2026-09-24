@@ -145,6 +145,22 @@ struct PartnershipStateTests {
         }
     }
 
+    @Test("空白だけの動機は、書かなかったものとして扱う（動機は推奨で必須ではない）")
+    func blankWhyIsTreatedAsUnwritten() throws {
+        // Given
+        let state = PartnershipState()
+
+        // When
+        let (drafted, visionID) = try state.draftingVision(statement: "s", doneCriteria: "c", why: " \n", by: .player)
+        let revised = try drafted.revisingVision(
+            visionID, statement: "s", doneCriteria: "c", deadline: nil, why: "　", by: .player
+        )
+
+        // Then
+        #expect(drafted.visions.first?.why == nil)
+        #expect(revised.visions.first?.why == nil)
+    }
+
     @Test("ビジョンを書き直せるのはプレイヤーだけ（目的は管理者が握らない）")
     func onlyPlayerCanReviseVision() throws {
         // Given
