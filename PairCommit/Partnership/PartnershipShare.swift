@@ -36,14 +36,16 @@ enum PartnershipShare {
         let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
 
         // ゾーン名もレコード名も固定なので、前回のペアリングが途中で失敗していると共有が残っている。
-        // 相手が受け終えて ACK だけが届かなかった場合に備えて同じ役割なら使い回し、選び直したなら作り直す。
+        // 相手が受け終えて ACK だけが届かなかったときに同じ共有へつなぎ直せるよう、役割が同じなら残す。
+        // 読めないレコードは役割を確かめられないので、作り直す側に倒す。
         if let existing = try await fetchRoot(rootRecordID, from: database) {
-            let existingRole = try PartnershipRootRecord.decoding(existing).pairing?.ownerRole
+            let existingRole = try? PartnershipRootRecord.decoding(existing).pairing?.ownerRole
             if existingRole == initialState.pairing?.ownerRole,
                let url = try await shareURL(of: existing, in: database) {
                 return (url, rootRecordID)
             }
-            _ = try await database.modifyRecordZones(saving: [], deleting: [zoneID])
+            let deleted = try await database.modifyRecordZones(saving: [], deleting: [zoneID])
+            try confirmDeleted(deleted.deleteResults[zoneID])
         }
 
         // CloudKit の共有はカスタムゾーンが前提。
