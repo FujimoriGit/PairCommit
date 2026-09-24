@@ -98,7 +98,7 @@ private extension ContentView {
                         .buttonStyle(.plain)
                     }
 
-                    Text("役割は後から入れ替えられません。始め直しても、最初に選んだ役割のままになります。")
+                    Text("役割は途中で入れ替えられません。入れ替えるには、リセットしてペアリングからやり直します。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
