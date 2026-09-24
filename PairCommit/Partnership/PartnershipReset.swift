@@ -43,7 +43,7 @@ private struct PartnershipReset: ViewModifier {
                 Text("ビジョンとタスクはすべて消えます。相手も最初の画面に戻ります。")
             }
             .alert("リセットできませんでした", isPresented: Binding(presenting: $failureMessage)) {
-                Button("OK") { failureMessage = nil }
+                Button("OK") {}
             } message: {
                 Text(failureMessage ?? "")
             }

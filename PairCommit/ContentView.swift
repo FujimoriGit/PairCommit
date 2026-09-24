@@ -39,7 +39,7 @@ struct ContentView: View {
                 }
             }
             .alert("最新の状態を取得できませんでした", isPresented: Binding(presenting: $refreshFailure)) {
-                Button("OK") { refreshFailure = nil }
+                Button("OK") {}
             } message: {
                 Text(refreshFailure ?? "")
             }
