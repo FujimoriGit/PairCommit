@@ -12,11 +12,20 @@ import SwiftUI
 
 struct PlayerVisionView: View {
     let store: PartnershipStore
-    var reviewing: (any CriteriaReviewing)?
+    let reviewing: (any CriteriaReviewing)?
 
-    @State private var input = VisionInput()
+    @State private var input: VisionInput
     @State private var review: CriteriaReview?
     @State private var failureMessage: String?
+    @State private var revising: Vision.ID?
+    @State private var confirmingDiscard = false
+
+    init(store: PartnershipStore, reviewing: (any CriteriaReviewing)? = nil, revising draft: Vision? = nil) {
+        self.store = store
+        self.reviewing = reviewing
+        _input = State(initialValue: draft.map { VisionInput($0) } ?? .init())
+        _revising = State(initialValue: draft?.id)
+    }
 
     var body: some View {
         Screen(role: store.role) {
@@ -51,6 +60,8 @@ private extension PlayerVisionView {
         switch stage {
         case .proposed(let vision):
             summary(of: vision, note: "\(Role.manager.label)の承認待ち")
+        case .draft(let vision) where revising == vision.id:
+            revisionForm(vision)
         case .draft(let vision):
             draftDetail(vision)
         case .blank:
@@ -63,6 +74,33 @@ private extension PlayerVisionView {
         if let achieved = store.state.lastAchievedVision {
             AchievementBanner(vision: achieved)
         }
+        fields
+        Button("起案する", action: draft)
+            .buttonStyle(.filled)
+            .disabled(!input.isComplete)
+        FailureNote(message: failureMessage)
+    }
+
+    @ViewBuilder
+    func revisionForm(_ vision: Vision) -> some View {
+        fields
+        VStack(spacing: 10) {
+            Button("書き直す") { revise(vision) }
+                .buttonStyle(.filled)
+                .disabled(!input.isComplete)
+            Button("やめる") {
+                revising = nil
+                input = .init()
+                review = nil
+                failureMessage = nil
+            }
+            .buttonStyle(.soft)
+        }
+        FailureNote(message: failureMessage)
+    }
+
+    @ViewBuilder
+    var fields: some View {
         Panel(title: "ビジョン") {
             TextField("何を達成したいか", text: $input.statement, axis: .vertical)
                 .lineLimit(2...4)
@@ -73,14 +111,15 @@ private extension PlayerVisionView {
                 .lineLimit(2...4)
                 .fieldBox()
         }
+        Panel(title: "動機") {
+            TextField("なぜ達成したいか", text: $input.why, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
+        }
         Panel {
             DeadlineField(deadline: $input.deadline)
         }
         reviewSection
-        Button("起案する", action: draft)
-            .buttonStyle(.filled)
-            .disabled(!input.isComplete)
-        FailureNote(message: failureMessage)
     }
 
     @ViewBuilder
@@ -114,10 +153,30 @@ private extension PlayerVisionView {
     @ViewBuilder
     func draftDetail(_ vision: Vision) -> some View {
         VisionDetail(vision: vision)
-        Button("\(Role.manager.label)に提出する") {
-            perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
+        VStack(spacing: 10) {
+            Button("\(Role.manager.label)に提出する") {
+                perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
+            }
+            .buttonStyle(.filled)
+            Button("書き直す") {
+                input = .init(vision)
+                review = nil
+                failureMessage = nil
+                revising = vision.id
+            }
+            .buttonStyle(.soft)
+            Button("取り下げる", role: .destructive) {
+                confirmingDiscard = true
+            }
+            .buttonStyle(.soft)
         }
-        .buttonStyle(.filled)
+        .confirmationDialog("このビジョンを取り下げますか", isPresented: $confirmingDiscard) {
+            Button("取り下げる", role: .destructive) {
+                perform { state throws(DomainError) in try state.discardingVision(vision.id, by: store.role) }
+            }
+        } message: {
+            Text("書いた内容は消え、記録にも残りません。")
+        }
         FailureNote(message: failureMessage)
     }
 
@@ -136,11 +195,37 @@ private extension PlayerVisionView {
                         statement: entered.statement,
                         doneCriteria: entered.doneCriteria,
                         deadline: entered.deadline,
+                        why: entered.enteredWhy,
                         by: store.role
                     ).state
                 }
                 failureMessage = nil
                 input = .init()
+                review = nil
+            } catch {
+                failureMessage = error.message
+            }
+        }
+    }
+
+    func revise(_ vision: Vision) {
+        let entered = input
+        Task {
+            do throws(PartnershipFailure) {
+                try await store.perform { state throws(DomainError) in
+                    try state.revisingVision(
+                        vision.id,
+                        statement: entered.statement,
+                        doneCriteria: entered.doneCriteria,
+                        deadline: entered.deadline,
+                        why: entered.enteredWhy,
+                        by: store.role
+                    )
+                }
+                failureMessage = nil
+                input = .init()
+                review = nil
+                revising = nil
             } catch {
                 failureMessage = error.message
             }
@@ -168,6 +253,13 @@ private extension PlayerVisionView {
 #Preview("プレイヤーの提出待ち") {
     NavigationStack {
         PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
+    }
+}
+
+#Preview("プレイヤーの書き直し") {
+    let draft = Vision.preview(status: .draft, deadline: .preview, why: "次の健康診断で再検査を言い渡されたくない")
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft)
     }
 }
 

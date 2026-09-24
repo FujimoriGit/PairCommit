@@ -62,6 +62,18 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         }
     }
 
+    func with(statement: String, doneCriteria: String, deadline: Date?, why: String?) -> Self {
+        .init(
+            id: id,
+            statement: statement,
+            doneCriteria: doneCriteria,
+            deadline: deadline,
+            why: why,
+            status: status,
+            createdAt: createdAt
+        )
+    }
+
     func with(status: Status) -> Self {
         .init(
             id: id,
