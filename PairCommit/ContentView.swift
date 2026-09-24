@@ -33,7 +33,7 @@ struct ContentView: View {
                     .partnershipHistoryDestination(store.state, role: store.role)
             }
             .tint(store.role.accent)
-            .task(id: ObjectIdentifier(store)) {
+            .task {
                 for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
                     try? await store.refresh()
                 }

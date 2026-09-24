@@ -8,13 +8,13 @@
 import SwiftUI
 
 extension Binding where Value == Bool {
-    /// `message` がある間は出し、閉じたら `message` を消す。
-    init(presenting message: Binding<String?>) {
+    /// `value` がある間は出し、閉じたら `value` を消す。
+    init<Wrapped>(presenting value: Binding<Wrapped?>) {
         self.init(
-            get: { message.wrappedValue != nil },
+            get: { value.wrappedValue != nil },
             set: { presented in
                 if !presented {
-                    message.wrappedValue = nil
+                    value.wrappedValue = nil
                 }
             }
         )
