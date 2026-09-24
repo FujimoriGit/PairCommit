@@ -1,7 +1,6 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Domain（依存ゼロ）← Application / Infrastructure。Presentation はUI実装時に追加する。
 // Data ではなく Infrastructure なのは、モジュール名 `Data` が Foundation.Data と衝突するため。
 let package = Package(
     name: "LocalPackage",
