@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  actions: read
   id-token: write
 
 concurrency:
@@ -24,20 +25,36 @@ jobs:
 
       # main を取り込んだだけの push でも synchronize は来る。PR 自身の差分が
       # 変わっていなければ、レビューする対象がない。
+      # 比べる相手を直前の push にしないのは、途中の push が cancel-in-progress で
+      # 取り消されると、その変更がどのレビューにも入らなくなるから。
+      # main を取り込んだあとはコミット間の差分に main の変更が混ざるので、PR 全体を見る。
       - id: diff
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTION: ${{ github.event.action }}
           BASE: ${{ github.event.pull_request.base.sha }}
-          BEFORE: ${{ github.event.before }}
-          AFTER: ${{ github.event.after }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           changed=true
-          if [ "$ACTION" = synchronize ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            before=$(git diff "$(git merge-base "$BASE" "$BEFORE")" "$BEFORE" | git hash-object --stdin)
-            after=$(git diff "$(git merge-base "$BASE" "$AFTER")" "$AFTER" | git hash-object --stdin)
-            [ "$before" = "$after" ] && changed=false
+          since=
+          if [ "$ACTION" = synchronize ]; then
+            last=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/claude-review.yml/runs?branch=$HEAD_REF&event=pull_request&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // empty')
+            if [ -n "$last" ] && git cat-file -e "$last^{commit}" 2>/dev/null; then
+              last_base=$(git merge-base "$BASE" "$last")
+              head_base=$(git merge-base "$BASE" "$HEAD")
+              before=$(git diff "$last_base" "$last" | git hash-object --stdin)
+              after=$(git diff "$head_base" "$HEAD" | git hash-object --stdin)
+              if [ "$before" = "$after" ]; then
+                changed=false
+              elif [ "$last_base" = "$head_base" ] && git merge-base --is-ancestor "$last" "$HEAD"; then
+                since=$last
+              fi
+            fi
           fi
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "since=$since" >> "$GITHUB_OUTPUT"
 
       # まとめは毎回消してから投稿し直す。同じコメントを更新し続けると、最初に
       # 立てた位置に留まるので、あとから来たコメントに埋もれて最新のレビューが読まれない。
@@ -61,7 +78,8 @@ jobs:
           classify_inline_comments: false
           use_sticky_comment: true
           prompt: |
-            この PR の差分をレビューしてください。指摘は該当する行へのインラインコメントとして残し、
+            ${{ steps.diff.outputs.since && format('この PR のうち、前回レビューした {0} 以降の変更だけをレビューしてください。対象は `git diff {0} {1}` です。', steps.diff.outputs.since, github.event.pull_request.head.sha) || 'この PR の差分をレビューしてください。' }}
+            指摘は該当する行へのインラインコメントとして残し、
             全体の所感だけを PR コメントに書いてください。
             CLAUDE.md の設計原則・コーディング規約・テスト原則に反する箇所を最優先で見てください。
             ドメインに触れる差分では design.md も読み、決定事項と食い違っていないか見てください。
