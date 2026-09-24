@@ -8,11 +8,11 @@
 import Application
 import Domain
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     let session: PartnershipSession
 
-    @Environment(\.scenePhase) private var scenePhase
     @State private var savedPairing: MultipeerPairing.Outcome?
     @State private var isResuming: Bool
     @State private var pairing = MultipeerPairing()
@@ -33,11 +33,12 @@ struct ContentView: View {
                     .partnershipHistoryDestination(store.state, role: store.role)
             }
             .tint(store.role.accent)
-            .onChange(of: scenePhase) { _, phase in
-                guard phase == .active else { return }
-                Task { await refresh(store) }
+            .task(id: ObjectIdentifier(store)) {
+                for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
+                    try? await store.refresh()
+                }
             }
-            .alert("最新の状態を取得できませんでした", isPresented: showingRefreshFailure) {
+            .alert("最新の状態を取得できませんでした", isPresented: Binding(presenting: $refreshFailure)) {
                 Button("OK") { refreshFailure = nil }
             } message: {
                 Text(refreshFailure ?? "")
@@ -192,14 +193,6 @@ private extension ContentView {
             synchronizer: synchronizer,
             state: state
         )
-    }
-
-    var showingRefreshFailure: Binding<Bool> {
-        Binding(get: { refreshFailure != nil }, set: { presented in
-            if !presented {
-                refreshFailure = nil
-            }
-        })
     }
 
     func refresh(_ store: PartnershipStore) async {
