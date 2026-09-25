@@ -72,7 +72,7 @@ private extension PlayerTaskView {
             }
             if task.status == .todo {
                 Button {
-                    perform { state throws(DomainError) in try state.reportingTask(task.id, by: store.role) }
+                    perform { state, role throws(DomainError) in try state.reportingTask(task.id, by: role) }
                 } label: {
                     Text("完了を報告する")
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
@@ -90,11 +90,11 @@ private extension PlayerTaskView {
         HStack(spacing: 8) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button {
-                    perform { state throws(DomainError) in
+                    perform { state, role throws(DomainError) in
                         try state.settingReaction(
                             task.reaction == reaction ? nil : reaction,
                             on: task.id,
-                            by: store.role
+                            by: role
                         )
                     }
                 } label: {
@@ -136,8 +136,8 @@ private extension PlayerTaskView {
         let entered = input
         Task {
             do throws(PartnershipFailure) {
-                try await store.perform { state throws(DomainError) in
-                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: store.role).state
+                try await store.perform { state, role throws(DomainError) in
+                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: role).state
                 }
                 failureMessage = nil
                 input = .init()
@@ -147,7 +147,7 @@ private extension PlayerTaskView {
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {
+    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
