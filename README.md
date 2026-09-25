@@ -26,3 +26,5 @@ Scripts/test.sh           ビルド＆全テスト（CIと同一条件）
 - アプリのビルドと VRT: `./Scripts/test.sh`（VRT は `#Preview` から自動生成される）
 - CI: GitHub Actions（PR / main push で `unit-tests.yml` と `ci.yml` の2本）
 - CloudKit の実機検証は Apple Developer Program 加入待ち（`design.md` 未決事項参照）
+
+<!-- 動作確認用の変更（Claude Code からの Draft PR テスト） -->
