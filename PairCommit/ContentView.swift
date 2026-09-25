@@ -8,6 +8,7 @@
 import Application
 import Domain
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     let session: PartnershipSession
@@ -16,6 +17,7 @@ struct ContentView: View {
     @State private var isResuming: Bool
     @State private var pairing = MultipeerPairing()
     @State private var failureMessage: String?
+    @State private var refreshFailure: String?
 
     init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil) {
         self.session = session
@@ -27,9 +29,20 @@ struct ContentView: View {
         if let store = session.store {
             NavigationStack {
                 screen(for: store)
+                    .refreshable { await refresh(store) }
                     .partnershipHistoryDestination(store.state, role: store.role)
             }
             .tint(store.role.accent)
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
+                    try? await store.refresh()
+                }
+            }
+            .alert("最新の状態を取得できませんでした", isPresented: Binding(presenting: $refreshFailure)) {
+                Button("OK") {}
+            } message: {
+                Text(refreshFailure ?? "")
+            }
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
@@ -186,6 +199,14 @@ private extension ContentView {
             synchronizer: synchronizer,
             state: state
         )
+    }
+
+    func refresh(_ store: PartnershipStore) async {
+        do throws(SyncFailure) {
+            try await store.refresh()
+        } catch {
+            refreshFailure = error.message
+        }
     }
 
     func reset() async -> String? {
