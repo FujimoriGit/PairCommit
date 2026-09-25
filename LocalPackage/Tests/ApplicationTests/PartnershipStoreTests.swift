@@ -21,8 +21,8 @@ struct PartnershipStoreTests {
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When
-        try await store.perform { state throws(DomainError) in
-            try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+        try await store.perform { state, role throws(DomainError) in
+            try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
         }
 
         // Then
@@ -39,8 +39,8 @@ struct PartnershipStoreTests {
 
         // When / Then
         await #expect(throws: PartnershipFailure.rejected(.roleForbidden(required: .player))) {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s", doneCriteria: "c", by: .manager).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
             }
         }
         #expect(store.state == PartnershipState())
@@ -52,7 +52,7 @@ struct PartnershipStoreTests {
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
         let remote = try PartnershipState().establishingPairing(ownerRole: .player)
-        await synchronizer.save(remote)
+        try await synchronizer.save(remote, replacing: .init())
 
         // When
         try await store.refresh()
@@ -70,8 +70,8 @@ struct PartnershipStoreTests {
 
         // When
         let performing = Task {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
             }
         }
         await Task.yield()
@@ -94,14 +94,14 @@ struct PartnershipStoreTests {
 
         // When
         let first = Task {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s1", doneCriteria: "c1", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s1", doneCriteria: "c1", by: role).state
             }
         }
         await Task.yield()
         let second = Task {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s2", doneCriteria: "c2", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s2", doneCriteria: "c2", by: role).state
             }
         }
         await Task.yield()
@@ -123,11 +123,87 @@ struct PartnershipStoreTests {
 
         // When / Then
         await #expect(throws: PartnershipFailure.notSynchronized(.unavailable)) {
-            try await store.perform { state throws(DomainError) in
-                try state.draftingVision(statement: "s", doneCriteria: "c", by: .player).state
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
             }
         }
         #expect(store.state == PartnershipState())
+    }
+
+    @Test("相手の保存を取り直す前に操作しても、相手の変更は消えずに自分の操作と両方残る")
+    func performOnOutdatedStateKeepsThePartnersChange() async throws {
+        // Given
+        let (shared, taskID) = try Self.reportedTask()
+        let synchronizer = InMemorySynchronizer(initialState: shared)
+        let player = PartnershipStore(role: .player, synchronizer: synchronizer, state: shared)
+        let manager = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        try await player.perform { state, role throws(DomainError) in
+            try state.settingReaction(.happy, on: taskID, by: role)
+        }
+
+        // When
+        try await manager.perform { state, role throws(DomainError) in
+            try state.approvingTask(taskID, by: role)
+        }
+
+        // Then
+        let saved = await synchronizer.load()
+        let task = try #require(saved.tasks.first { $0.id == taskID })
+        #expect(task.reaction == .happy)
+        #expect(task.status == .approved)
+        #expect(manager.state == saved)
+    }
+
+    @Test("相手が先に済ませて操作が成り立たなくなったら、相手の変更を反映したうえで拒否される")
+    func performRejectedAfterPartnersChangeShowsThePartnersState() async throws {
+        // Given
+        let (shared, taskID) = try Self.reportedTask()
+        let synchronizer = InMemorySynchronizer(initialState: shared)
+        let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        try await first.perform { state, role throws(DomainError) in
+            try state.approvingTask(taskID, by: role)
+        }
+
+        // When / Then
+        await #expect(throws: PartnershipFailure.rejected(.invalidTaskTransition(from: .approved))) {
+            try await second.perform { state, role throws(DomainError) in
+                try state.cancellingTask(taskID, by: role)
+            }
+        }
+        #expect(second.state == first.state)
+    }
+
+    @Test("相手の保存と重なり続けたら、当て直しをやめて相手の状態を見せたうえで失敗を返す")
+    func performGivesUpWhenPartnerKeepsSavingFirst() async throws {
+        // Given
+        let latest = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let synchronizer = InterruptibleSynchronizer()
+        synchronizer.failure = .outdated(latest: latest)
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+
+        // When / Then
+        await #expect(throws: PartnershipFailure.notSynchronized(.outdated(latest: latest))) {
+            try await store.perform { state, role throws(DomainError) in
+                try state.draftingVision(statement: "s", doneCriteria: "c", by: role).state
+            }
+        }
+        #expect(store.state == latest)
+    }
+}
+
+// MARK: - Private
+
+private extension PartnershipStoreTests {
+    static func reportedTask() throws -> (state: PartnershipState, taskID: TaskItem.ID) {
+        let drafted = try PartnershipState()
+            .establishingPairing(ownerRole: .manager)
+            .draftingVision(statement: "s", doneCriteria: "c", by: .player)
+        let active = try drafted.state
+            .proposingVision(drafted.visionID, by: .player)
+            .approvingVision(drafted.visionID, by: .manager)
+        let created = try active.creatingTask(title: "t", by: .manager)
+        return (try created.state.reportingTask(created.taskID, by: .player), created.taskID)
     }
 }
 
@@ -158,13 +234,14 @@ private final class InterruptibleSynchronizer: PartnershipSyncing {
         stored
     }
 
-    func save(_ state: PartnershipState) async throws(SyncFailure) {
+    func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
         if held {
             await withCheckedContinuation { waiting = $0 }
         }
         if let failure {
             throw failure
         }
+        guard stored == base else { throw .outdated(latest: stored) }
         stored = state
     }
 }

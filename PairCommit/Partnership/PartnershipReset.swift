@@ -27,7 +27,7 @@ private struct PartnershipReset: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let reset {
+                if reset != nil {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("リセット", systemImage: "arrow.counterclockwise") {
                             confirming = true
@@ -42,20 +42,10 @@ private struct PartnershipReset: ViewModifier {
             } message: {
                 Text("ビジョンとタスクはすべて消えます。相手も最初の画面に戻ります。")
             }
-            .alert("リセットできませんでした", isPresented: showingFailure) {
-                Button("OK") { failureMessage = nil }
+            .alert("リセットできませんでした", isPresented: Binding(presenting: $failureMessage)) {
+                Button("OK") {}
             } message: {
                 Text(failureMessage ?? "")
             }
-    }
-}
-
-private extension PartnershipReset {
-    var showingFailure: Binding<Bool> {
-        Binding(get: { failureMessage != nil }, set: { presented in
-            if !presented {
-                failureMessage = nil
-            }
-        })
     }
 }

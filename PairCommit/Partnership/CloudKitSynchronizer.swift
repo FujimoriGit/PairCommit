@@ -31,26 +31,41 @@ extension CloudKitSynchronizer: PartnershipSyncing {
 
     func load() async throws(SyncFailure) -> PartnershipState {
         guard let record = try await fetchRoot() else { return .init() }
-        do {
-            return try PartnershipRootRecord.decoding(record)
-        } catch {
-            logger.error("decode: \(error, privacy: .public)")
-            throw .unavailable
-        }
+        return try decoding(record)
     }
 
-    func save(_ state: PartnershipState) async throws(SyncFailure) {
+    func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
         // 作り直したレコードで上書きすると、CKShare との結びつきを持つ
         // システムフィールドが落ちる。サーバーにあるものへ書き足す。
-        guard let base = try await fetchRoot() else { throw .unavailable }
+        guard let record = try await fetchRoot() else { throw .unavailable }
+        let current = try decoding(record)
+        guard current == base else { throw .outdated(latest: current) }
+
+        let results: [CKRecord.ID: Result<CKRecord, any Error>]
         do {
-            _ = try await database.modifyRecords(
-                saving: [PartnershipRootRecord.encoding(state, into: base)],
+            results = try await database.modifyRecords(
+                saving: [PartnershipRootRecord.encoding(state, into: record)],
                 deleting: [],
-                savePolicy: .allKeys
-            )
+                savePolicy: .ifServerRecordUnchanged
+            ).saveResults
         } catch {
             logger.error("save: \(error, privacy: .public)")
+            throw .unavailable
+        }
+        switch results[rootRecordID] {
+        case .success:
+            return
+        case .failure(let error as CKError) where error.code == .serverRecordChanged:
+            guard let latest = error.serverRecord else {
+                logger.error("save: 衝突したレコードが返っていない")
+                throw .unavailable
+            }
+            throw .outdated(latest: try decoding(latest))
+        case .failure(let error):
+            logger.error("save: \(error, privacy: .public)")
+            throw .unavailable
+        case nil:
+            logger.error("save: 保存したレコードの結果が返っていない")
             throw .unavailable
         }
     }
@@ -60,6 +75,15 @@ extension CloudKitSynchronizer: PartnershipSyncing {
 
 private extension CloudKitSynchronizer {
     static let subscriptionID = "partnership-changes"
+
+    func decoding(_ record: CKRecord) throws(SyncFailure) -> PartnershipState {
+        do {
+            return try PartnershipRootRecord.decoding(record)
+        } catch {
+            logger.error("decode: \(error, privacy: .public)")
+            throw .unavailable
+        }
+    }
 
     func subscribe() async throws(SyncFailure) {
         // 同じ ID を保存し直すと拒否される。2回目からは張り直さない。

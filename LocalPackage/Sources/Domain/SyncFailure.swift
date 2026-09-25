@@ -7,4 +7,5 @@
 
 public enum SyncFailure: Error, Equatable, Sendable {
     case unavailable
+    case outdated(latest: PartnershipState)
 }

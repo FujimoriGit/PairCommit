@@ -155,7 +155,7 @@ private extension PlayerVisionView {
         VisionDetail(vision: vision)
         VStack(spacing: 10) {
             Button("\(Role.manager.label)に提出する") {
-                perform { state throws(DomainError) in try state.proposingVision(vision.id, by: store.role) }
+                perform { state, role throws(DomainError) in try state.proposingVision(vision.id, by: role) }
             }
             .buttonStyle(.filled)
             Button("書き直す") {
@@ -172,7 +172,7 @@ private extension PlayerVisionView {
         }
         .confirmationDialog("このビジョンを取り下げますか", isPresented: $confirmingDiscard) {
             Button("取り下げる", role: .destructive) {
-                perform { state throws(DomainError) in try state.discardingVision(vision.id, by: store.role) }
+                perform { state, role throws(DomainError) in try state.discardingVision(vision.id, by: role) }
             }
         } message: {
             Text("書いた内容は消え、記録にも残りません。")
@@ -190,13 +190,13 @@ private extension PlayerVisionView {
         let entered = input
         Task {
             do throws(PartnershipFailure) {
-                try await store.perform { state throws(DomainError) in
+                try await store.perform { state, role throws(DomainError) in
                     try state.draftingVision(
                         statement: entered.statement,
                         doneCriteria: entered.doneCriteria,
                         deadline: entered.deadline,
                         why: entered.why,
-                        by: store.role
+                        by: role
                     ).state
                 }
                 failureMessage = nil
@@ -212,14 +212,14 @@ private extension PlayerVisionView {
         let entered = input
         Task {
             do throws(PartnershipFailure) {
-                try await store.perform { state throws(DomainError) in
+                try await store.perform { state, role throws(DomainError) in
                     try state.revisingVision(
                         vision.id,
                         statement: entered.statement,
                         doneCriteria: entered.doneCriteria,
                         deadline: entered.deadline,
                         why: entered.why,
-                        by: store.role
+                        by: role
                     )
                 }
                 failureMessage = nil
@@ -232,7 +232,7 @@ private extension PlayerVisionView {
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState) {
+    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)

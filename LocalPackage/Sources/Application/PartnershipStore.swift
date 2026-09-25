@@ -39,24 +39,10 @@ public final class PartnershipStore {
     }
 
     public func perform(
-        _ transform: @escaping @Sendable (PartnershipState) throws(DomainError) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
     ) async throws(PartnershipFailure) {
-        let failure = await serialized { [self] () -> PartnershipFailure? in
-            let previous = state
-            let next: PartnershipState
-            do throws(DomainError) {
-                next = try transform(state)
-            } catch {
-                return .rejected(error)
-            }
-            state = next
-            do throws(SyncFailure) {
-                try await synchronizer.save(next)
-                return nil
-            } catch {
-                state = previous
-                return .notSynchronized(error)
-            }
+        let failure = await serialized { [self] in
+            await apply(transform, to: state, remaining: Self.attempts)
         }
         if let failure {
             throw failure
@@ -67,6 +53,37 @@ public final class PartnershipStore {
 // MARK: - Private
 
 private extension PartnershipStore {
+    static let attempts = 3
+
+    func apply(
+        _ transform: @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState,
+        to base: PartnershipState,
+        remaining: Int
+    ) async -> PartnershipFailure? {
+        let next: PartnershipState
+        do throws(DomainError) {
+            next = try transform(base, role)
+        } catch {
+            state = base
+            return .rejected(error)
+        }
+        state = next
+        do throws(SyncFailure) {
+            try await synchronizer.save(next, replacing: base)
+            return nil
+        } catch {
+            switch error {
+            case .outdated(let latest) where remaining > 1:
+                return await apply(transform, to: latest, remaining: remaining - 1)
+            case .outdated(let latest):
+                state = latest
+            case .unavailable:
+                state = base
+            }
+            return .notSynchronized(error)
+        }
+    }
+
     // 保存と取り直しを1件ずつ流す。重ねると、サーバーに着く順とローカルの順が食い違う。
     func serialized<T: Sendable>(_ body: @escaping @MainActor () async -> T) async -> T {
         let queued = pending

@@ -1,6 +1,10 @@
 # macOS
 .DS_Store
 
+# Claude Code
+.claude/worktrees/
+.claude/settings.local.json
+
 # Xcode
 ## Build generated
 build/

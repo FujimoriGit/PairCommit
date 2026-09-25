@@ -22,7 +22,8 @@ public actor InMemorySynchronizer: PartnershipSyncing {
         state
     }
 
-    public func save(_ newState: PartnershipState) {
+    public func save(_ newState: PartnershipState, replacing base: PartnershipState) throws(SyncFailure) {
+        guard state == base else { throw .outdated(latest: state) }
         state = newState
     }
 }
