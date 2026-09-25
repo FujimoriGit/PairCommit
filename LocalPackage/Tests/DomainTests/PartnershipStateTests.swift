@@ -151,7 +151,7 @@ struct PartnershipStateTests {
         let (drafted, visionID) = try PartnershipState().draftingVision(
             statement: "\n\nやる\n", doneCriteria: " c ", why: "　w\n", by: .player
         )
-        let (active, _) = try drafted
+        let active = try drafted
             .proposingVision(visionID, by: .player)
             .approvingVision(visionID, by: .manager)
 
