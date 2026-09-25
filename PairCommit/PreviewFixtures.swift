@@ -27,6 +27,7 @@ extension Vision {
         doneCriteria: String = "体重68kg以下、次回の健康診断で全項目A判定",
         status: Status,
         deadline: Date? = nil,
+        why: String? = nil,
         createdAt: Date = .preview
     ) -> Self {
         .init(
@@ -34,7 +35,7 @@ extension Vision {
             statement: statement,
             doneCriteria: doneCriteria,
             deadline: deadline,
-            why: nil,
+            why: why,
             status: status,
             createdAt: createdAt
         )

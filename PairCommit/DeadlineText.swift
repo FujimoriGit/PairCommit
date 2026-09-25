@@ -10,7 +10,7 @@ import SwiftUI
 
 struct DeadlineText: View {
     let task: TaskItem
-    var now = Date()
+    let now: Date
 
     @ViewBuilder
     var body: some View {

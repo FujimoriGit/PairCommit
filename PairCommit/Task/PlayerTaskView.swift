@@ -12,7 +12,7 @@ import SwiftUI
 struct PlayerTaskView: View {
     let store: PartnershipStore
     let vision: Vision
-    var now = Date()
+    let now: Date
 
     @State private var input = TaskInput()
     @State private var failureMessage: String?
@@ -208,6 +208,29 @@ private extension PlayerTaskView {
                         status: .todo,
                         createdBy: .manager,
                         deadline: .preview(daysLater: -1)
+                    )
+                ]
+            ),
+            vision: vision,
+            now: .preview
+        )
+    }
+}
+
+#Preview("プレイヤーの期限間近") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        PlayerTaskView(
+            store: .preview(
+                role: .player,
+                visions: [vision],
+                tasks: [
+                    .preview(
+                        visionID: vision.id,
+                        title: "週3でジムに行く",
+                        status: .todo,
+                        createdBy: .manager,
+                        deadline: .preview(daysLater: 2)
                     )
                 ]
             ),

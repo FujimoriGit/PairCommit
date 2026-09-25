@@ -12,7 +12,7 @@ import SwiftUI
 struct ManagerTaskView: View {
     let store: PartnershipStore
     let vision: Vision
-    var now = Date()
+    let now: Date
 
     @State private var input = TaskInput()
     @State private var outcome: Vision.Outcome?
@@ -31,7 +31,7 @@ struct ManagerTaskView: View {
         }
         .confirmationDialog(
             "このビジョンを閉じますか",
-            isPresented: confirming,
+            isPresented: Binding(presenting: $outcome),
             presenting: outcome
         ) { outcome in
             Button(outcome.confirmation, role: .destructive) {
@@ -172,12 +172,6 @@ private extension ManagerTaskView {
                 }
             }
         }
-    }
-
-    var confirming: Binding<Bool> {
-        .init(get: { outcome != nil }, set: { presented in
-            if !presented { outcome = nil }
-        })
     }
 
     func close(as outcome: Vision.Outcome) {
