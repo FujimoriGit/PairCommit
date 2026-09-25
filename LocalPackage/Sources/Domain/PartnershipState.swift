@@ -67,10 +67,10 @@ extension PartnershipState {
         try requiring(role, is: .player)
         let vision = Vision(
             id: id,
-            statement: statement,
-            doneCriteria: doneCriteria,
+            statement: try requiringText(statement),
+            doneCriteria: try requiringText(doneCriteria),
             deadline: deadline,
-            why: why,
+            why: nonBlank(why),
             status: .draft,
             createdAt: now
         )
@@ -86,8 +86,10 @@ extension PartnershipState {
         by role: Role
     ) throws(DomainError) -> Self {
         try requiring(role, is: .player)
+        let statement = try requiringText(statement)
+        let doneCriteria = try requiringText(doneCriteria)
         let revised = try requiringDraft(id)
-            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: why)
+            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: nonBlank(why))
         return updating(visions: visions.map { $0.id == id ? revised : $0 })
     }
 
@@ -139,6 +141,7 @@ extension PartnershipState {
         now: Date = Date()
     ) throws(DomainError) -> (state: Self, taskID: TaskItem.ID) {
         guard let vision = activeVision else { throw DomainError.noActiveVision }
+        let title = try requiringText(title)
         let task = TaskItem(
             id: id,
             visionID: vision.id,
@@ -272,6 +275,18 @@ private extension PartnershipState {
 
     func requiring(_ role: Role, is required: Role) throws(DomainError) {
         guard role == required else { throw DomainError.roleForbidden(required: required) }
+    }
+
+    func requiringText(_ text: String) throws(DomainError) -> String {
+        guard let text = nonBlank(text) else { throw DomainError.blankText }
+        return text
+    }
+
+    func nonBlank(_ text: String?) -> String? {
+        guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
     }
 
     func requiringDraft(_ id: Vision.ID) throws(DomainError) -> Vision {

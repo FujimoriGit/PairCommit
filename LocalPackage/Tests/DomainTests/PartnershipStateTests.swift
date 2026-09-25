@@ -118,6 +118,70 @@ struct PartnershipStateTests {
         #expect(vision.status == .draft)
     }
 
+    @Test("ビジョンの一文と達成基準は、空白だけでは起案できない")
+    func visionCannotBeDraftedWithBlankText() {
+        // Given
+        let state = PartnershipState()
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try state.draftingVision(statement: "  ", doneCriteria: "c", by: .player)
+        }
+        #expect(throws: DomainError.blankText) {
+            try state.draftingVision(statement: "s", doneCriteria: "\n", by: .player)
+        }
+    }
+
+    @Test("書き直しでも、ビジョンの一文と達成基準を空白だけにはできない")
+    func visionCannotBeRevisedToBlankText() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            statement: "s", doneCriteria: "c", by: .player
+        )
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try state.revisingVision(visionID, statement: " ", doneCriteria: "c", deadline: nil, why: nil, by: .player)
+        }
+    }
+
+    @Test("前後の空白や改行は落として持つ")
+    func surroundingWhitespaceIsTrimmed() throws {
+        // Given
+        let (drafted, visionID) = try PartnershipState().draftingVision(
+            statement: "\n\nやる\n", doneCriteria: " c ", why: "　w\n", by: .player
+        )
+        let active = try drafted
+            .proposingVision(visionID, by: .player)
+            .approvingVision(visionID, by: .manager)
+
+        // When
+        let (state, taskID) = try active.creatingTask(title: " t\n", by: .manager)
+
+        // Then
+        let vision = try #require(state.visions.first)
+        #expect(vision.statement == "やる")
+        #expect(vision.doneCriteria == "c")
+        #expect(vision.why == "w")
+        #expect(state.tasks.first { $0.id == taskID }?.title == "t")
+    }
+
+    @Test("空白だけの動機は、書かなかったものとして扱う（動機は推奨で必須ではない）")
+    func blankWhyIsTreatedAsUnwritten() throws {
+        // Given
+        let state = PartnershipState()
+
+        // When
+        let (drafted, visionID) = try state.draftingVision(statement: "s", doneCriteria: "c", why: " \n", by: .player)
+        let revised = try drafted.revisingVision(
+            visionID, statement: "s", doneCriteria: "c", deadline: nil, why: "　", by: .player
+        )
+
+        // Then
+        #expect(drafted.visions.first?.why == nil)
+        #expect(revised.visions.first?.why == nil)
+    }
+
     @Test("ビジョンを書き直せるのはプレイヤーだけ（目的は管理者が握らない）")
     func onlyPlayerCanReviseVision() throws {
         // Given
@@ -406,6 +470,17 @@ struct PartnershipStateTests {
         // When / Then
         #expect(throws: DomainError.invalidTaskTransition(from: .todo)) {
             try state.approvingTask(taskID, by: .manager)
+        }
+    }
+
+    @Test("タスクの名前は、空白だけでは作れない")
+    func taskCannotBeCreatedWithBlankTitle() throws {
+        // Given
+        let (state, _) = try PartnershipState().activeVision()
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try state.creatingTask(title: "　", by: .manager)
         }
     }
 

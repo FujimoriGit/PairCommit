@@ -195,7 +195,7 @@ private extension PlayerVisionView {
                         statement: entered.statement,
                         doneCriteria: entered.doneCriteria,
                         deadline: entered.deadline,
-                        why: entered.enteredWhy,
+                        why: entered.why,
                         by: role
                     ).state
                 }
@@ -218,7 +218,7 @@ private extension PlayerVisionView {
                         statement: entered.statement,
                         doneCriteria: entered.doneCriteria,
                         deadline: entered.deadline,
-                        why: entered.enteredWhy,
+                        why: entered.why,
                         by: role
                     )
                 }

@@ -11,5 +11,5 @@ struct TaskInput {
     var title = ""
     var deadline: Date?
 
-    var isComplete: Bool { !title.isEmpty }
+    var isComplete: Bool { !title.isBlank }
 }

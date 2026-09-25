@@ -16,4 +16,5 @@ public enum DomainError: Error, Equatable {
     case activeVisionAlreadyExists
     case noActiveVision
     case alreadyPaired
+    case blankText
 }
