@@ -22,7 +22,7 @@ struct ManagerTaskView: View {
         Screen(role: store.role) {
             content
         }
-        .partnershipReset()
+        .partnershipSettingsLink()
         .partnershipHistoryLink()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
