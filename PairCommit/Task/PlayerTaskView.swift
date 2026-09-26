@@ -21,7 +21,7 @@ struct PlayerTaskView: View {
         Screen(role: store.role) {
             content
         }
-        .partnershipReset()
+        .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
 }
