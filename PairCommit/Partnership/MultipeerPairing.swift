@@ -26,17 +26,6 @@ final class MultipeerPairing {
         case sharing
         case done
         case failed(String)
-
-        var label: String {
-            switch self {
-            case .idle:        return "待機中"
-            case .searching:   return "相手を探しています…"
-            case .connected:   return "接続しました"
-            case .sharing:     return "共有を処理中…"
-            case .done:        return "ペアリング成功 🎉"
-            case .failed(let message): return "失敗: \(message)"
-            }
-        }
     }
 
     private(set) var phase: Phase = .idle
@@ -72,6 +61,8 @@ final class MultipeerPairing {
 
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
+    static let ownerHello = "paircommit://hello/owner"
+    static let participantHello = "paircommit://hello/participant"
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -92,7 +83,7 @@ private extension MultipeerPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing:
-                phase = .failed("接続が切れた")
+                phase = .failed("相手との接続が切れました")
                 tearDown()
             case .done:
                 // 完了後の切断は正常。
@@ -106,8 +97,33 @@ private extension MultipeerPairing {
         }
     }
 
+    // 相手のデータが、自分側の接続の通知より先に届くことがある。
     func handleConnected() {
+        guard phase == .searching else { return }
         phase = .connected
+        do {
+            try multipeer?.send(isOwner ? Self.ownerHello : Self.participantHello)
+        } catch {
+            fail(with: error)
+        }
+    }
+
+    func handleHello(fromOwner peerIsOwner: Bool) {
+        handleConnected()
+        guard phase == .connected else { return }
+        switch (isOwner, peerIsOwner) {
+        case (true, true):
+            fail(with: "相手も役割を選んでいます。どちらか一方が「相手の招待を受ける」を選んでください。")
+        case (false, false):
+            fail(with: "2人とも「相手の招待を受ける」を選んでいます。どちらか一方が役割を選んでください。")
+        case (true, false):
+            startSharing()
+        case (false, true):
+            break
+        }
+    }
+
+    func startSharing() {
         guard case .owner(let role) = side else { return }
         phase = .sharing
         Task {
@@ -124,6 +140,16 @@ private extension MultipeerPairing {
     }
 
     func handleReceived(_ text: String) {
+        switch text {
+        case Self.ownerHello:
+            handleHello(fromOwner: true)
+            return
+        case Self.participantHello:
+            handleHello(fromOwner: false)
+            return
+        default:
+            break
+        }
         if isOwner {
             guard phase == .sharing, text == Self.ackMessage else { return }
             phase = .done
@@ -146,8 +172,12 @@ private extension MultipeerPairing {
     }
 
     func fail(with error: any Error) {
+        fail(with: error.localizedDescription)
+    }
+
+    func fail(with message: String) {
         outcome = nil
-        phase = .failed(error.localizedDescription)
+        phase = .failed(message)
         tearDown()
     }
 
