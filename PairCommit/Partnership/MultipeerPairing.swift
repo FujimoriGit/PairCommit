@@ -74,6 +74,8 @@ final class MultipeerPairing {
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
     static let failureMessage = "paircommit://failed"
+    static let ownerMessage = "paircommit://owner"
+    static let participantMessage = "paircommit://participant"
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -111,6 +113,20 @@ private extension MultipeerPairing {
 
     func handleConnected() {
         phase = .connected
+        do {
+            try multipeer?.send(isOwner ? Self.ownerMessage : Self.participantMessage)
+        } catch {
+            fail(with: error)
+        }
+    }
+
+    func handlePartnerSide(isOwner partnerIsOwner: Bool) {
+        guard phase == .connected else { return }
+        guard partnerIsOwner != isOwner else {
+            // 相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
+            phase = .failed(isOwner ? .bothChoseRoles : .bothAccepting)
+            return
+        }
         guard case .owner(let role) = side else { return }
         phase = .sharing
         Task {
@@ -127,19 +143,20 @@ private extension MultipeerPairing {
     }
 
     func handleReceived(_ text: String) {
-        if text == Self.failureMessage {
+        switch text {
+        case Self.failureMessage:
             guard phase == .connected || phase == .sharing else { return }
             outcome = nil
             phase = .failed(.partnerFailed)
             tearDown()
-            return
-        }
-        if isOwner {
-            guard phase == .sharing, text == Self.ackMessage else { return }
+        case Self.ownerMessage, Self.participantMessage:
+            handlePartnerSide(isOwner: text == Self.ownerMessage)
+        case Self.ackMessage:
+            guard isOwner, phase == .sharing else { return }
             phase = .done
             tearDown()
-        } else {
-            guard phase == .connected, let url = URL(string: text) else { return }
+        default:
+            guard !isOwner, phase == .connected, let url = URL(string: text) else { return }
             phase = .sharing
             Task {
                 do {

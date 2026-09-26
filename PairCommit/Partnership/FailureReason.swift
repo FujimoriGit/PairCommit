@@ -17,6 +17,8 @@ enum FailureReason: Equatable {
     case nearbyUnavailable
     case disconnected
     case partnerFailed
+    case bothChoseRoles
+    case bothAccepting
     case unexpected
 
     init(_ error: any Error) {
