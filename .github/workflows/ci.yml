@@ -27,7 +27,7 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          ignored='(\.md$|^\.claude/|^\.github/workflows/(claude-review|unit-tests|update-snapshots)\.yml$)'
+          ignored='(\.md$|^\.claude/|^\.github/dependabot\.yml$|^\.github/workflows/(claude-review|unit-tests|update-snapshots)\.yml$)'
           if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qvE "$ignored"; then
             echo "app=true" >> "$GITHUB_OUTPUT"
           else
