@@ -5,7 +5,7 @@
 //  Created by Daiki Fujimori on 2026/08/22
 //
 
-/// ペアリングの最初の画面で選んだもの。役割か、相手の招待を受けるか。
+/// ペアリングの最初の画面で選んだもの。
 public enum PairingChoice: Equatable, Sendable {
     case role(Role)
     case invitation
