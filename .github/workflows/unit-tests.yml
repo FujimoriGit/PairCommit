@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 20
     container: swift:6.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Test
         run: swift test --package-path LocalPackage

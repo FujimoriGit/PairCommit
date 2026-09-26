@@ -16,7 +16,7 @@ jobs:
     steps:
       # 新しい基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push しても、
       # 再帰実行を防ぐ仕組みで、そのコミットに対するワークフローは起動しない。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.VRT_DEPLOY_KEY }}
@@ -27,7 +27,7 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          ignored='(\.md$|^\.claude/|^\.github/workflows/(claude-review|unit-tests|update-snapshots)\.yml$)'
+          ignored='(\.md$|^\.claude/|^\.github/dependabot\.yml$|^\.github/workflows/(claude-review|unit-tests|update-snapshots)\.yml$)'
           if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qvE "$ignored"; then
             echo "app=true" >> "$GITHUB_OUTPUT"
           else
@@ -62,7 +62,7 @@ jobs:
       # スナップショット差分は xcresult の添付画像で確認できる
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: build/TestResults.xcresult
