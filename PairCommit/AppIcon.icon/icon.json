@@ -42,21 +42,11 @@
     {
       "layers" : [
         {
+          "fill" : {
+            "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
+          },
           "image-name" : "mast.svg",
-          "name" : "mast",
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
-              }
-            }
-          ]
+          "name" : "mast"
         },
         {
           "fill" : {
@@ -66,21 +56,11 @@
           "name" : "sail-left"
         },
         {
+          "fill" : {
+            "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
+          },
           "image-name" : "sail-right.svg",
-          "name" : "sail-right",
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
-              }
-            }
-          ]
+          "name" : "sail-right"
         }
       ],
       "shadow" : {
@@ -95,21 +75,11 @@
     {
       "layers" : [
         {
+          "fill" : {
+            "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
+          },
           "image-name" : "hull.svg",
-          "name" : "hull",
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
-              }
-            }
-          ]
+          "name" : "hull"
         }
       ],
       "shadow" : {
