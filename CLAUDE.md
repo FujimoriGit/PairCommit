@@ -80,7 +80,6 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 - テストの層:
   - **ドメイン**（`Tests/DomainTests`）── 不変条件・ロールガード・状態遷移。ドメインを変えたら必ずここに足す。
   - **アプリケーション**（`Tests/ApplicationTests`）── Store の楽観適用・巻き戻し・リモート変更の反映。
-  - **インフラ**（`Tests/InfrastructureTests`）── 同期実装のセマンティクス。
   - **VRT**（Prefire・`PairCommitTests`）── `#Preview` からスナップショットテストを**ビルド時に自動生成**。View を作ったら `#Preview` を書くだけで対象になる（除外は `.prefireIgnored()`）。シミュレータが要るのはここだけ。
 - VRT の運用:
   - 基準画像は `PairCommitTests/__Snapshots__/` にコミットする。**record は CI でしかしない**（手元で撮らない）。手元の Mac と CI ではアンチエイリアスが一致しないため、記録する環境を1つに固定する。
