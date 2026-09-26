@@ -8,6 +8,7 @@
 import CloudKit
 import Domain
 import Foundation
+import OSLog
 
 enum PartnershipShareError: LocalizedError {
     case shareURLUnavailable
@@ -88,6 +89,9 @@ enum PartnershipShare {
             try confirmDeleted(results.deleteResults[rootRecordID.zoneID])
         } catch let error as CKError where absent.contains(error.code) {
             return
+        } catch {
+            logger.error("teardown: \(error, privacy: .public)")
+            throw error
         }
     }
 
@@ -108,6 +112,7 @@ enum PartnershipShare {
 
 private extension PartnershipShare {
     static let absent: Set<CKError.Code> = [.zoneNotFound, .userDeletedZone, .unknownItem]
+    static let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "pairing")
 
     // 消せたかどうかは項目ごとの結果に入る。オペレーション自体が投げるのは、そこへ辿り着けなかったとき。
     static func confirmDeleted(_ result: Result<Void, any Error>?) throws {

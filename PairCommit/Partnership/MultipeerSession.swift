@@ -7,6 +7,7 @@
 
 import Foundation
 import MultipeerConnectivity
+import OSLog
 
 enum MultipeerSessionError: LocalizedError {
     case notConnected
@@ -24,12 +25,13 @@ final class MultipeerSession: NSObject {
         case connected
         case received(String)
         case disconnected
-        case failed(String)
+        case failed
     }
 
     // MC の制約: 15文字以内・英小文字/数字/ハイフンのみ。
     // 変えるときは Info.plist の NSBonjourServices も同じ値にすること。
     private static let serviceType = "paircommit-pr"
+    private static let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "pairing")
 
     let events: AsyncStream<Event>
 
@@ -119,7 +121,8 @@ extension MultipeerSession: MCNearbyServiceAdvertiserDelegate {
     }
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) {
-        eventContinuation.yield(.failed("advertise失敗: \(error.localizedDescription)"))
+        Self.logger.error("advertise: \(error, privacy: .public)")
+        eventContinuation.yield(.failed)
     }
 }
 
@@ -135,6 +138,7 @@ extension MultipeerSession: MCNearbyServiceBrowserDelegate {
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}
 
     func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
-        eventContinuation.yield(.failed("browse失敗: \(error.localizedDescription)"))
+        Self.logger.error("browse: \(error, privacy: .public)")
+        eventContinuation.yield(.failed)
     }
 }

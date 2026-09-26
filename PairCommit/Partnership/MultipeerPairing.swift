@@ -9,6 +9,7 @@ import CloudKit
 import Domain
 import Foundation
 import Observation
+import OSLog
 import UIKit
 
 @MainActor
@@ -25,16 +26,16 @@ final class MultipeerPairing {
         case connected
         case sharing
         case done
-        case failed(String)
+        case failed(FailureReason)
 
         var label: String {
             switch self {
             case .idle:        return "待機中"
             case .searching:   return "相手を探しています…"
-            case .connected:   return "接続しました"
-            case .sharing:     return "共有を処理中…"
-            case .done:        return "ペアリング成功 🎉"
-            case .failed(let message): return "失敗: \(message)"
+            case .connected:   return "相手が見つかりました"
+            case .sharing:     return "ペアを登録しています…"
+            case .done:        return "ペアリングできました 🎉"
+            case .failed:      return "ペアリングできませんでした"
             }
         }
     }
@@ -72,6 +73,7 @@ final class MultipeerPairing {
 
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
+    static let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "pairing")
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -92,7 +94,8 @@ private extension MultipeerPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing:
-                phase = .failed("接続が切れた")
+                Self.logger.error("disconnected: \(String(describing: self.phase), privacy: .public)")
+                phase = .failed(.disconnected)
                 tearDown()
             case .done:
                 // 完了後の切断は正常。
@@ -100,8 +103,8 @@ private extension MultipeerPairing {
             case .idle, .searching, .failed:
                 break
             }
-        case .failed(let message):
-            phase = .failed(message)
+        case .failed:
+            phase = .failed(.nearbyUnavailable)
             tearDown()
         }
     }
@@ -146,8 +149,9 @@ private extension MultipeerPairing {
     }
 
     func fail(with error: any Error) {
+        Self.logger.error("\(self.isOwner ? "owner" : "participant", privacy: .public): \(error, privacy: .public)")
         outcome = nil
-        phase = .failed(error.localizedDescription)
+        phase = .failed(FailureReason(error))
         tearDown()
     }
 
