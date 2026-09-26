@@ -22,7 +22,11 @@ enum FailureReason: Equatable {
             self = .disconnected
             return
         }
-        switch (error as? CKError)?.code {
+        let cloudError = error as? CKError
+        switch cloudError?.code {
+        case .partialFailure:
+            let reasons = cloudError?.partialErrorsByItemID?.values.map { Self($0) } ?? []
+            self = reasons.first { $0 != .unexpected } ?? .unexpected
         case .notAuthenticated, .accountTemporarilyUnavailable:
             self = .signedOutOfICloud
         case .quotaExceeded:
