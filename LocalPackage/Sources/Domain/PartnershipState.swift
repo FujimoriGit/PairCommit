@@ -56,10 +56,7 @@ extension PartnershipState {
 
 extension PartnershipState {
     public func draftingVision(
-        statement: String,
-        doneCriteria: String,
-        deadline: Date? = nil,
-        why: String? = nil,
+        _ content: Vision.Content,
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
@@ -67,10 +64,10 @@ extension PartnershipState {
         try requiring(role, is: .player)
         let vision = Vision(
             id: id,
-            statement: try requiringText(statement),
-            doneCriteria: try requiringText(doneCriteria),
-            deadline: deadline,
-            why: nonBlank(why),
+            statement: try requiringText(content.statement),
+            doneCriteria: try requiringText(content.doneCriteria),
+            deadline: content.deadline,
+            why: nonBlank(content.why),
             status: .draft,
             createdAt: now
         )
@@ -79,17 +76,14 @@ extension PartnershipState {
 
     public func revisingVision(
         _ id: Vision.ID,
-        statement: String,
-        doneCriteria: String,
-        deadline: Date?,
-        why: String?,
+        to content: Vision.Content,
         by role: Role
     ) throws(DomainError) -> Self {
         try requiring(role, is: .player)
-        let statement = try requiringText(statement)
-        let doneCriteria = try requiringText(doneCriteria)
+        let statement = try requiringText(content.statement)
+        let doneCriteria = try requiringText(content.doneCriteria)
         let revised = try requiringDraft(id)
-            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: nonBlank(why))
+            .with(statement: statement, doneCriteria: doneCriteria, deadline: content.deadline, why: nonBlank(content.why))
         return updating(visions: visions.map { $0.id == id ? revised : $0 })
     }
 

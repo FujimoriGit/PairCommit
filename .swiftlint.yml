@@ -5,6 +5,8 @@ excluded:
   - PairCommitTests/__Snapshots__
   - build
   - LocalPackage/.build
+  # 先頭行が swift-tools-version でなければならず、ファイルヘッダーを置けない
+  - LocalPackage/Package.swift
 
 opt_in_rules:
   # コーディング規約「force unwrap を避ける」を機械的に強制
