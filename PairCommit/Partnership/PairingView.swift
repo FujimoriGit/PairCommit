@@ -31,11 +31,6 @@ struct PairingView: View {
             }
             .multilineTextAlignment(.center)
 
-            if !isFailed {
-                steps
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            }
-
             Spacer()
             if isFailed {
                 Button("選び直す", action: onCancel)
@@ -63,20 +58,6 @@ struct PairingView: View {
 // MARK: - Private
 
 private extension PairingView {
-    enum Step: Int, CaseIterable {
-        case searching
-        case sharing
-        case loading
-
-        var title: String {
-            switch self {
-            case .searching: return "近くの相手を見つける"
-            case .sharing:   return "iCloud で共有する"
-            case .loading:   return "ペアの情報を読み込む"
-            }
-        }
-    }
-
     struct Radar: View {
         let isAnimated: Bool
 
@@ -135,15 +116,6 @@ private extension PairingView {
 
     var isSharing: Bool {
         phase == .connected || phase == .sharing
-    }
-
-    // 成功してからも、読み込みが終わるまではこの画面が出ている。
-    var currentStep: Step {
-        switch phase {
-        case .idle, .searching, .failed: return .searching
-        case .connected, .sharing:       return .sharing
-        case .done:                      return .loading
-        }
     }
 
     var headline: String {
@@ -210,34 +182,6 @@ private extension PairingView {
         case .idle, .searching, .connected, .sharing:
             return AnyShapeStyle(Color(.secondarySystemGroupedBackground))
         }
-    }
-
-    var steps: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(Step.allCases, id: \.self) { step in
-                HStack(spacing: 12) {
-                    Image(systemName: symbol(for: step))
-                        .foregroundStyle(symbolStyle(for: step))
-                        .contentTransition(.symbolEffect(.replace))
-                        .symbolEffect(.pulse, options: .repeating, isActive: animates && step == currentStep)
-                        .accessibilityHidden(true)
-                    Text(step.title)
-                        .fontWeight(step == currentStep ? .semibold : .regular)
-                        .foregroundStyle(step == currentStep ? HierarchicalShapeStyle.primary : .secondary)
-                }
-            }
-        }
-        .card()
-    }
-
-    func symbol(for step: Step) -> String {
-        if step.rawValue < currentStep.rawValue { return "checkmark.circle.fill" }
-        if step == currentStep { return "ellipsis.circle.fill" }
-        return "circle"
-    }
-
-    func symbolStyle(for step: Step) -> AnyShapeStyle {
-        step.rawValue > currentStep.rawValue ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint)
     }
 }
 
