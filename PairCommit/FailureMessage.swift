@@ -45,7 +45,7 @@ extension FailureReason {
             "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください"
         case .disconnected: "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください"
         case .partnerFailed: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください"
-        case .bothChoseRoles: "2台とも役割を選んでいます。片方の端末では「相手の招待を受ける」を押してください"
+        case .sameRole(let role): "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください"
         case .bothAccepting: "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください"
         case .unexpected: "うまくいきませんでした。もう一度お試しください"
         }

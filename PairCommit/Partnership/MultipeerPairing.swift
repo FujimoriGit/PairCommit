@@ -74,8 +74,22 @@ final class MultipeerPairing {
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
     static let failureMessage = "paircommit://failed"
-    static let ownerMessage = "paircommit://owner"
-    static let participantMessage = "paircommit://participant"
+    static let sidePrefix = "paircommit://side/"
+    static let participantSideName = "participant"
+
+    static func message(for side: PairingSide) -> String {
+        switch side {
+        case .owner(let role): sidePrefix + role.rawValue
+        case .participant: sidePrefix + participantSideName
+        }
+    }
+
+    static func side(from message: String) -> PairingSide? {
+        guard message.hasPrefix(sidePrefix) else { return nil }
+        let name = String(message.dropFirst(sidePrefix.count))
+        if name == participantSideName { return .participant }
+        return Role(rawValue: name).map { .owner($0) }
+    }
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -114,24 +128,34 @@ private extension MultipeerPairing {
     func handleConnected() {
         phase = .connected
         do {
-            try multipeer?.send(isOwner ? Self.ownerMessage : Self.participantMessage)
+            try multipeer?.send(Self.message(for: side))
         } catch {
             fail(with: error)
         }
     }
 
-    func handlePartnerSide(isOwner partnerIsOwner: Bool) {
+    func handlePartnerSide(_ partner: PairingSide) {
         guard phase == .connected else { return }
-        guard partnerIsOwner != isOwner else {
-            // 相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
-            phase = .failed(isOwner ? .bothChoseRoles : .bothAccepting)
-            return
+        // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
+        switch (side, partner) {
+        case (.owner(let role), .participant):
+            makeShare(ownerRole: role)
+        case (.owner(let role), .owner(let partnerRole)) where role == partnerRole:
+            phase = .failed(.sameRole(role))
+        case (.owner(.manager), .owner):
+            makeShare(ownerRole: .manager)
+        case (.participant, .participant):
+            phase = .failed(.bothAccepting)
+        case (.owner(.player), .owner), (.participant, .owner):
+            break
         }
-        guard case .owner(let role) = side else { return }
+    }
+
+    func makeShare(ownerRole: Role) {
         phase = .sharing
         Task {
             do {
-                let paired = try PartnershipState().establishingPairing(ownerRole: role)
+                let paired = try PartnershipState().establishingPairing(ownerRole: ownerRole)
                 let share = try await PartnershipShare.makeShare(initialState: paired)
                 outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
                 try multipeer?.send(share.url.absoluteString)
@@ -142,33 +166,39 @@ private extension MultipeerPairing {
         }
     }
 
+    func acceptShare(from url: URL) {
+        phase = .sharing
+        Task {
+            do {
+                let rootRecordID = try await PartnershipShare.acceptShare(from: url)
+                outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
+                try multipeer?.send(Self.ackMessage)
+                // すぐ切断すると ACK が届く前にセッションが落ちることがある。
+                phase = .done
+            } catch {
+                fail(with: error)
+            }
+        }
+    }
+
     func handleReceived(_ text: String) {
+        if let partner = Self.side(from: text) {
+            handlePartnerSide(partner)
+            return
+        }
         switch text {
         case Self.failureMessage:
             guard phase == .connected || phase == .sharing else { return }
             outcome = nil
             phase = .failed(.partnerFailed)
             tearDown()
-        case Self.ownerMessage, Self.participantMessage:
-            handlePartnerSide(isOwner: text == Self.ownerMessage)
         case Self.ackMessage:
-            guard isOwner, phase == .sharing else { return }
+            guard phase == .sharing, outcome?.isOwner == true else { return }
             phase = .done
             tearDown()
         default:
-            guard !isOwner, phase == .connected, let url = URL(string: text) else { return }
-            phase = .sharing
-            Task {
-                do {
-                    let rootRecordID = try await PartnershipShare.acceptShare(from: url)
-                    outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
-                    try multipeer?.send(Self.ackMessage)
-                    // すぐ切断すると ACK が届く前にセッションが落ちることがある。
-                    phase = .done
-                } catch {
-                    fail(with: error)
-                }
-            }
+            guard phase == .connected, let url = URL(string: text) else { return }
+            acceptShare(from: url)
         }
     }
 

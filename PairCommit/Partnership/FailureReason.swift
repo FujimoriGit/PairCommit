@@ -6,6 +6,7 @@
 //
 
 import CloudKit
+import Domain
 
 /// 通信の失敗を、利用者が自分で手を打てる単位に分けたもの。
 enum FailureReason: Equatable {
@@ -17,7 +18,7 @@ enum FailureReason: Equatable {
     case nearbyUnavailable
     case disconnected
     case partnerFailed
-    case bothChoseRoles
+    case sameRole(Role)
     case bothAccepting
     case unexpected
 
