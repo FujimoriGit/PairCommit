@@ -34,7 +34,7 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         public let deadline: Date?
         public let why: String?
 
-        public init(statement: String, doneCriteria: String, deadline: Date? = nil, why: String? = nil) {
+        public init(statement: String, doneCriteria: String, deadline: Date?, why: String?) {
             self.statement = statement
             self.doneCriteria = doneCriteria
             self.deadline = deadline

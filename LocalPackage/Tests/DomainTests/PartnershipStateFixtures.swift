@@ -11,7 +11,7 @@ import Foundation
 extension PartnershipState {
     func proposedVision() throws -> (state: PartnershipState, visionID: Vision.ID) {
         let (drafted, visionID) = try draftingVision(
-            .init(statement: "statement", doneCriteria: "criteria"), by: .player
+            .init(statement: "statement", doneCriteria: "criteria", deadline: nil, why: nil), by: .player
         )
         return (try drafted.proposingVision(visionID, by: .player), visionID)
     }
@@ -28,7 +28,7 @@ extension PartnershipState {
 
     func closedVision(statement: String, as outcome: Vision.Outcome, now: Date) throws -> Self {
         let (drafted, visionID) = try draftingVision(
-            .init(statement: statement, doneCriteria: "criteria"), by: .player, now: now
+            .init(statement: statement, doneCriteria: "criteria", deadline: nil, why: nil), by: .player, now: now
         )
         return try drafted
             .proposingVision(visionID, by: .player)

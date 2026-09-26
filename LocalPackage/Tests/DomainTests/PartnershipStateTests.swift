@@ -65,7 +65,7 @@ struct PartnershipStateTests {
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
         let (paired, visionID) = try PartnershipState()
             .establishingPairing(ownerRole: .manager)
-            .draftingVision(.init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: deadline), by: .player)
+            .draftingVision(.init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: deadline, why: nil), by: .player)
         let (active, taskID) = try paired
             .proposingVision(visionID, by: .player)
             .approvingVision(visionID, by: .manager)

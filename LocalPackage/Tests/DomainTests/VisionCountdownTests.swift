@@ -93,7 +93,7 @@ private func vision(deadline: Date?) -> Vision {
 
 private func activeState(deadline: Date) throws -> PartnershipState {
     let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
-    let drafted = try paired.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: deadline), by: .player)
+    let drafted = try paired.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: deadline, why: nil), by: .player)
     let proposed = try drafted.state.proposingVision(drafted.visionID, by: .player)
     return try proposed.approvingVision(drafted.visionID, by: .manager)
 }

@@ -18,7 +18,7 @@ struct VisionDraftingTests {
 
         // When / Then
         #expect(throws: DomainError.roleForbidden(required: .player)) {
-            try state.draftingVision(.init(statement: "s", doneCriteria: "c"), by: .manager)
+            try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .manager)
         }
     }
 
@@ -57,10 +57,10 @@ struct VisionDraftingTests {
 
         // When / Then
         #expect(throws: DomainError.blankText) {
-            try state.draftingVision(.init(statement: "  ", doneCriteria: "c"), by: .player)
+            try state.draftingVision(.init(statement: "  ", doneCriteria: "c", deadline: nil, why: nil), by: .player)
         }
         #expect(throws: DomainError.blankText) {
-            try state.draftingVision(.init(statement: "s", doneCriteria: "\n"), by: .player)
+            try state.draftingVision(.init(statement: "s", doneCriteria: "\n", deadline: nil, why: nil), by: .player)
         }
     }
 
@@ -68,12 +68,12 @@ struct VisionDraftingTests {
     func visionCannotBeRevisedToBlankText() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "s", doneCriteria: "c"), by: .player
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
         )
 
         // When / Then
         #expect(throws: DomainError.blankText) {
-            try state.revisingVision(visionID, to: .init(statement: " ", doneCriteria: "c"), by: .player)
+            try state.revisingVision(visionID, to: .init(statement: " ", doneCriteria: "c", deadline: nil, why: nil), by: .player)
         }
     }
 
@@ -81,7 +81,7 @@ struct VisionDraftingTests {
     func surroundingWhitespaceIsTrimmed() throws {
         // Given
         let (drafted, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "\n\nやる\n", doneCriteria: " c ", why: "　w\n"), by: .player
+            .init(statement: "\n\nやる\n", doneCriteria: " c ", deadline: nil, why: "　w\n"), by: .player
         )
         let active = try drafted
             .proposingVision(visionID, by: .player)
@@ -104,9 +104,9 @@ struct VisionDraftingTests {
         let state = PartnershipState()
 
         // When
-        let (drafted, visionID) = try state.draftingVision(.init(statement: "s", doneCriteria: "c", why: " \n"), by: .player)
+        let (drafted, visionID) = try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: " \n"), by: .player)
         let revised = try drafted.revisingVision(
-            visionID, to: .init(statement: "s", doneCriteria: "c", why: "　"), by: .player
+            visionID, to: .init(statement: "s", doneCriteria: "c", deadline: nil, why: "　"), by: .player
         )
 
         // Then
@@ -118,12 +118,12 @@ struct VisionDraftingTests {
     func onlyPlayerCanReviseVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "s", doneCriteria: "c"), by: .player
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
         )
 
         // When / Then
         #expect(throws: DomainError.roleForbidden(required: .player)) {
-            try state.revisingVision(visionID, to: .init(statement: "s2", doneCriteria: "c2"), by: .manager)
+            try state.revisingVision(visionID, to: .init(statement: "s2", doneCriteria: "c2", deadline: nil, why: nil), by: .manager)
         }
     }
 
@@ -134,7 +134,7 @@ struct VisionDraftingTests {
 
         // When / Then
         #expect(throws: DomainError.invalidVisionTransition(from: .proposed)) {
-            try state.revisingVision(visionID, to: .init(statement: "s2", doneCriteria: "c2"), by: .player)
+            try state.revisingVision(visionID, to: .init(statement: "s2", doneCriteria: "c2", deadline: nil, why: nil), by: .player)
         }
     }
 
@@ -142,7 +142,7 @@ struct VisionDraftingTests {
     func playerCanDiscardDraftVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "s", doneCriteria: "c"), by: .player
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
         )
 
         // When
@@ -156,7 +156,7 @@ struct VisionDraftingTests {
     func onlyPlayerCanDiscardVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "s", doneCriteria: "c"), by: .player
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
         )
 
         // When / Then

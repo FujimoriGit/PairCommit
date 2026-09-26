@@ -15,7 +15,7 @@ struct VisionLifecycleTests {
     func visionBecomesActiveWhenManagerApprovesPlayersProposal() throws {
         // Given
         let (drafted, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA"), by: .player
+            .init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: nil, why: nil), by: .player
         )
 
         // When
@@ -66,7 +66,7 @@ struct VisionLifecycleTests {
     func draftVisionCannotBeApprovedDirectly() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "s", doneCriteria: "c"), by: .player
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
         )
 
         // When / Then
