@@ -190,12 +190,7 @@ struct NudgeTests {
 private extension NudgeTests {
     func activeVision(deadline: Date? = nil) throws -> (state: PartnershipState, visionID: Vision.ID) {
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
-        let drafted = try paired.draftingVision(
-            statement: "s",
-            doneCriteria: "c",
-            deadline: deadline,
-            by: .player
-        )
+        let drafted = try paired.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: deadline), by: .player)
         let proposed = try drafted.state.proposingVision(drafted.visionID, by: .player)
         return (try proposed.approvingVision(drafted.visionID, by: .manager), drafted.visionID)
     }
