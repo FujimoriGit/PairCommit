@@ -63,9 +63,17 @@ enum PartnershipShare {
         share.publicPermission = .readWrite
 
         // ルートレコードと CKShare は同一オペレーションで原子的に保存する必要がある。
-        _ = try await database.modifyRecords(saving: [pairing, share], deleting: [])
-
-        guard let url = share.url else { throw PartnershipShareError.shareURLUnavailable }
+        let saved = try await database.modifyRecords(saving: [pairing, share], deleting: [])
+        // 原子的な保存が失敗すると、原因はルートレコード側に入り、共有側は batchRequestFailed になる。
+        guard let rootResult = saved.saveResults[rootRecordID],
+              let shareResult = saved.saveResults[share.recordID] else {
+            throw PartnershipShareError.saveResultMissing
+        }
+        _ = try rootResult.get()
+        // URL はサーバーが割り当て、返ってきたレコードにだけ入る。渡した側のインスタンスは更新されない。
+        guard let url = (try shareResult.get() as? CKShare)?.url else {
+            throw PartnershipShareError.shareURLUnavailable
+        }
         return (url, rootRecordID)
     }
 
