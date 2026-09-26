@@ -9,10 +9,17 @@ import Domain
 import FoundationModels
 
 struct OnDeviceCriteriaReview: CriteriaReviewing {
-    static var isAvailable: Bool { SystemLanguageModel.default.isAvailable }
+    static var isAvailable: Bool {
+        if #available(iOS 26.0, *) {
+            SystemLanguageModel.default.isAvailable
+        } else {
+            false
+        }
+    }
 
     func review(statement: String, doneCriteria: String) async throws(ReviewFailure) -> CriteriaReview {
-        guard Self.isAvailable else { throw .unavailable }
+        guard Self.isAvailable,
+              #available(iOS 26.0, *) else { throw .unavailable }
 
         let session = LanguageModelSession(instructions: Self.instructions)
         do {
@@ -41,6 +48,7 @@ private extension OnDeviceCriteriaReview {
     }
 }
 
+@available(iOS 26.0, *)
 @Generable
 private struct Reviewed {
     @Guide(description: "達成できたかどうかを第三者が確認できる書き方なら true")

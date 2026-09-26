@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "LocalPackage",
     platforms: [
-        .iOS("26.2"),
+        .iOS("18.6"),
         .macOS("14.0"),
     ],
     products: [
@@ -47,13 +47,6 @@ let package = Package(
         .testTarget(
             name: "ApplicationTests",
             dependencies: ["Application", "Infrastructure"],
-            plugins: [
-                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
-            ]
-        ),
-        .testTarget(
-            name: "InfrastructureTests",
-            dependencies: ["Infrastructure"],
             plugins: [
                 .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
             ]

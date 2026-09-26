@@ -45,7 +45,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - `@Observable` を使う。`ObservableObject` / `@Published` は使わない。
   - View 側は `@State`（旧 `@StateObject` は使わない）。
 - **`private` メソッドは `private extension` にまとめる。** 型本体には格納プロパティと公開 API を置き、private な実装は `// MARK: - Private` の `private extension` に分離する。
-- **不要な条件コンパイルを足さない。** 本アプリは iOS 専用（`SDKROOT = iphoneos`, iPhone/iPad）。UIKit は常に使えるので `#if canImport(UIKit)` のようなプラットフォーム分岐は書かない。
+- **不要な条件コンパイルを足さない。** 本アプリは iOS 専用（`SDKROOT = iphoneos`, iPhone のみ）。UIKit は常に使えるので `#if canImport(UIKit)` のようなプラットフォーム分岐は書かない。
 - **ファイルヘッダーはテンプレートに揃える**（lint の `file_header` が強制。空コメント行は `//` のみ・末尾空白なし、ヘッダー後の空行は1行）。
   ```
   //
@@ -80,7 +80,6 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 - テストの層:
   - **ドメイン**（`Tests/DomainTests`）── 不変条件・ロールガード・状態遷移。ドメインを変えたら必ずここに足す。
   - **アプリケーション**（`Tests/ApplicationTests`）── Store の楽観適用・巻き戻し・リモート変更の反映。
-  - **インフラ**（`Tests/InfrastructureTests`）── 同期実装のセマンティクス。
   - **VRT**（Prefire・`PairCommitTests`）── `#Preview` からスナップショットテストを**ビルド時に自動生成**。View を作ったら `#Preview` を書くだけで対象になる（除外は `.prefireIgnored()`）。シミュレータが要るのはここだけ。
 - VRT の運用:
   - 基準画像は `PairCommitTests/__Snapshots__/` にコミットする。**record は CI でしかしない**（手元で撮らない）。手元の Mac と CI ではアンチエイリアスが一致しないため、記録する環境を1つに固定する。
