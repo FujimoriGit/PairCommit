@@ -28,6 +28,20 @@ public struct Vision: Identifiable, Sendable, Codable, Equatable {
         }
     }
 
+    public struct Content: Sendable, Equatable {
+        public let statement: String
+        public let doneCriteria: String
+        public let deadline: Date?
+        public let why: String?
+
+        public init(statement: String, doneCriteria: String, deadline: Date?, why: String?) {
+            self.statement = statement
+            self.doneCriteria = doneCriteria
+            self.deadline = deadline
+            self.why = why
+        }
+    }
+
     public let id: UUID
     public let statement: String
     public let doneCriteria: String

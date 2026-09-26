@@ -15,6 +15,10 @@ struct VisionInput {
     var why = ""
 
     var isComplete: Bool { !statement.isBlank && !doneCriteria.isBlank }
+
+    var content: Vision.Content {
+        .init(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: why)
+    }
 }
 
 extension VisionInput {

@@ -9,6 +9,7 @@ import CloudKit
 import Domain
 import Foundation
 import Observation
+import OSLog
 import UIKit
 
 @MainActor
@@ -25,16 +26,16 @@ final class MultipeerPairing {
         case connected
         case sharing
         case done
-        case failed(String)
+        case failed(FailureReason)
 
         var label: String {
             switch self {
             case .idle:        return "待機中"
             case .searching:   return "相手を探しています…"
-            case .connected:   return "接続しました"
-            case .sharing:     return "共有を処理中…"
-            case .done:        return "ペアリング成功 🎉"
-            case .failed(let message): return "失敗: \(message)"
+            case .connected:   return "相手が見つかりました"
+            case .sharing:     return "ペアを登録しています…"
+            case .done:        return "ペアリングできました 🎉"
+            case .failed:      return "ペアリングできませんでした"
             }
         }
     }
@@ -72,6 +73,7 @@ final class MultipeerPairing {
 
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
+    static let failureMessage = "paircommit://failed"
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -92,16 +94,17 @@ private extension MultipeerPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing:
-                phase = .failed("接続が切れた")
+                Logger.pairing.error("disconnected: \(String(describing: self.phase), privacy: .public)")
+                phase = .failed(.disconnected)
                 tearDown()
-            case .done:
-                // 完了後の切断は正常。
+            case .done, .failed:
+                // 完了後や、失敗を知らせたあとの切断は正常。
                 tearDown()
-            case .idle, .searching, .failed:
+            case .idle, .searching:
                 break
             }
-        case .failed(let message):
-            phase = .failed(message)
+        case .failed:
+            phase = .failed(.nearbyUnavailable)
             tearDown()
         }
     }
@@ -124,6 +127,13 @@ private extension MultipeerPairing {
     }
 
     func handleReceived(_ text: String) {
+        if text == Self.failureMessage {
+            guard phase == .connected || phase == .sharing else { return }
+            outcome = nil
+            phase = .failed(.partnerFailed)
+            tearDown()
+            return
+        }
         if isOwner {
             guard phase == .sharing, text == Self.ackMessage else { return }
             phase = .done
@@ -146,9 +156,16 @@ private extension MultipeerPairing {
     }
 
     func fail(with error: any Error) {
+        Logger.pairing.error("\(self.isOwner ? "owner" : "participant", privacy: .public): \(error, privacy: .public)")
         outcome = nil
-        phase = .failed(error.localizedDescription)
-        tearDown()
+        phase = .failed(FailureReason(error))
+        // 知らせないと、相手には接続が切れたとしか見えない。すぐ切ると届く前にセッションが落ちるので、
+        // 切るのは相手が受け取って切断したとき。
+        do {
+            try multipeer?.send(Self.failureMessage)
+        } catch {
+            tearDown()
+        }
     }
 
     func tearDown() {
