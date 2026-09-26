@@ -20,7 +20,22 @@
     },
     {
       "appearance" : "dark",
-      "value" : "automatic"
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.16471,0.15686,0.43922,1.00000",
+          "srgb:0.05490,0.29020,0.33333,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 0
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 1
+          }
+        }
+      }
     }
   ],
   "groups" : [
@@ -38,20 +53,7 @@
             {
               "appearance" : "dark",
               "value" : {
-                "linear-gradient" : [
-                  "srgb:0.78824,0.78039,0.96078,1.00000",
-                  "srgb:0.65882,0.86275,0.90196,1.00000"
-                ],
-                "orientation" : {
-                  "start" : {
-                    "x" : 0.5,
-                    "y" : 0
-                  },
-                  "stop" : {
-                    "x" : 0.5,
-                    "y" : 1
-                  }
-                }
+                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
               }
             }
           ]
@@ -75,20 +77,7 @@
             {
               "appearance" : "dark",
               "value" : {
-                "linear-gradient" : [
-                  "srgb:0.78824,0.78039,0.96078,1.00000",
-                  "srgb:0.65882,0.86275,0.90196,1.00000"
-                ],
-                "orientation" : {
-                  "start" : {
-                    "x" : 0.5,
-                    "y" : 0
-                  },
-                  "stop" : {
-                    "x" : 0.5,
-                    "y" : 1
-                  }
-                }
+                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
               }
             }
           ]
@@ -98,21 +87,10 @@
         "kind" : "neutral",
         "opacity" : 0.5
       },
-      "translucency-specializations" : [
-        {
-          "value" : {
-            "enabled" : true,
-            "value" : 0.5
-          }
-        },
-        {
-          "appearance" : "dark",
-          "value" : {
-            "enabled" : false,
-            "value" : 0.5
-          }
-        }
-      ]
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
     },
     {
       "layers" : [
@@ -128,20 +106,7 @@
             {
               "appearance" : "dark",
               "value" : {
-                "linear-gradient" : [
-                  "srgb:0.78824,0.78039,0.96078,1.00000",
-                  "srgb:0.65882,0.86275,0.90196,1.00000"
-                ],
-                "orientation" : {
-                  "start" : {
-                    "x" : 0.5,
-                    "y" : 0
-                  },
-                  "stop" : {
-                    "x" : 0.5,
-                    "y" : 1
-                  }
-                }
+                "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
               }
             }
           ]
@@ -151,21 +116,10 @@
         "kind" : "neutral",
         "opacity" : 0.5
       },
-      "translucency-specializations" : [
-        {
-          "value" : {
-            "enabled" : true,
-            "value" : 0.5
-          }
-        },
-        {
-          "appearance" : "dark",
-          "value" : {
-            "enabled" : false,
-            "value" : 0.5
-          }
-        }
-      ]
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
     }
   ],
   "supported-platforms" : {
