@@ -44,6 +44,7 @@ extension FailureReason {
         case .nearbyUnavailable:
             "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください"
         case .disconnected: "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください"
+        case .partnerFailed: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください"
         case .unexpected: "うまくいきませんでした。もう一度お試しください"
         }
     }

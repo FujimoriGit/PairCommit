@@ -16,6 +16,7 @@ enum FailureReason: Equatable {
     case offline
     case nearbyUnavailable
     case disconnected
+    case partnerFailed
     case unexpected
 
     init(_ error: any Error) {

@@ -73,6 +73,7 @@ final class MultipeerPairing {
 
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
+    static let failureMessage = "paircommit://failed"
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -96,10 +97,10 @@ private extension MultipeerPairing {
                 Logger.pairing.error("disconnected: \(String(describing: self.phase), privacy: .public)")
                 phase = .failed(.disconnected)
                 tearDown()
-            case .done:
-                // 完了後の切断は正常。
+            case .done, .failed:
+                // 完了後や、失敗を知らせたあとの切断は正常。
                 tearDown()
-            case .idle, .searching, .failed:
+            case .idle, .searching:
                 break
             }
         case .failed:
@@ -126,6 +127,13 @@ private extension MultipeerPairing {
     }
 
     func handleReceived(_ text: String) {
+        if text == Self.failureMessage {
+            guard phase == .connected || phase == .sharing else { return }
+            outcome = nil
+            phase = .failed(.partnerFailed)
+            tearDown()
+            return
+        }
         if isOwner {
             guard phase == .sharing, text == Self.ackMessage else { return }
             phase = .done
@@ -151,7 +159,13 @@ private extension MultipeerPairing {
         Logger.pairing.error("\(self.isOwner ? "owner" : "participant", privacy: .public): \(error, privacy: .public)")
         outcome = nil
         phase = .failed(FailureReason(error))
-        tearDown()
+        // 知らせないと、相手には接続が切れたとしか見えない。すぐ切ると届く前にセッションが落ちるので、
+        // 切るのは相手が受け取って切断したとき。
+        do {
+            try multipeer?.send(Self.failureMessage)
+        } catch {
+            tearDown()
+        }
     }
 
     func tearDown() {
