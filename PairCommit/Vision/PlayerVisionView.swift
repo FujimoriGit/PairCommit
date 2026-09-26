@@ -187,11 +187,11 @@ private extension PlayerVisionView {
     }
 
     func draft() {
-        let entered = input
+        let content = input.content
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.draftingVision(entered.content, by: role).state
+                    try state.draftingVision(content, by: role).state
                 }
                 failureMessage = nil
                 input = .init()
@@ -203,11 +203,11 @@ private extension PlayerVisionView {
     }
 
     func revise(_ vision: Vision) {
-        let entered = input
+        let content = input.content
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.revisingVision(vision.id, to: entered.content, by: role)
+                    try state.revisingVision(vision.id, to: content, by: role)
                 }
                 failureMessage = nil
                 input = .init()
