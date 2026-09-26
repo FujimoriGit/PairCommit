@@ -110,7 +110,7 @@ private extension ContentView {
                 VStack(spacing: 16) {
                     ForEach(Role.allCases, id: \.self) { role in
                         Button {
-                            begin(as: .owner(role))
+                            begin(with: .role(role))
                         } label: {
                             roleCard(role)
                         }
@@ -124,7 +124,7 @@ private extension ContentView {
 
                     Panel {
                         Button("相手の招待を受ける") {
-                            begin(as: .participant)
+                            begin(with: .invitation)
                         }
                         .buttonStyle(.filled)
                         Text("相手が選ばなかったほうの役割になります。")
@@ -168,9 +168,9 @@ private extension ContentView {
         .card(outlined: role.accent.opacity(0.35))
     }
 
-    func begin(as side: PairingSide) {
+    func begin(with choice: PairingChoice) {
         failureMessage = nil
-        pairing.start(as: side)
+        pairing.start(with: choice)
     }
 
     func enter(_ outcome: MultipeerPairing.Outcome, resuming: Bool) async {
