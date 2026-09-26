@@ -4,6 +4,11 @@
 <dict>
 	<key>CFBundleDisplayName</key>
 	<string>ふたりの帆柱</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ja</string>
+	</array>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_paircommit-pr._tcp</string>
