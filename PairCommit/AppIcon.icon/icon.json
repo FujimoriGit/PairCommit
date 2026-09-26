@@ -1,0 +1,98 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.58824,0.58039,0.89020,1.00000",
+          "srgb:0.40392,0.64706,0.70196,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 0
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 1
+          }
+        }
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.16471,0.15686,0.43922,1.00000",
+          "srgb:0.05490,0.29020,0.33333,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 0
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 1
+          }
+        }
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "fill" : {
+            "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
+          },
+          "image-name" : "mast.svg",
+          "name" : "mast"
+        },
+        {
+          "fill" : {
+            "solid" : "srgb:0.89804,0.67451,0.37647,1.00000"
+          },
+          "image-name" : "sail-left.svg",
+          "name" : "sail-left"
+        },
+        {
+          "fill" : {
+            "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
+          },
+          "image-name" : "sail-right.svg",
+          "name" : "sail-right"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill" : {
+            "solid" : "srgb:0.95686,0.92549,0.87059,1.00000"
+          },
+          "image-name" : "hull.svg",
+          "name" : "hull"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
