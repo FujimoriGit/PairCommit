@@ -8,6 +8,7 @@
 import CloudKit
 import Domain
 import Foundation
+import OSLog
 
 enum PartnershipShareError: LocalizedError {
     case shareURLUnavailable
@@ -102,6 +103,9 @@ enum PartnershipShare {
             try confirmDeleted(results.deleteResults[rootRecordID.zoneID])
         } catch let error as CKError where absent.contains(error.code) {
             return
+        } catch {
+            Logger.pairing.error("teardown: \(error, privacy: .public)")
+            throw error
         }
     }
 

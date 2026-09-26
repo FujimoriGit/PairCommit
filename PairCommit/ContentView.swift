@@ -216,7 +216,7 @@ private extension ContentView {
         do {
             try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
         } catch {
-            return error.localizedDescription
+            return FailureReason(error).message
         }
         await returnToPicker(with: nil)
         return nil

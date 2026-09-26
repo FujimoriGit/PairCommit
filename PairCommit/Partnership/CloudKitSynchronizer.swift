@@ -13,7 +13,7 @@ import OSLog
 struct CloudKitSynchronizer {
     private let database: CKDatabase
     private let rootRecordID: CKRecord.ID
-    private let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "sync")
+    private let logger = Logger.sync
 
     init(rootRecordID: CKRecord.ID, isOwner: Bool, container: CKContainer) {
         self.rootRecordID = rootRecordID

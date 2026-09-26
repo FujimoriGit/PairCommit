@@ -28,14 +28,14 @@ struct PairingView: View {
                 Text(phase.label)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("2台を近くに置いたまま待ってください。")
+                Text(note)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             .multilineTextAlignment(.center)
 
             Spacer()
-            Button("やめる", action: onCancel)
+            Button(failure == nil ? "やめる" : "戻る", action: onCancel)
                 .buttonStyle(.soft)
         }
         .padding(24)
@@ -44,6 +44,23 @@ struct PairingView: View {
     }
 }
 
+// MARK: - Private
+
+private extension PairingView {
+    var failure: FailureReason? {
+        guard case .failed(let reason) = phase else { return nil }
+        return reason
+    }
+
+    var note: String {
+        failure?.message ?? "2台を近くに置いたまま待ってください。"
+    }
+}
+
 #Preview("ペアリングの相手待ち") {
     PairingView(phase: .searching, onCancel: {})
+}
+
+#Preview("ペアリングの失敗") {
+    PairingView(phase: .failed(.signedOutOfICloud), onCancel: {})
 }
