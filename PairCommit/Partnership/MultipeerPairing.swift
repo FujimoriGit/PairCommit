@@ -156,14 +156,18 @@ private extension MultipeerPairing {
             do {
                 let paired = try PartnershipState().establishingPairing(ownerRole: ownerRole)
                 let share = try await PartnershipShare.makeShare(initialState: paired)
+                // 待っているあいだに、切断や取り消しで終わっていることがある。
+                guard phase == .sharing else { return }
                 outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
                 try multipeer?.send(share.url.absoluteString)
                 // 完了にするのは ACK を受け取った時点。
             } catch let error where handsOverOnRefusal && FailureReason(error) == .iCloudFull {
+                guard phase == .sharing else { return }
                 // ファミリー共有の iCloud+ に空きがあっても、自分の使用量が無料の 5GB を超えていると断られる（FB16214848）。
                 Logger.pairing.error("hand over: \(error, privacy: .public)")
                 handOver(ownerRole)
             } catch {
+                guard phase == .sharing else { return }
                 fail(with: error)
             }
         }
@@ -183,11 +187,13 @@ private extension MultipeerPairing {
         Task {
             do {
                 let rootRecordID = try await PartnershipShare.acceptShare(from: url)
+                guard phase == .sharing else { return }
                 outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
                 try multipeer?.send(Self.ackMessage)
                 // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                 phase = .done
             } catch {
+                guard phase == .sharing else { return }
                 fail(with: error)
             }
         }
