@@ -25,6 +25,7 @@ final class MultipeerPairing {
         case searching
         case connected
         case sharing
+        case handedOver
         case done
         case failed(FailureReason)
 
@@ -33,7 +34,7 @@ final class MultipeerPairing {
             case .idle:        return "待機中"
             case .searching:   return "相手を探しています…"
             case .connected:   return "相手が見つかりました"
-            case .sharing:     return "ペアを登録しています…"
+            case .sharing, .handedOver: return "ペアを登録しています…"
             case .done:        return "ペアリングできました 🎉"
             case .failed:      return "ペアリングできませんでした"
             }
@@ -76,6 +77,7 @@ private extension MultipeerPairing {
     static let failureMessage = "paircommit://failed"
     static let choicePrefix = "paircommit://choice/"
     static let invitationName = "invitation"
+    static let handOverPrefix = "paircommit://hand-over/"
 
     static func message(for choice: PairingChoice) -> String {
         switch choice {
@@ -104,7 +106,7 @@ private extension MultipeerPairing {
             handleReceived(text)
         case .disconnected:
             switch phase {
-            case .connected, .sharing:
+            case .connected, .sharing, .handedOver:
                 Logger.pairing.error("disconnected: \(String(describing: self.phase), privacy: .public)")
                 phase = .failed(.disconnected)
                 tearDown()
@@ -138,7 +140,7 @@ private extension MultipeerPairing {
         // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
         switch choice.plan(with: partner) {
         case .makeShare(let ownerRole):
-            makeShare(ownerRole: ownerRole)
+            makeShare(ownerRole: ownerRole, handsOverOnRefusal: true)
         case .awaitShare:
             break
         case .sameRole(let role):
@@ -148,31 +150,56 @@ private extension MultipeerPairing {
         }
     }
 
-    func makeShare(ownerRole: Role) {
+    func makeShare(ownerRole: Role, handsOverOnRefusal: Bool) {
         phase = .sharing
+        let session = multipeer
         Task {
             do {
                 let paired = try PartnershipState().establishingPairing(ownerRole: ownerRole)
                 let share = try await PartnershipShare.makeShare(initialState: paired)
+                // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
+                guard isSharing(in: session) else { return }
                 outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
                 try multipeer?.send(share.url.absoluteString)
                 // 完了にするのは ACK を受け取った時点。
+            } catch let error where handsOverOnRefusal && FailureReason(error) == .iCloudFull {
+                guard isSharing(in: session) else { return }
+                // ファミリー共有の iCloud+ に空きがあっても、自分の使用量が無料の 5GB を超えていると断られる（FB16214848）。
+                Logger.pairing.error("hand over: \(error, privacy: .public)")
+                handOver(ownerRole)
             } catch {
+                guard isSharing(in: session) else { return }
                 fail(with: error)
             }
         }
     }
 
+    func isSharing(in session: MultipeerSession?) -> Bool {
+        multipeer === session && phase == .sharing
+    }
+
+    func handOver(_ role: Role) {
+        do {
+            try multipeer?.send(Self.handOverPrefix + role.rawValue)
+            phase = .handedOver
+        } catch {
+            fail(with: error)
+        }
+    }
+
     func acceptShare(from url: URL) {
         phase = .sharing
+        let session = multipeer
         Task {
             do {
                 let rootRecordID = try await PartnershipShare.acceptShare(from: url)
+                guard isSharing(in: session) else { return }
                 outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
                 try multipeer?.send(Self.ackMessage)
                 // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                 phase = .done
             } catch {
+                guard isSharing(in: session) else { return }
                 fail(with: error)
             }
         }
@@ -185,16 +212,20 @@ private extension MultipeerPairing {
         }
         switch text {
         case Self.failureMessage:
-            guard phase == .connected || phase == .sharing else { return }
+            guard phase == .connected || phase == .sharing || phase == .handedOver else { return }
             outcome = nil
-            phase = .failed(.partnerFailed)
+            phase = .failed(phase == .handedOver ? .iCloudFull : .partnerFailed)
             tearDown()
         case Self.ackMessage:
             guard phase == .sharing, outcome?.isOwner == true else { return }
             phase = .done
             tearDown()
+        case _ where text.hasPrefix(Self.handOverPrefix):
+            guard phase == .connected,
+                  let partnerRole = Role(rawValue: String(text.dropFirst(Self.handOverPrefix.count))) else { return }
+            makeShare(ownerRole: partnerRole.counterpart, handsOverOnRefusal: false)
         default:
-            guard phase == .connected, let url = URL(string: text) else { return }
+            guard phase == .connected || phase == .handedOver, let url = URL(string: text) else { return }
             acceptShare(from: url)
         }
     }
