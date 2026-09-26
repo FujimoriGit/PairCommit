@@ -73,7 +73,6 @@ final class MultipeerPairing {
 
 private extension MultipeerPairing {
     static let ackMessage = "paircommit://ack"
-    static let logger = Logger(subsystem: "com.fujimori.PairCommit", category: "pairing")
 
     // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
     static func makeDisplayName() -> String {
@@ -94,7 +93,7 @@ private extension MultipeerPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing:
-                Self.logger.error("disconnected: \(String(describing: self.phase), privacy: .public)")
+                Logger.pairing.error("disconnected: \(String(describing: self.phase), privacy: .public)")
                 phase = .failed(.disconnected)
                 tearDown()
             case .done:
@@ -149,7 +148,7 @@ private extension MultipeerPairing {
     }
 
     func fail(with error: any Error) {
-        Self.logger.error("\(self.isOwner ? "owner" : "participant", privacy: .public): \(error, privacy: .public)")
+        Logger.pairing.error("\(self.isOwner ? "owner" : "participant", privacy: .public): \(error, privacy: .public)")
         outcome = nil
         phase = .failed(FailureReason(error))
         tearDown()
