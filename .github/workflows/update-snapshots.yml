@@ -12,7 +12,7 @@ jobs:
     steps:
       # 基準画像を push するのに deploy key が要る。GITHUB_TOKEN で push しても、
       # 再帰実行を防ぐ仕組みで、そのコミットに対するワークフローは起動しない。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ssh-key: ${{ secrets.VRT_DEPLOY_KEY }}
 
