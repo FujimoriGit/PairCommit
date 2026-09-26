@@ -127,7 +127,7 @@ private extension ContentView {
                             begin(as: .participant)
                         }
                         .buttonStyle(.filled)
-                        Text("始めた側が選ばなかったほうの役割になります。")
+                        Text("相手が選ばなかったほうの役割になります。")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }

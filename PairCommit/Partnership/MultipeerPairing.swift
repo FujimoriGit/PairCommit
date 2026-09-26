@@ -126,7 +126,9 @@ private extension MultipeerPairing {
     }
 
     func handleConnected() {
-        phase = .connected
+        if phase == .searching {
+            phase = .connected
+        }
         do {
             try multipeer?.send(Self.message(for: side))
         } catch {
@@ -135,7 +137,9 @@ private extension MultipeerPairing {
     }
 
     func handlePartnerSide(_ partner: PairingSide) {
-        guard phase == .connected else { return }
+        // MC は、接続の知らせと受信のどちらが先に届くかを文書で約束していない。
+        guard phase == .searching || phase == .connected else { return }
+        phase = .connected
         // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
         switch (side, partner) {
         case (.owner(let role), .participant):
