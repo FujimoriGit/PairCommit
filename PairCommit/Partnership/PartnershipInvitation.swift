@@ -106,7 +106,7 @@ enum PartnershipInvitation {
     /// 招待リンクの共有と、参加済みならペアの共有からも抜ける。
     static func leave(_ invitationID: CKRecord.ID) async throws {
         let database = PartnershipShare.container.sharedCloudDatabase
-        for rootID in [pairingRootRecordID(besides: invitationID), invitationID] {
+        for rootID in [invitationID, pairingRootRecordID(besides: invitationID)] {
             guard let root = try await PartnershipShare.fetchRoot(rootID, from: database),
                   let shareID = root.share?.recordID else { continue }
             let results = try await database.modifyRecords(saving: [], deleting: [shareID])
