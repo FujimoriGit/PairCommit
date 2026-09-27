@@ -23,7 +23,7 @@ extension Nudge {
 
 private extension Nudge {
     func title(of id: TaskItem.ID, in state: PartnershipState) -> String {
-        task(of: id, in: state)?.title ?? String(localized: "untitledTask", defaultValue: "タスク")
+        task(of: id, in: state)?.title ?? String(localized: "untitledTask", defaultValue: "Task")
     }
 
     func dueSoonMessage(of id: TaskItem.ID, in state: PartnershipState) -> String {
