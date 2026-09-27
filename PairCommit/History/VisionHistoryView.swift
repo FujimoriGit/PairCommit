@@ -17,7 +17,7 @@ struct VisionHistoryView: View {
     var body: some View {
         Screen(role: role) {
             VisionDetail(vision: vision, note: outcome.result, noteTint: outcome.tint)
-            SectionHeader(text: "タスク")
+            SectionHeader(text: String(localized: "タスク"))
             taskList
         }
         .navigationTitle("記録")
@@ -33,7 +33,7 @@ private extension VisionHistoryView {
         if tasks.isEmpty {
             Placeholder(
                 symbol: "checklist",
-                title: "タスクはありませんでした"
+                title: String(localized: "タスクはありませんでした")
             )
         } else {
             ForEach(tasks) { task in

@@ -71,7 +71,7 @@ private extension ContentView {
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
-                    await returnToPicker(with: "パートナーシップは終了しました")
+                    await returnToPicker(with: String(localized: "パートナーシップは終了しました"))
                     return
                 }
                 await NudgeNotifications.post(for: store.role, in: store.state)
@@ -95,7 +95,7 @@ private extension ContentView {
                 .task(id: pairing.phase) {
                     guard pairing.phase == .done else { return }
                     guard let outcome = pairing.outcome else {
-                        await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+                        await returnToPicker(with: String(localized: "ペアリングの結果を受け取れませんでした"))
                         return
                     }
                     SavedPairing.save(outcome)
@@ -245,7 +245,7 @@ private extension ContentView {
             return
         }
         guard let ownerRole = state.pairing?.ownerRole else {
-            await returnToPicker(with: resuming ? "パートナーシップは終了しました" : "相手の設定がまだ届いていません")
+            await returnToPicker(with: resuming ? String(localized: "パートナーシップは終了しました") : String(localized: "相手の設定がまだ届いていません"))
             return
         }
         let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
@@ -267,7 +267,7 @@ private extension ContentView {
 
     func reset() async -> String? {
         guard let outcome = savedPairing else {
-            return "端末に残したペアを読めませんでした"
+            return String(localized: "端末に残したペアを読めませんでした")
         }
         do {
             try await outcome.end()

@@ -40,12 +40,12 @@ private extension PlayerTaskView {
 
     @ViewBuilder
     func taskList(_ tasks: [TaskItem]) -> some View {
-        SectionHeader(text: "タスク")
+        SectionHeader(text: String(localized: "タスク"))
         if tasks.isEmpty {
             Placeholder(
                 symbol: "checklist",
-                title: "まだタスクがありません",
-                message: "やることを起案すると、ここに並びます"
+                title: String(localized: "まだタスクがありません"),
+                message: String(localized: "やることを起案すると、ここに並びます")
             )
         } else {
             ForEach(tasks) { task in
@@ -122,7 +122,7 @@ private extension PlayerTaskView {
     }
 
     var proposal: some View {
-        Panel(title: "タスクを起案する") {
+        Panel(title: String(localized: "タスクを起案する")) {
             TextField("やること", text: $input.title)
                 .fieldBox()
             DeadlineField(deadline: $input.deadline)

@@ -64,7 +64,7 @@ private extension ManagerTaskView {
     @ViewBuilder
     func judgementList(_ tasks: [TaskItem]) -> some View {
         if !tasks.isEmpty {
-            SectionHeader(text: "判断が要る")
+            SectionHeader(text: String(localized: "判断が要る"))
             ForEach(tasks) { task in
                 row(task)
             }
@@ -74,7 +74,7 @@ private extension ManagerTaskView {
     @ViewBuilder
     func taskList(_ tasks: [TaskItem]) -> some View {
         if !tasks.isEmpty {
-            SectionHeader(text: "タスク")
+            SectionHeader(text: String(localized: "タスク"))
             ForEach(tasks) { task in
                 row(task)
             }
@@ -84,8 +84,8 @@ private extension ManagerTaskView {
     var emptiness: some View {
         Placeholder(
             symbol: "checklist",
-            title: "まだタスクがありません",
-            message: "やることを追加すると、ここに並びます"
+            title: String(localized: "まだタスクがありません"),
+            message: String(localized: "やることを追加すると、ここに並びます")
         )
     }
 
@@ -154,7 +154,7 @@ private extension ManagerTaskView {
     }
 
     var creation: some View {
-        Panel(title: "タスクを追加") {
+        Panel(title: String(localized: "タスクを追加")) {
             TextField("やること", text: $input.title)
                 .fieldBox()
             DeadlineField(deadline: $input.deadline)

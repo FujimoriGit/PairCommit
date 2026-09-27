@@ -21,9 +21,12 @@ rm -rf "$RESULT_BUNDLE"
 
 # -skipPackagePluginValidation: PrefireTestsPlugin（テスト自動生成）を CLI から動かすのに必要
 # PairCommitUITests はテンプレートのままで起動計測だけに数分かかるため除外（中身ができたら外す）
+# -testLanguage / -testRegion: 基準画像は日本語で撮ったものなので、シミュレータの言語によらず日本語で描く
 xcodebuild \
   -scheme "$SCHEME" \
   -destination "platform=iOS Simulator,name=${DEVICE_NAME}" \
+  -testLanguage ja \
+  -testRegion JP \
   -resultBundlePath "$RESULT_BUNDLE" \
   -skipPackagePluginValidation \
   -skip-testing:PairCommitUITests \

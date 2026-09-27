@@ -29,7 +29,7 @@ struct PairingView: View {
             .multilineTextAlignment(.center)
 
             Spacer()
-            Button(failure == nil ? "やめる" : "戻る", action: onCancel)
+            Button(failure == nil ? String(localized: "やめる") : String(localized: "戻る"), action: onCancel)
                 .buttonStyle(.soft)
         }
         .padding(24)
@@ -47,7 +47,7 @@ private extension PairingView {
     }
 
     var note: String {
-        failure?.message ?? "2台を近くに置いたまま待ってください。"
+        failure?.message ?? String(localized: "2台を近くに置いたまま待ってください。")
     }
 }
 

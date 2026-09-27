@@ -30,7 +30,7 @@ private extension ReconnectingView {
             VStack(spacing: 14) {
                 Placeholder(
                     symbol: "wifi.exclamationmark",
-                    title: "相手とつながりませんでした",
+                    title: String(localized: "相手とつながりませんでした"),
                     message: failureMessage
                 )
                 Button("もう一度試す", action: onRetry)

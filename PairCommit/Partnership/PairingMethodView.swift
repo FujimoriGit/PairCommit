@@ -19,8 +19,8 @@ struct PairingMethodView: View {
                 Button(action: onNearby) {
                     ChoiceCard(
                         symbol: "dot.radiowaves.left.and.right",
-                        title: "近くにいる相手と",
-                        summary: "2台を近くに置いて、そのまま繋ぎます。",
+                        title: String(localized: "近くにいる相手と"),
+                        summary: String(localized: "2台を近くに置いて、そのまま繋ぎます。"),
                         accent: role.accent
                     )
                 }
@@ -29,8 +29,8 @@ struct PairingMethodView: View {
                 Button(action: onRemote) {
                     ChoiceCard(
                         symbol: "link",
-                        title: "離れている相手と",
-                        summary: "招待リンクを送って、相手に開いてもらいます。",
+                        title: String(localized: "離れている相手と"),
+                        summary: String(localized: "招待リンクを送って、相手に開いてもらいます。"),
                         accent: role.accent
                     )
                 }

@@ -11,11 +11,11 @@ import SwiftUI
 extension TaskItem.Status {
     var label: String {
         switch self {
-        case .proposed: "採用待ち"
-        case .todo: "未完了"
-        case .reported: "承認待ち"
-        case .approved: "完了"
-        case .cancelled: "取り消し"
+        case .proposed: String(localized: "採用待ち")
+        case .todo: String(localized: "未完了")
+        case .reported: String(localized: "承認待ち")
+        case .approved: String(localized: "完了")
+        case .cancelled: String(localized: "取り消し")
         }
     }
 

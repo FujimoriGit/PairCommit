@@ -34,7 +34,7 @@ enum PartnershipShareError: LocalizedError {
 
 enum PartnershipShare {
     static let container = CKContainer(identifier: "iCloud.com.fujimori.PairCommit")
-    static let title = "ふたりの帆柱"
+    static let title = String(localized: "ふたりの帆柱")
     /// 共有を作る側の private DB に置くルートレコード。
     static let ownedRootRecordID = CKRecord.ID(
         recordName: "pairing-root",

@@ -11,22 +11,22 @@ import SwiftUI
 extension Vision.Outcome {
     var label: String {
         switch self {
-        case .achieved: "達成した"
-        case .abandoned: "取りやめる"
+        case .achieved: String(localized: "達成した")
+        case .abandoned: String(localized: "取りやめる")
         }
     }
 
     var result: String {
         switch self {
-        case .achieved: "達成"
-        case .abandoned: "取りやめ"
+        case .achieved: String(localized: "達成")
+        case .abandoned: String(localized: "取りやめ")
         }
     }
 
     var confirmation: String {
         switch self {
-        case .achieved: "達成にする"
-        case .abandoned: "取りやめにする"
+        case .achieved: String(localized: "達成にする")
+        case .abandoned: String(localized: "取りやめにする")
         }
     }
 

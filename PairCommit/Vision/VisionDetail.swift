@@ -21,11 +21,11 @@ struct VisionDetail: View {
             }
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-            field("達成基準", vision.doneCriteria)
+            field(String(localized: "達成基準"), vision.doneCriteria)
             if let why = vision.why {
-                field("動機", why)
+                field(String(localized: "動機"), why)
             }
-            field("期限", deadline)
+            field(String(localized: "期限"), deadline)
         }
     }
 }
@@ -34,7 +34,7 @@ struct VisionDetail: View {
 
 private extension VisionDetail {
     var deadline: String {
-        vision.deadline.map { $0.formatted(Date.FormatStyle.yearMonthDay) } ?? "期限なし"
+        vision.deadline.map { $0.formatted(Date.FormatStyle.yearMonthDay) } ?? String(localized: "期限なし")
     }
 
     func field(_ title: String, _ value: String) -> some View {

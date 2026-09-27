@@ -59,7 +59,7 @@ private extension PlayerVisionView {
     var content: some View {
         switch stage {
         case .proposed(let vision):
-            summary(of: vision, note: "\(Role.manager.label)の承認待ち")
+            summary(of: vision, note: String(localized: "\(Role.manager.label)の承認待ち"))
         case .draft(let vision) where revising == vision.id:
             revisionForm(vision)
         case .draft(let vision):
@@ -101,17 +101,17 @@ private extension PlayerVisionView {
 
     @ViewBuilder
     var fields: some View {
-        Panel(title: "ビジョン") {
+        Panel(title: String(localized: "ビジョン")) {
             TextField("何を達成したいか", text: $input.statement, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
         }
-        Panel(title: "達成基準") {
+        Panel(title: String(localized: "達成基準")) {
             TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
         }
-        Panel(title: "動機") {
+        Panel(title: String(localized: "動機")) {
             TextField("なぜ達成したいか", text: $input.why, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
@@ -125,7 +125,7 @@ private extension PlayerVisionView {
     @ViewBuilder
     var reviewSection: some View {
         if let reviewing {
-            Panel(title: "達成基準の下読み") {
+            Panel(title: String(localized: "達成基準の下読み")) {
                 Button("この基準で判定できるか見てもらう") {
                     let entered = input
                     Task {

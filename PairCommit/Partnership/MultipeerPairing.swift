@@ -25,12 +25,12 @@ final class MultipeerPairing {
 
         var label: String {
             switch self {
-            case .idle:        return "待機中"
-            case .searching:   return "相手を探しています…"
-            case .connected:   return "相手が見つかりました"
-            case .sharing, .handedOver: return "ペアを登録しています…"
-            case .done:        return "ペアリングできました 🎉"
-            case .failed:      return "ペアリングできませんでした"
+            case .idle:        return String(localized: "待機中")
+            case .searching:   return String(localized: "相手を探しています…")
+            case .connected:   return String(localized: "相手が見つかりました")
+            case .sharing, .handedOver: return String(localized: "ペアを登録しています…")
+            case .done:        return String(localized: "ペアリングできました 🎉")
+            case .failed:      return String(localized: "ペアリングできませんでした")
             }
         }
     }

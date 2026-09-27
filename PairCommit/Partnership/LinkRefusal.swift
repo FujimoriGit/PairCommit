@@ -12,15 +12,15 @@ enum LinkRefusal: Sendable {
 
     var title: String {
         switch self {
-        case .alreadyPaired: "すでに相手とつながっています"
-        case .pairingInProgress: "ペアリングの途中です"
+        case .alreadyPaired: String(localized: "すでに相手とつながっています")
+        case .pairingInProgress: String(localized: "ペアリングの途中です")
         }
     }
 
     var message: String {
         switch self {
-        case .alreadyPaired: "このリンクで参加するには、設定の「ペアリングをやり直す」をしてから、もう一度リンクを開いてください。"
-        case .pairingInProgress: "いまのペアリングをやめてから、もう一度リンクを開いてください。"
+        case .alreadyPaired: String(localized: "このリンクで参加するには、設定の「ペアリングをやり直す」をしてから、もう一度リンクを開いてください。")
+        case .pairingInProgress: String(localized: "いまのペアリングをやめてから、もう一度リンクを開いてください。")
         }
     }
 }

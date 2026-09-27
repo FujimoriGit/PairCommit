@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>ふたりの帆柱</string>
+	<string>Two at the Mast</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
@@ -17,7 +17,7 @@
 		<string>_paircommit-pr._udp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>近くにいる相手の端末を見つけてペアリングするために使います。</string>
+	<string>Used to find your partner’s device nearby and pair with it.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

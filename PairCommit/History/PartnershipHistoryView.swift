@@ -28,8 +28,8 @@ private extension PartnershipHistoryView {
         if state.closedVisions.isEmpty {
             Placeholder(
                 symbol: "clock.arrow.circlepath",
-                title: "まだ記録がありません",
-                message: "ビジョンを閉じるとここに残ります"
+                title: String(localized: "まだ記録がありません"),
+                message: String(localized: "ビジョンを閉じるとここに残ります")
             )
         } else {
             ForEach(state.closedVisions) { closed in

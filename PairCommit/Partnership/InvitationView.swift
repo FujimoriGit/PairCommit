@@ -24,7 +24,7 @@ struct InvitationView: View {
                 Text(status)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text(failureMessage ?? "LINE やメッセージで、相手に招待リンクを送ってください。相手がリンクを開いたら、ペアができるまでこの画面を開いたままにしてください。")
+                Text(failureMessage ?? String(localized: "LINE やメッセージで、相手に招待リンクを送ってください。相手がリンクを開いたら、ペアができるまでこの画面を開いたままにしてください。"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -53,8 +53,8 @@ struct InvitationView: View {
 
 private extension InvitationView {
     var status: String {
-        if failureMessage != nil { return "ペアリングできませんでした" }
-        return url == nil ? "招待リンクを用意しています…" : "相手の参加を待っています…"
+        if failureMessage != nil { return String(localized: "ペアリングできませんでした") }
+        return url == nil ? String(localized: "招待リンクを用意しています…") : String(localized: "相手の参加を待っています…")
     }
 }
 
