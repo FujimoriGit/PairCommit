@@ -6,7 +6,6 @@
 //
 
 import Application
-import CloudKit
 import Domain
 import SwiftUI
 import UIKit
@@ -20,6 +19,8 @@ struct PairCommitApp: App {
         WindowGroup {
             ContentView(
                 session: delegate.session,
+                sharing: PartnershipShare(),
+                inviting: PartnershipInvitation(),
                 savedPairing: SavedPairing.load(),
                 savedInvitation: SavedInvitation.load()
             )
@@ -66,27 +67,6 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             await NudgeNotifications.post(for: store.role, in: store.state)
         }
         return .newData
-    }
-}
-
-// SwiftUI の App には、招待リンクを開いたときの参加の情報を受け取る口がない。
-@MainActor
-final class PairCommitSceneDelegate: NSObject, UIWindowSceneDelegate {
-    // 起動していなかったときは、こちらで渡される。
-    func scene(
-        _ scene: UIScene,
-        willConnectTo session: UISceneSession,
-        options connectionOptions: UIScene.ConnectionOptions
-    ) {
-        guard let metadata = connectionOptions.cloudKitShareMetadata else { return }
-        ShareMetadataInbox.shared.received = metadata
-    }
-
-    func windowScene(
-        _ windowScene: UIWindowScene,
-        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-    ) {
-        ShareMetadataInbox.shared.received = cloudKitShareMetadata
     }
 }
 

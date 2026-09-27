@@ -71,6 +71,7 @@
 - Androidは今は対応しないが、**なくてもいい代わりに、後で置き換えられる構造にしておく。**
 - ドメイン層は `PartnershipSyncing` のようなプロトコルとだけ会話する。CloudKitはその実装の一つ。**ドメインはCloudKitの存在を知らない。**
 - 同期層のセマンティクス（ドメインは何が保証されれば動くか）を先に決め、CloudKit依存をこのプロトコルの裏1点に隔離する。
+- ペアリングで共有を作る・参加する・消す処理も、`PartnershipSharing`（共有）と `PartnershipInviting`（招待リンク）の protocol で抽象化し、CloudKit を使うものはその実装の一つにする。画面が持ち回るのは、レコードを指す値（`RemoteRecordID`）と、開かれた招待リンク（`InvitationLink`）だけで、CloudKit の型は画面に出さない。実装を選ぶのはアプリの起点（`PairCommitApp`）だけ。
 - これにより第二期のRust/自作バックエンドは「もう一つの実装」を差すだけで済む。
 - 実装上はローカルSPMパッケージ `LocalPackage` の `Domain` / `Application` / `Infrastructure` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。View はアプリターゲットに置く。
 - CloudKit を使う実装だけはアプリターゲット側に置く。パッケージに入れると ubuntu で回している `swift test` が壊れる（達成基準の下読みと同じ理由）。`InMemorySynchronizer` は `Infrastructure` に残す。

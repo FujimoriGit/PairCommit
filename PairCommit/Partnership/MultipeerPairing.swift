@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
-import CloudKit
 import Domain
 import Foundation
 import Observation
@@ -15,11 +14,6 @@ import UIKit
 @MainActor
 @Observable
 final class MultipeerPairing {
-    struct Outcome: Sendable {
-        let rootRecordID: CKRecord.ID
-        let isOwner: Bool
-    }
-
     enum Phase: Equatable {
         case idle
         case searching
@@ -42,11 +36,16 @@ final class MultipeerPairing {
     }
 
     private(set) var phase: Phase = .idle
-    private(set) var outcome: Outcome?
+    private(set) var outcome: PairingOutcome?
 
+    private let sharing: any PartnershipSharing
     private var multipeer: MultipeerSession?
     private var eventTask: Task<Void, Never>?
     private var choice: PairingChoice = .invitation
+
+    init(sharing: any PartnershipSharing) {
+        self.sharing = sharing
+    }
 
     func start(with choice: PairingChoice) {
         guard phase == .idle else { return }
@@ -156,10 +155,10 @@ private extension MultipeerPairing {
         Task {
             do {
                 let paired = try PartnershipState().establishingPairing(ownerRole: ownerRole)
-                let share = try await PartnershipShare.makeShare(initialState: paired)
+                let share = try await sharing.makeShare(initialState: paired)
                 // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
                 guard isSharing(in: session) else { return }
-                outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
+                outcome = share.outcome
                 try multipeer?.send(share.url.absoluteString)
                 // 完了にするのは ACK を受け取った時点。
             } catch let error where handsOverOnRefusal && FailureReason(error) == .iCloudFull {
@@ -192,9 +191,9 @@ private extension MultipeerPairing {
         let session = multipeer
         Task {
             do {
-                let rootRecordID = try await PartnershipShare.acceptShare(from: url)
+                let accepted = try await sharing.acceptShare(from: url)
                 guard isSharing(in: session) else { return }
-                outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
+                outcome = accepted
                 try multipeer?.send(Self.ackMessage)
                 // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                 phase = .done

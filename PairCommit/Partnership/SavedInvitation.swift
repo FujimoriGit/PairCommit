@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
-import CloudKit
 import Domain
 import Foundation
 
@@ -21,8 +20,7 @@ enum SavedInvitation {
             let zoneName = defaults.string(forKey: zoneNameKey),
             let ownerName = defaults.string(forKey: ownerNameKey)
         else { return nil }
-        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
-        return .joined(invitationID: CKRecord.ID(recordName: recordName, zoneID: zoneID))
+        return .joined(invitationID: .init(recordName: recordName, zoneName: zoneName, zoneOwnerName: ownerName))
     }
 
     static func save(_ step: InvitationStep) {
@@ -33,8 +31,8 @@ enum SavedInvitation {
             defaults.set(role.rawValue, forKey: ownerRoleKey)
         case .joined(let invitationID):
             defaults.set(invitationID.recordName, forKey: recordNameKey)
-            defaults.set(invitationID.zoneID.zoneName, forKey: zoneNameKey)
-            defaults.set(invitationID.zoneID.ownerName, forKey: ownerNameKey)
+            defaults.set(invitationID.zoneName, forKey: zoneNameKey)
+            defaults.set(invitationID.zoneOwnerName, forKey: ownerNameKey)
         case .sending, .accepting:
             break
         }

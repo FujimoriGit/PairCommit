@@ -32,7 +32,7 @@ enum PartnershipShareError: LocalizedError {
     }
 }
 
-enum PartnershipShare {
+struct PartnershipShare {
     static let container = CKContainer(identifier: "iCloud.com.fujimori.PairCommit")
     static let title = "ふたりの帆柱"
     /// 共有を作る側の private DB に置くルートレコード。
@@ -42,37 +42,6 @@ enum PartnershipShare {
     )
 
     // MARK: Owner 側
-
-    static func makeShare(initialState: PartnershipState) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
-        let database = container.privateCloudDatabase
-        let rootRecordID = ownedRootRecordID
-        let zoneID = rootRecordID.zoneID
-
-        // ゾーン名もレコード名も固定なので、前回のペアリングが途中で失敗していると共有が残っている。
-        // 相手が受け終えて ACK だけが届かなかったときに同じ共有へつなぎ直せるよう、役割が同じなら残す。
-        // 読めないレコードは役割を確かめられないので、作り直す側に倒す。
-        if let existing = try await fetchRoot(rootRecordID, from: database) {
-            let existingRole = try? PartnershipRootRecord.decoding(existing).pairing?.ownerRole
-            if existingRole == initialState.pairing?.ownerRole,
-               let url = try await shareURL(of: existing, in: database) {
-                return (url, rootRecordID)
-            }
-            let deleted = try await database.modifyRecordZones(saving: [], deleting: [zoneID])
-            try confirmDeleted(deleted.deleteResults[zoneID])
-        }
-
-        try await createZone(zoneID, in: database)
-        let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
-
-        let share = CKShare(rootRecord: pairing)
-        share[CKShare.SystemFieldKey.title] = title as CKRecordValue
-        // 参加者を名指しで招待する仕組みを持たない。URL を知っている人が参加でき、
-        // ルートレコードを書ける必要がある。
-        share.publicPermission = .readWrite
-
-        let url = try await saveSharing(pairing, with: share, in: database)
-        return (url, rootRecordID)
-    }
 
     // CloudKit の共有はカスタムゾーンが前提。
     static func createZone(_ zoneID: CKRecordZone.ID, in database: CKDatabase) async throws {
@@ -130,7 +99,7 @@ enum PartnershipShare {
 
     // MARK: Participant 側
 
-    static func acceptShare(from url: URL) async throws -> CKRecord.ID {
+    static func accept(shareAt url: URL) async throws -> CKRecord.ID {
         let metadata = try await fetchMetadata(for: url)
         try await accept(metadata)
         // 共有ゾーンの ownerName は相手のものになるため、参加者側で組み立て直せない。
@@ -138,6 +107,59 @@ enum PartnershipShare {
             throw PartnershipShareError.metadataMissing
         }
         return rootRecordID
+    }
+}
+
+// MARK: - PartnershipSharing
+
+extension PartnershipShare: PartnershipSharing {
+    func makeShare(initialState: PartnershipState) async throws -> (url: URL, outcome: PairingOutcome) {
+        let database = Self.container.privateCloudDatabase
+        let rootRecordID = Self.ownedRootRecordID
+        let zoneID = rootRecordID.zoneID
+        let outcome = PairingOutcome(rootRecordID: .init(rootRecordID), isOwner: true)
+
+        // ゾーン名もレコード名も固定なので、前回のペアリングが途中で失敗していると共有が残っている。
+        // 相手が受け終えて ACK だけが届かなかったときに同じ共有へつなぎ直せるよう、役割が同じなら残す。
+        // 読めないレコードは役割を確かめられないので、作り直す側に倒す。
+        if let existing = try await Self.fetchRoot(rootRecordID, from: database) {
+            let existingRole = try? PartnershipRootRecord.decoding(existing).pairing?.ownerRole
+            if existingRole == initialState.pairing?.ownerRole,
+               let url = try await Self.shareURL(of: existing, in: database) {
+                return (url, outcome)
+            }
+            let deleted = try await database.modifyRecordZones(saving: [], deleting: [zoneID])
+            try Self.confirmDeleted(deleted.deleteResults[zoneID])
+        }
+
+        try await Self.createZone(zoneID, in: database)
+        let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
+
+        let share = CKShare(rootRecord: pairing)
+        share[CKShare.SystemFieldKey.title] = Self.title as CKRecordValue
+        // 参加者を名指しで招待する仕組みを持たない。URL を知っている人が参加でき、
+        // ルートレコードを書ける必要がある。
+        share.publicPermission = .readWrite
+
+        let url = try await Self.saveSharing(pairing, with: share, in: database)
+        return (url, outcome)
+    }
+
+    func acceptShare(from url: URL) async throws -> PairingOutcome {
+        let rootRecordID = try await Self.accept(shareAt: url)
+        return .init(rootRecordID: .init(rootRecordID), isOwner: false)
+    }
+
+    func makeSynchronizer(for outcome: PairingOutcome) -> any PartnershipSyncing {
+        CloudKitSynchronizer(
+            rootRecordID: CKRecord.ID(outcome.rootRecordID),
+            isOwner: outcome.isOwner,
+            container: Self.container
+        )
+    }
+
+    func teardown(_ outcome: PairingOutcome) async throws {
+        try await Self.teardown(rootRecordID: CKRecord.ID(outcome.rootRecordID), isOwner: outcome.isOwner)
     }
 }
 
@@ -213,5 +235,19 @@ extension PartnershipShare {
             }
             container.add(operation)
         }
+    }
+}
+
+// MARK: - RemoteRecordID
+
+extension RemoteRecordID {
+    init(_ id: CKRecord.ID) {
+        self.init(recordName: id.recordName, zoneName: id.zoneID.zoneName, zoneOwnerName: id.zoneID.ownerName)
+    }
+}
+
+extension CKRecord.ID {
+    convenience init(_ id: RemoteRecordID) {
+        self.init(recordName: id.recordName, zoneID: CKRecordZone.ID(zoneName: id.zoneName, ownerName: id.zoneOwnerName))
     }
 }
