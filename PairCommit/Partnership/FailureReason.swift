@@ -20,11 +20,16 @@ enum FailureReason: Equatable {
     case partnerFailed
     case sameRole(Role)
     case bothAccepting
+    case invitationWithdrawn
     case unexpected
 
     init(_ error: any Error) {
         if error is MultipeerSessionError {
             self = .disconnected
+            return
+        }
+        if case .invitationWithdrawn? = error as? PartnershipShareError {
+            self = .invitationWithdrawn
             return
         }
         let cloudError = error as? CKError

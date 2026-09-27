@@ -6,6 +6,7 @@
 //
 
 import Application
+import CloudKit
 import Domain
 import SwiftUI
 import UIKit
@@ -17,7 +18,11 @@ struct PairCommitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(session: delegate.session, savedPairing: SavedPairing.load())
+            ContentView(
+                session: delegate.session,
+                savedPairing: SavedPairing.load(),
+                savedInvitation: SavedInvitation.load()
+            )
         }
     }
 }
@@ -33,6 +38,16 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()
         return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = PairCommitSceneDelegate.self
+        return configuration
     }
 
     // 取り直しと通知の掲示が終わってから返す。先に返すとバックグラウンドの実行がそこで打ち切られる。
@@ -51,6 +66,27 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             await NudgeNotifications.post(for: store.role, in: store.state)
         }
         return .newData
+    }
+}
+
+// SwiftUI の App には、招待リンクを開いたときの参加の情報を受け取る口がない。
+@MainActor
+final class PairCommitSceneDelegate: NSObject, UIWindowSceneDelegate {
+    // 起動していなかったときは、こちらで渡される。
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let metadata = connectionOptions.cloudKitShareMetadata else { return }
+        ShareMetadataInbox.shared.received = metadata
+    }
+
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+    ) {
+        ShareMetadataInbox.shared.received = cloudKitShareMetadata
     }
 }
 

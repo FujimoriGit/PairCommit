@@ -47,6 +47,7 @@ extension FailureReason {
         case .partnerFailed: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください"
         case .sameRole(let role): "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください"
         case .bothAccepting: "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください"
+        case .invitationWithdrawn: "相手が招待をやめました。もう一度、招待リンクを送ってもらってください"
         case .unexpected: "うまくいきませんでした。もう一度お試しください"
         }
     }
