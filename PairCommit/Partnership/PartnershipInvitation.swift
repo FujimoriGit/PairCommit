@@ -93,10 +93,7 @@ enum PartnershipInvitation {
         let database = PartnershipShare.container.sharedCloudDatabase
         guard let invitation = try await PartnershipShare.fetchRoot(invitationID, from: database) else {
             // 招待のレコードは、こちらがペアの共有に参加したのを見届けてから消される。
-            let rootRecordID = CKRecord.ID(
-                recordName: PartnershipShare.ownedRootRecordID.recordName,
-                zoneID: invitationID.zoneID
-            )
+            let rootRecordID = pairingRootRecordID(besides: invitationID)
             guard try await PartnershipShare.fetchRoot(rootRecordID, from: database) != nil else {
                 throw PartnershipShareError.invitationWithdrawn
             }
@@ -106,12 +103,15 @@ enum PartnershipInvitation {
         return try await PartnershipShare.acceptShare(from: url)
     }
 
+    /// 招待リンクの共有と、参加済みならペアの共有からも抜ける。
     static func leave(_ invitationID: CKRecord.ID) async throws {
         let database = PartnershipShare.container.sharedCloudDatabase
-        guard let invitation = try await PartnershipShare.fetchRoot(invitationID, from: database),
-              let shareID = invitation.share?.recordID else { return }
-        let results = try await database.modifyRecords(saving: [], deleting: [shareID])
-        try PartnershipShare.confirmDeleted(results.deleteResults[shareID])
+        for rootID in [pairingRootRecordID(besides: invitationID), invitationID] {
+            guard let root = try await PartnershipShare.fetchRoot(rootID, from: database),
+                  let shareID = root.share?.recordID else { continue }
+            let results = try await database.modifyRecords(saving: [], deleting: [shareID])
+            try PartnershipShare.confirmDeleted(results.deleteResults[shareID])
+        }
     }
 }
 
@@ -122,6 +122,10 @@ private extension PartnershipInvitation {
 
     static var invitationRecordID: CKRecord.ID {
         CKRecord.ID(recordName: "invitation", zoneID: PartnershipShare.ownedRootRecordID.zoneID)
+    }
+
+    static func pairingRootRecordID(besides invitationID: CKRecord.ID) -> CKRecord.ID {
+        CKRecord.ID(recordName: PartnershipShare.ownedRootRecordID.recordName, zoneID: invitationID.zoneID)
     }
 
     enum Key {

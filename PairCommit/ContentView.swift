@@ -19,17 +19,14 @@ struct ContentView: View {
     @State private var pairing = MultipeerPairing()
     @State private var invitation: InvitationStep?
     @State private var invitationURL: URL?
+    @State private var invitationPolling: Task<Void, Never>?
     @State private var methodRole: Role?
     @State private var failureMessage: String?
     @State private var refreshFailure: String?
     @State private var linkRefusal: LinkRefusal?
     private let inbox = ShareMetadataInbox.shared
 
-    init(
-        session: PartnershipSession,
-        savedPairing: MultipeerPairing.Outcome? = nil,
-        savedInvitation: InvitationStep? = nil
-    ) {
+    init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil, savedInvitation: InvitationStep? = nil) {
         self.session = session
         _savedPairing = State(initialValue: savedPairing)
         _isResuming = State(initialValue: savedPairing != nil)
@@ -196,7 +193,7 @@ private extension ContentView {
             )
             .task(id: failureMessage == nil) {
                 guard failureMessage == nil else { return }
-                await awaitGuest(ownerRole: ownerRole)
+                await poll { await awaitGuest(ownerRole: ownerRole) }
             }
         case .accepting, .joined:
             ReconnectingView(
@@ -206,7 +203,7 @@ private extension ContentView {
             )
             .task(id: failureMessage == nil) {
                 guard failureMessage == nil else { return }
-                await awaitHost()
+                await poll { await awaitHost() }
             }
         }
     }
@@ -240,11 +237,14 @@ private extension ContentView {
         do {
             if case .sending = invitation {
                 invitationURL = try await PartnershipInvitation.send()
+                try Task.checkCancellation()
                 invitation = .sent(ownerRole: ownerRole)
                 SavedInvitation.save(.sent(ownerRole: ownerRole))
             }
             while true {
-                switch try await PartnershipInvitation.advance(ownerRole: ownerRole) {
+                let progress = try await PartnershipInvitation.advance(ownerRole: ownerRole)
+                try Task.checkCancellation()
+                switch progress {
                 case .waiting(let url):
                     invitationURL = url
                 case .paired(let rootRecordID):
@@ -269,7 +269,9 @@ private extension ContentView {
             }
             guard case .joined(let invitationID) = invitation else { return }
             while true {
-                if let rootRecordID = try await PartnershipInvitation.advanceJoining(invitationID) {
+                let joined = try await PartnershipInvitation.advanceJoining(invitationID)
+                try Task.checkCancellation()
+                if let rootRecordID = joined {
                     finishInvitation(.init(rootRecordID: rootRecordID, isOwner: false))
                     return
                 }
@@ -291,7 +293,21 @@ private extension ContentView {
         isResuming = false
     }
 
+    // やめるときは、止まり切るのを待ってから後始末に入る。並んで走ると、後始末のあとで参加や共有の作成が通ってしまう。
+    func poll(_ operation: @escaping @MainActor @Sendable () async -> Void) async {
+        let polling = Task { await operation() }
+        invitationPolling = polling
+        await withTaskCancellationHandler { await polling.value } onCancel: { polling.cancel() }
+    }
+
+    func stopPolling() async {
+        invitationPolling?.cancel()
+        await invitationPolling?.value
+        invitationPolling = nil
+    }
+
     func withdrawInvitation() async {
+        await stopPolling()
         do {
             try await PartnershipInvitation.withdraw()
         } catch {
@@ -302,6 +318,7 @@ private extension ContentView {
     }
 
     func leaveInvitation() async {
+        await stopPolling()
         if case .joined(let invitationID) = invitation {
             do {
                 try await PartnershipInvitation.leave(invitationID)
