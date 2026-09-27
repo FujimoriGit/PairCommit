@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
-import CloudKit
 import Domain
 import Foundation
 import Observation
@@ -15,11 +14,6 @@ import UIKit
 @MainActor
 @Observable
 final class MultipeerPairing {
-    struct Outcome: Sendable {
-        let rootRecordID: CKRecord.ID
-        let isOwner: Bool
-    }
-
     enum Phase: Equatable {
         case idle
         case searching
@@ -42,7 +36,7 @@ final class MultipeerPairing {
     }
 
     private(set) var phase: Phase = .idle
-    private(set) var outcome: Outcome?
+    private(set) var outcome: PairedShare?
 
     private var multipeer: MultipeerSession?
     private var eventTask: Task<Void, Never>?
@@ -159,7 +153,7 @@ private extension MultipeerPairing {
                 let share = try await PartnershipShare.makeShare(initialState: paired)
                 // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
                 guard isSharing(in: session) else { return }
-                outcome = Outcome(rootRecordID: share.rootRecordID, isOwner: true)
+                outcome = PairedShare(rootRecordID: share.rootRecordID, isOwner: true)
                 try multipeer?.send(share.url.absoluteString)
                 // 完了にするのは ACK を受け取った時点。
             } catch let error where handsOverOnRefusal && FailureReason(error) == .iCloudFull {
@@ -194,7 +188,7 @@ private extension MultipeerPairing {
             do {
                 let rootRecordID = try await PartnershipShare.acceptShare(from: url)
                 guard isSharing(in: session) else { return }
-                outcome = Outcome(rootRecordID: rootRecordID, isOwner: false)
+                outcome = PairedShare(rootRecordID: rootRecordID, isOwner: false)
                 try multipeer?.send(Self.ackMessage)
                 // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                 phase = .done

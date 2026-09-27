@@ -21,7 +21,7 @@ struct PairCommitApp: App {
             ContentView(
                 session: delegate.session,
                 savedPairing: SavedPairing.load(),
-                savedInvitation: SavedInvitation.load()
+                remote: .restored()
             )
         }
     }
@@ -79,14 +79,14 @@ final class PairCommitSceneDelegate: NSObject, UIWindowSceneDelegate {
         options connectionOptions: UIScene.ConnectionOptions
     ) {
         guard let metadata = connectionOptions.cloudKitShareMetadata else { return }
-        ShareMetadataInbox.shared.received = metadata
+        InvitationLinkInbox.shared.received = InvitationLink(metadata: metadata)
     }
 
     func windowScene(
         _ windowScene: UIWindowScene,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        ShareMetadataInbox.shared.received = cloudKitShareMetadata
+        InvitationLinkInbox.shared.received = InvitationLink(metadata: cloudKitShareMetadata)
     }
 }
 

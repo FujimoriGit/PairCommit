@@ -6,7 +6,6 @@
 //
 
 import Application
-import CloudKit
 import Domain
 import SwiftUI
 import UIKit
@@ -14,31 +13,29 @@ import UIKit
 struct ContentView: View {
     let session: PartnershipSession
 
-    @State private var savedPairing: MultipeerPairing.Outcome?
+    @State private var savedPairing: PairedShare?
     @State private var isResuming: Bool
     @State private var pairing = MultipeerPairing()
-    @State private var invitation: InvitationStep?
-    @State private var invitationURL: URL?
-    @State private var invitationPolling: Task<Void, Never>?
+    @State private var remote: RemotePairing
     @State private var methodRole: Role?
     @State private var failureMessage: String?
     @State private var refreshFailure: String?
     @State private var linkRefusal: LinkRefusal?
-    private let inbox = ShareMetadataInbox.shared
+    private let inbox = InvitationLinkInbox.shared
 
-    init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil, savedInvitation: InvitationStep? = nil) {
+    init(session: PartnershipSession, savedPairing: PairedShare? = nil, remote: RemotePairing = .init()) {
         self.session = session
         _savedPairing = State(initialValue: savedPairing)
         _isResuming = State(initialValue: savedPairing != nil)
-        _invitation = State(initialValue: savedInvitation)
+        _remote = State(initialValue: remote)
     }
 
     var body: some View {
         content
             .task(id: inbox.received) {
-                guard let metadata = inbox.received else { return }
+                guard let link = inbox.received else { return }
                 inbox.received = nil
-                receive(metadata)
+                receive(link)
             }
             .alert(linkRefusal?.title ?? "", isPresented: Binding(presenting: $linkRefusal)) {
                 Button("OK") {}
@@ -51,8 +48,6 @@ struct ContentView: View {
 // MARK: - Private
 
 private extension ContentView {
-    static let invitationPollingInterval: Duration = .seconds(5)
-
     @ViewBuilder
     var content: some View {
         if let store = session.store {
@@ -91,8 +86,8 @@ private extension ContentView {
                 guard failureMessage == nil else { return }
                 await enter(saved, resuming: isResuming)
             }
-        } else if pairing.phase == .idle, let invitation {
-            invitationScreen(invitation)
+        } else if pairing.phase == .idle, remote.phase != .idle {
+            remoteScreen
         } else if pairing.phase == .idle {
             rolePicker
         } else {
@@ -171,7 +166,7 @@ private extension ContentView {
                 PairingMethodView(
                     role: role,
                     onNearby: { begin(with: .role(role)) },
-                    onRemote: { startInvitation(ownerRole: role) }
+                    onRemote: { invite(ownerRole: role) }
                 )
             }
         }
@@ -181,30 +176,30 @@ private extension ContentView {
         ChoiceCard(symbol: role.symbol, title: role.label, summary: role.summary, accent: role.accent)
     }
 
-    @ViewBuilder
-    func invitationScreen(_ step: InvitationStep) -> some View {
-        switch step {
-        case .sending(let ownerRole), .sent(let ownerRole):
-            InvitationView(
-                url: invitationURL,
-                failureMessage: failureMessage,
-                onRetry: { failureMessage = nil },
-                onCancel: { Task { await withdrawInvitation() } }
-            )
-            .task(id: failureMessage == nil) {
-                guard failureMessage == nil else { return }
-                await poll { await awaitGuest(ownerRole: ownerRole) }
+    var remoteScreen: some View {
+        Group {
+            switch remote.phase {
+            case .inviting:
+                InvitationView(
+                    url: remote.invitationURL,
+                    failureMessage: remote.failure?.message,
+                    onRetry: remote.retry,
+                    onCancel: { Task { await cancelRemote() } }
+                )
+            case .joining, .idle:
+                ReconnectingView(
+                    failureMessage: remote.failure?.message,
+                    onRetry: remote.retry,
+                    onStartOver: { Task { await cancelRemote() } }
+                )
             }
-        case .accepting, .joined:
-            ReconnectingView(
-                failureMessage: failureMessage,
-                onRetry: { failureMessage = nil },
-                onStartOver: { Task { await leaveInvitation() } }
-            )
-            .task(id: failureMessage == nil) {
-                guard failureMessage == nil else { return }
-                await poll { await awaitHost() }
-            }
+        }
+        .task(id: remote.failure == nil) {
+            guard remote.failure == nil, let outcome = await remote.run() else { return }
+            SavedPairing.save(outcome)
+            savedPairing = outcome
+            isResuming = false
+            remote.reset()
         }
     }
 
@@ -214,128 +209,32 @@ private extension ContentView {
         pairing.start(with: choice)
     }
 
-    func startInvitation(ownerRole: Role) {
+    func invite(ownerRole: Role) {
         failureMessage = nil
         methodRole = nil
-        invitationURL = nil
-        invitation = .sending(ownerRole: ownerRole)
+        remote.invite(ownerRole: ownerRole)
     }
 
-    func receive(_ metadata: CKShare.Metadata) {
+    func receive(_ link: InvitationLink) {
         if session.store != nil || savedPairing != nil {
             linkRefusal = .alreadyPaired
-        } else if invitation != nil || pairing.phase != .idle {
+        } else if remote.phase != .idle || pairing.phase != .idle {
             linkRefusal = .pairingInProgress
         } else {
             failureMessage = nil
             methodRole = nil
-            invitation = .accepting(metadata)
+            remote.receive(link)
         }
     }
 
-    func awaitGuest(ownerRole: Role) async {
-        do {
-            if case .sending = invitation {
-                invitationURL = try await PartnershipInvitation.send()
-                try Task.checkCancellation()
-                invitation = .sent(ownerRole: ownerRole)
-                SavedInvitation.save(.sent(ownerRole: ownerRole))
-            }
-            while true {
-                let progress = try await PartnershipInvitation.advance(ownerRole: ownerRole)
-                try Task.checkCancellation()
-                switch progress {
-                case .waiting(let url):
-                    invitationURL = url
-                case .paired(let rootRecordID):
-                    finishInvitation(.init(rootRecordID: rootRecordID, isOwner: true))
-                    return
-                }
-                try await Task.sleep(for: Self.invitationPollingInterval)
-            }
-        } catch {
-            // やめたり画面を離れたりして打ち切られたときは、失敗として出さない。
-            guard !Task.isCancelled else { return }
-            failureMessage = FailureReason(error).message
-        }
-    }
-
-    func awaitHost() async {
-        do {
-            if case .accepting(let metadata) = invitation {
-                let invitationID = try await PartnershipInvitation.join(metadata)
-                invitation = .joined(invitationID: invitationID)
-                SavedInvitation.save(.joined(invitationID: invitationID))
-            }
-            guard case .joined(let invitationID) = invitation else { return }
-            while true {
-                let joined = try await PartnershipInvitation.advanceJoining(invitationID)
-                try Task.checkCancellation()
-                if let rootRecordID = joined {
-                    finishInvitation(.init(rootRecordID: rootRecordID, isOwner: false))
-                    return
-                }
-                try await Task.sleep(for: Self.invitationPollingInterval)
-            }
-        } catch {
-            guard !Task.isCancelled else { return }
-            failureMessage = FailureReason(error).message
-        }
-    }
-
-    // つなぎ直しの画面に切り替わり、そこから入る。
-    func finishInvitation(_ outcome: MultipeerPairing.Outcome) {
-        SavedPairing.save(outcome)
-        SavedInvitation.clear()
-        invitation = nil
-        invitationURL = nil
-        savedPairing = outcome
-        isResuming = false
-    }
-
-    // やめるときは、止まり切るのを待ってから後始末に入る。並んで走ると、後始末のあとで参加や共有の作成が通ってしまう。
-    func poll(_ operation: @escaping @MainActor @Sendable () async -> Void) async {
-        let polling = Task { await operation() }
-        invitationPolling = polling
-        await withTaskCancellationHandler { await polling.value } onCancel: { polling.cancel() }
-    }
-
-    func stopPolling() async {
-        invitationPolling?.cancel()
-        await invitationPolling?.value
-        invitationPolling = nil
-    }
-
-    func withdrawInvitation() async {
-        await stopPolling()
-        do {
-            try await PartnershipInvitation.withdraw()
-        } catch {
-            failureMessage = FailureReason(error).message
-            return
-        }
+    func cancelRemote() async {
+        await remote.cancel()
+        guard remote.phase == .idle else { return }
         await returnToPicker(with: nil)
     }
 
-    func leaveInvitation() async {
-        await stopPolling()
-        if case .joined(let invitationID) = invitation {
-            do {
-                try await PartnershipInvitation.leave(invitationID)
-            } catch {
-                failureMessage = FailureReason(error).message
-                return
-            }
-        }
-        await returnToPicker(with: nil)
-    }
-
-    func enter(_ outcome: MultipeerPairing.Outcome, resuming: Bool) async {
-        let synchronizer = CloudKitSynchronizer(
-            rootRecordID: outcome.rootRecordID,
-            isOwner: outcome.isOwner,
-            container: PartnershipShare.container
-        )
+    func enter(_ outcome: PairedShare, resuming: Bool) async {
+        let synchronizer = outcome.synchronizer()
 
         let state: PartnershipState
         do {
@@ -371,7 +270,7 @@ private extension ContentView {
             return "端末に残したペアを読めませんでした"
         }
         do {
-            try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
+            try await outcome.end()
         } catch {
             return FailureReason(error).message
         }
@@ -382,10 +281,8 @@ private extension ContentView {
     func returnToPicker(with message: String?) async {
         await NudgeNotifications.withdrawAll()
         SavedPairing.clear()
-        SavedInvitation.clear()
         savedPairing = nil
-        invitation = nil
-        invitationURL = nil
+        remote.reset()
         failureMessage = message
         session.store = nil
         pairing.reset()
