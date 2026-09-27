@@ -59,23 +59,23 @@ final class RemotePairing {
     func run() async -> PairedShare? {
         let polling = Task { await advance() }
         self.polling = polling
-        return await withTaskCancellationHandler { await polling.value } onCancel: { polling.cancel() }
+        let outcome = await withTaskCancellationHandler { await polling.value } onCancel: { polling.cancel() }
+        // やめたときは、止まる前にペアができていても、それは cancel が終わらせる。
+        return polling.isCancelled ? nil : outcome
     }
 
-    /// 招待をやめ、作った共有を消すか、参加した共有から抜ける。失敗したときは `failure` に入れて、招待の途中に留まる。
+    /// 招待をやめ、作った共有を消すか、参加した共有から抜ける。止める前にペアができていたら、ペアごと終わらせる。
+    /// 失敗したときは `failure` に入れて、招待の途中に留まる。
     func cancel() async {
         // 止まり切るのを待ってから後始末に入る。並んで走ると、後始末のあとで参加や共有の作成が通ってしまう。
         polling?.cancel()
-        _ = await polling?.value
+        let paired = await polling?.value ?? nil
         polling = nil
         do {
-            switch step {
-            case .sending, .sent:
-                try await PartnershipInvitation.withdraw()
-            case .joined(let invitationID):
-                try await PartnershipInvitation.leave(invitationID)
-            case .accepting, nil:
-                break
+            if let paired {
+                try await paired.end()
+            } else {
+                try await leaveInvitation()
             }
         } catch {
             failure = FailureReason(error)
@@ -96,6 +96,17 @@ final class RemotePairing {
 
 private extension RemotePairing {
     static let pollingInterval: Duration = .seconds(5)
+
+    func leaveInvitation() async throws {
+        switch step {
+        case .sending, .sent:
+            try await PartnershipInvitation.withdraw()
+        case .joined(let invitationID):
+            try await PartnershipInvitation.leave(invitationID)
+        case .accepting, nil:
+            break
+        }
+    }
 
     func advance() async -> PairedShare? {
         do {
