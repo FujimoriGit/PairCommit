@@ -6,6 +6,7 @@
 //
 
 import Domain
+import Foundation
 
 extension Role {
     var label: String {

@@ -7,6 +7,7 @@
 
 import Application
 import Domain
+import Foundation
 
 extension PartnershipFailure {
     var message: String {

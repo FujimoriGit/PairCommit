@@ -5,6 +5,8 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
+import Foundation
+
 /// 招待リンクを開いても参加しない理由。
 enum LinkRefusal: Sendable {
     case alreadyPaired

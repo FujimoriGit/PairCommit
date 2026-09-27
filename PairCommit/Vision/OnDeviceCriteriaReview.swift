@@ -6,6 +6,7 @@
 //
 
 import Domain
+import Foundation
 import FoundationModels
 
 struct OnDeviceCriteriaReview: CriteriaReviewing {
