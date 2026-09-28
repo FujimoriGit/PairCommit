@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
-import CloudKit
 import Domain
 import Foundation
 import Observation
@@ -108,13 +107,6 @@ final class RemotePairing {
         failure = nil
         withdrawal = nil
     }
-}
-
-/// やめる後始末で片付けるもの。
-enum Withdrawal {
-    case invitation
-    case membership(invitationID: CKRecord.ID)
-    case pair(PairedShare)
 }
 
 // MARK: - Private
