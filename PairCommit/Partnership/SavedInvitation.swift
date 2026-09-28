@@ -34,12 +34,12 @@ enum SavedInvitation {
             else { return nil }
             return CKRecord.ID(recordName: recordName, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName))
         }
-        switch (defaults.string(forKey: withdrawalKindKey), recordID) {
-        case ("invitation"?, _):
+        switch (defaults.string(forKey: withdrawalKindKey).flatMap(Kind.init(rawValue:)), recordID) {
+        case (.invitation?, _):
             return .invitation
-        case ("membership"?, let invitationID?):
+        case (.membership?, let invitationID?):
             return .membership(invitationID: invitationID)
-        case ("pair"?, let rootRecordID?):
+        case (.pair?, let rootRecordID?):
             return .pair(.init(rootRecordID: rootRecordID, isOwner: defaults.bool(forKey: withdrawalIsOwnerKey)))
         default:
             return nil
@@ -51,13 +51,13 @@ enum SavedInvitation {
         let recordID: CKRecord.ID?
         switch withdrawal {
         case .invitation:
-            defaults.set("invitation", forKey: withdrawalKindKey)
+            defaults.set(Kind.invitation.rawValue, forKey: withdrawalKindKey)
             recordID = nil
         case .membership(let invitationID):
-            defaults.set("membership", forKey: withdrawalKindKey)
+            defaults.set(Kind.membership.rawValue, forKey: withdrawalKindKey)
             recordID = invitationID
         case .pair(let paired):
-            defaults.set("pair", forKey: withdrawalKindKey)
+            defaults.set(Kind.pair.rawValue, forKey: withdrawalKindKey)
             defaults.set(paired.isOwner, forKey: withdrawalIsOwnerKey)
             recordID = paired.rootRecordID
         }
@@ -97,6 +97,12 @@ enum SavedInvitation {
 // MARK: - Private
 
 private extension SavedInvitation {
+    enum Kind: String {
+        case invitation
+        case membership
+        case pair
+    }
+
     static let ownerRoleKey = "invitation.ownerRole"
     static let recordNameKey = "invitation.recordName"
     static let zoneNameKey = "invitation.zoneName"
