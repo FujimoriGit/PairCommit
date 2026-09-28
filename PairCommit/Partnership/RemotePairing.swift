@@ -30,10 +30,11 @@ final class RemotePairing {
     static func restored() -> Self {
         let pairing = Self()
         pairing.step = SavedInvitation.load()
+        pairing.withdrawal = SavedInvitation.loadWithdrawal()
         return pairing
     }
 
-    /// やめる後始末が失敗したまま残っている。やり直すときは `cancel()` を呼ぶ。
+    /// やめる後始末が終わっていない。続けるときは `cancel()` を呼ぶ。
     var isWithdrawing: Bool {
         withdrawal != nil
     }
@@ -78,7 +79,9 @@ final class RemotePairing {
             polling?.cancel()
             let paired = await polling?.value ?? nil
             polling = nil
-            withdrawal = paired.map(Withdrawal.pair) ?? .invitation
+            let pending = paired.map(Withdrawal.pair) ?? .invitation
+            SavedInvitation.save(pending)
+            withdrawal = pending
         }
         do {
             switch withdrawal {
@@ -103,12 +106,13 @@ final class RemotePairing {
     }
 }
 
-// MARK: - Private
-
-private enum Withdrawal {
+/// やめる後始末で片付けるもの。
+enum Withdrawal {
     case invitation
     case pair(PairedShare)
 }
+
+// MARK: - Private
 
 private extension RemotePairing {
     static let pollingInterval: Duration = .seconds(5)

@@ -195,7 +195,12 @@ private extension ContentView {
             }
         }
         .task(id: remote.failure == nil) {
-            guard remote.failure == nil, let outcome = await remote.run() else { return }
+            guard remote.failure == nil else { return }
+            if remote.isWithdrawing {
+                await cancelRemote()
+                return
+            }
+            guard let outcome = await remote.run() else { return }
             SavedPairing.save(outcome)
             savedPairing = outcome
             isResuming = false
