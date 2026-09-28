@@ -27,27 +27,44 @@ enum SavedInvitation {
 
     static func loadWithdrawal() -> Withdrawal? {
         let defaults = UserDefaults.standard
-        guard defaults.bool(forKey: withdrawingKey) else { return nil }
-        guard
-            let recordName = defaults.string(forKey: pairRecordNameKey),
-            let zoneName = defaults.string(forKey: pairZoneNameKey),
-            let ownerName = defaults.string(forKey: pairOwnerNameKey)
-        else { return .invitation }
-        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
-        return .pair(.init(
-            rootRecordID: CKRecord.ID(recordName: recordName, zoneID: zoneID),
-            isOwner: defaults.bool(forKey: pairIsOwnerKey)
-        ))
+        let recordID = defaults.string(forKey: withdrawalRecordNameKey).flatMap { recordName -> CKRecord.ID? in
+            guard
+                let zoneName = defaults.string(forKey: withdrawalZoneNameKey),
+                let ownerName = defaults.string(forKey: withdrawalOwnerNameKey)
+            else { return nil }
+            return CKRecord.ID(recordName: recordName, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName))
+        }
+        switch (defaults.string(forKey: withdrawalKindKey), recordID) {
+        case ("invitation"?, _):
+            return .invitation
+        case ("membership"?, let invitationID?):
+            return .membership(invitationID: invitationID)
+        case ("pair"?, let rootRecordID?):
+            return .pair(.init(rootRecordID: rootRecordID, isOwner: defaults.bool(forKey: withdrawalIsOwnerKey)))
+        default:
+            return nil
+        }
     }
 
     static func save(_ withdrawal: Withdrawal) {
         let defaults = UserDefaults.standard
-        defaults.set(true, forKey: withdrawingKey)
-        if case .pair(let paired) = withdrawal {
-            defaults.set(paired.rootRecordID.recordName, forKey: pairRecordNameKey)
-            defaults.set(paired.rootRecordID.zoneID.zoneName, forKey: pairZoneNameKey)
-            defaults.set(paired.rootRecordID.zoneID.ownerName, forKey: pairOwnerNameKey)
-            defaults.set(paired.isOwner, forKey: pairIsOwnerKey)
+        let recordID: CKRecord.ID?
+        switch withdrawal {
+        case .invitation:
+            defaults.set("invitation", forKey: withdrawalKindKey)
+            recordID = nil
+        case .membership(let invitationID):
+            defaults.set("membership", forKey: withdrawalKindKey)
+            recordID = invitationID
+        case .pair(let paired):
+            defaults.set("pair", forKey: withdrawalKindKey)
+            defaults.set(paired.isOwner, forKey: withdrawalIsOwnerKey)
+            recordID = paired.rootRecordID
+        }
+        if let recordID {
+            defaults.set(recordID.recordName, forKey: withdrawalRecordNameKey)
+            defaults.set(recordID.zoneID.zoneName, forKey: withdrawalZoneNameKey)
+            defaults.set(recordID.zoneID.ownerName, forKey: withdrawalOwnerNameKey)
         }
     }
 
@@ -69,7 +86,7 @@ enum SavedInvitation {
     static func clear() {
         let keys = [
             ownerRoleKey, recordNameKey, zoneNameKey, ownerNameKey,
-            withdrawingKey, pairRecordNameKey, pairZoneNameKey, pairOwnerNameKey, pairIsOwnerKey
+            withdrawalKindKey, withdrawalRecordNameKey, withdrawalZoneNameKey, withdrawalOwnerNameKey, withdrawalIsOwnerKey
         ]
         for key in keys {
             UserDefaults.standard.removeObject(forKey: key)
@@ -84,9 +101,9 @@ private extension SavedInvitation {
     static let recordNameKey = "invitation.recordName"
     static let zoneNameKey = "invitation.zoneName"
     static let ownerNameKey = "invitation.ownerName"
-    static let withdrawingKey = "invitation.withdrawing"
-    static let pairRecordNameKey = "invitation.pair.recordName"
-    static let pairZoneNameKey = "invitation.pair.zoneName"
-    static let pairOwnerNameKey = "invitation.pair.ownerName"
-    static let pairIsOwnerKey = "invitation.pair.isOwner"
+    static let withdrawalKindKey = "invitation.withdrawal.kind"
+    static let withdrawalRecordNameKey = "invitation.withdrawal.recordName"
+    static let withdrawalZoneNameKey = "invitation.withdrawal.zoneName"
+    static let withdrawalOwnerNameKey = "invitation.withdrawal.ownerName"
+    static let withdrawalIsOwnerKey = "invitation.withdrawal.isOwner"
 }
