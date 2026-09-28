@@ -183,13 +183,13 @@ private extension ContentView {
                 InvitationView(
                     url: remote.invitationURL,
                     failureMessage: remote.failure?.message,
-                    onRetry: remote.retry,
+                    onRetry: { Task { await retryRemote() } },
                     onCancel: { Task { await cancelRemote() } }
                 )
             case .joining, .idle:
                 ReconnectingView(
                     failureMessage: remote.failure?.message,
-                    onRetry: remote.retry,
+                    onRetry: { Task { await retryRemote() } },
                     onStartOver: { Task { await cancelRemote() } }
                 )
             }
@@ -224,6 +224,14 @@ private extension ContentView {
             failureMessage = nil
             methodRole = nil
             remote.receive(link)
+        }
+    }
+
+    func retryRemote() async {
+        if remote.isWithdrawing {
+            await cancelRemote()
+        } else {
+            remote.retry()
         }
     }
 

@@ -24,12 +24,18 @@ final class RemotePairing {
 
     private var step: InvitationStep?
     private var polling: Task<PairedShare?, Never>?
+    private var withdrawal: Withdrawal?
 
     /// 前回の招待の途中から再開する。
     static func restored() -> Self {
         let pairing = Self()
         pairing.step = SavedInvitation.load()
         return pairing
+    }
+
+    /// やめる後始末が失敗したまま残っている。やり直すときは `cancel()` を呼ぶ。
+    var isWithdrawing: Bool {
+        withdrawal != nil
     }
 
     var phase: Phase {
@@ -67,14 +73,18 @@ final class RemotePairing {
     /// 招待をやめ、作った共有を消すか、参加した共有から抜ける。止める前にペアができていたら、ペアごと終わらせる。
     /// 失敗したときは `failure` に入れて、招待の途中に留まる。
     func cancel() async {
-        // 止まり切るのを待ってから後始末に入る。並んで走ると、後始末のあとで参加や共有の作成が通ってしまう。
-        polling?.cancel()
-        let paired = await polling?.value ?? nil
-        polling = nil
+        if withdrawal == nil {
+            // 止まり切るのを待ってから後始末に入る。並んで走ると、後始末のあとで参加や共有の作成が通ってしまう。
+            polling?.cancel()
+            let paired = await polling?.value ?? nil
+            polling = nil
+            withdrawal = paired.map(Withdrawal.pair) ?? .invitation
+        }
         do {
-            if let paired {
+            switch withdrawal {
+            case .pair(let paired):
                 try await paired.end()
-            } else {
+            case .invitation, nil:
                 try await leaveInvitation()
             }
         } catch {
@@ -89,10 +99,16 @@ final class RemotePairing {
         step = nil
         invitationURL = nil
         failure = nil
+        withdrawal = nil
     }
 }
 
 // MARK: - Private
+
+private enum Withdrawal {
+    case invitation
+    case pair(PairedShare)
+}
 
 private extension RemotePairing {
     static let pollingInterval: Duration = .seconds(5)
