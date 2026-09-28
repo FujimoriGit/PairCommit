@@ -5,6 +5,7 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
+import CloudKit
 import Domain
 import Foundation
 import Observation
@@ -41,9 +42,10 @@ final class RemotePairing {
 
     var phase: Phase {
         switch step {
-        case nil: .idle
         case .sending, .sent: .inviting
         case .accepting, .joined: .joining
+        // 送る途中は端末に残らないので、その段階でやめた後始末だけが開き直したあとに残る。
+        case nil: withdrawal == nil ? .idle : .inviting
         }
     }
 
@@ -74,22 +76,24 @@ final class RemotePairing {
     /// 招待をやめ、作った共有を消すか、参加した共有から抜ける。止める前にペアができていたら、ペアごと終わらせる。
     /// 失敗したときは `failure` に入れて、招待の途中に留まる。
     func cancel() async {
-        if withdrawal == nil {
+        let pending: Withdrawal
+        if let withdrawal {
+            pending = withdrawal
+        } else {
             // 止まり切るのを待ってから後始末に入る。並んで走ると、後始末のあとで参加や共有の作成が通ってしまう。
             polling?.cancel()
             let paired = await polling?.value ?? nil
             polling = nil
-            let pending = paired.map(Withdrawal.pair) ?? .invitation
-            SavedInvitation.save(pending)
-            withdrawal = pending
+            guard let cleanup = paired.map(Withdrawal.pair) ?? invitationWithdrawal else {
+                reset()
+                return
+            }
+            SavedInvitation.save(cleanup)
+            withdrawal = cleanup
+            pending = cleanup
         }
         do {
-            switch withdrawal {
-            case .pair(let paired):
-                try await paired.end()
-            case .invitation, nil:
-                try await leaveInvitation()
-            }
+            try await perform(pending)
         } catch {
             failure = FailureReason(error)
             return
@@ -109,6 +113,7 @@ final class RemotePairing {
 /// やめる後始末で片付けるもの。
 enum Withdrawal {
     case invitation
+    case membership(invitationID: CKRecord.ID)
     case pair(PairedShare)
 }
 
@@ -117,14 +122,22 @@ enum Withdrawal {
 private extension RemotePairing {
     static let pollingInterval: Duration = .seconds(5)
 
-    func leaveInvitation() async throws {
+    var invitationWithdrawal: Withdrawal? {
         switch step {
-        case .sending, .sent:
+        case .sending, .sent: .invitation
+        case .joined(let invitationID): .membership(invitationID: invitationID)
+        case .accepting, nil: nil
+        }
+    }
+
+    func perform(_ withdrawal: Withdrawal) async throws {
+        switch withdrawal {
+        case .invitation:
             try await PartnershipInvitation.withdraw()
-        case .joined(let invitationID):
+        case .membership(let invitationID):
             try await PartnershipInvitation.leave(invitationID)
-        case .accepting, nil:
-            break
+        case .pair(let paired):
+            try await paired.end()
         }
     }
 
