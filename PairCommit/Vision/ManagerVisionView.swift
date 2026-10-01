@@ -18,7 +18,7 @@ struct ManagerVisionView: View {
         Screen(role: store.role) {
             content
         }
-        .partnershipReset()
+        .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
 }

@@ -31,6 +31,7 @@ struct ContentView: View {
                 screen(for: store)
                     .refreshable { await refresh(store) }
                     .partnershipHistoryDestination(store.state, role: store.role)
+                    .partnershipSettingsDestination(role: store.role)
             }
             .tint(store.role.accent)
             .task {
@@ -117,7 +118,7 @@ private extension ContentView {
                         .buttonStyle(.plain)
                     }
 
-                    Text("役割は途中で入れ替えられません。入れ替えるには、リセットしてペアリングからやり直します。")
+                    Text("役割は途中で入れ替えられません。入れ替えるには、ペアリングをやり直します。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
