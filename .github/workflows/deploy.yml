@@ -1,18 +1,6 @@
 name: Deploy to TestFlight
 
 on:
-  push:
-    branches: [main]
-    # アプリの中身に関わらないものだけを挙げる。書き忘れても、同じ中身のビルドが1つ増えるだけ。
-    paths-ignore:
-      - '**.md'
-      - '.claude/**'
-      - '.github/**'
-      - '.prefire.yml'
-      - 'Scripts/**'
-      - 'LocalPackage/Tests/**'
-      - 'PairCommitTests/**'
-      - 'PairCommitUITests/**'
   workflow_dispatch:
 
 concurrency:
