@@ -9,8 +9,6 @@
 		<string>en</string>
 		<string>ja</string>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_paircommit-pr._tcp</string>
