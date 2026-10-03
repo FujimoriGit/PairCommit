@@ -9,10 +9,6 @@ import Application
 import Domain
 import SwiftUI
 
-extension EnvironmentValues {
-    @Entry var achievingVision: (@MainActor () -> Void)?
-}
-
 struct ManagerTaskView: View {
     let store: PartnershipStore
     let vision: Vision
@@ -23,6 +19,7 @@ struct ManagerTaskView: View {
     @State private var failureMessage: String?
 
     @Environment(\.achievingVision) private var achievingVision
+    @Environment(\.presentingFailure) private var presentingFailure
 
     var body: some View {
         Screen(role: store.role) {
@@ -183,9 +180,9 @@ private extension ManagerTaskView {
         }
     }
 
-    // 閉じると保存の前にこの画面が消えるので、保存が通ったことは画面の外へ知らせる
+    // 閉じると保存の前にこの画面が消えるので、結果は画面の外へ知らせる
     func close(as outcome: Vision.Outcome) {
-        perform(then: outcome == .achieved ? achievingVision : nil) { state, role throws(DomainError) in
+        perform(then: outcome == .achieved ? achievingVision : nil, failed: presentingFailure) { state, role throws(DomainError) in
             try state.closingVision(vision.id, as: outcome, by: role)
         }
     }
@@ -208,6 +205,7 @@ private extension ManagerTaskView {
 
     func perform(
         then succeeded: (@MainActor () -> Void)? = nil,
+        failed: (@MainActor (String) -> Void)? = nil,
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
     ) {
         failureMessage = nil
@@ -217,7 +215,11 @@ private extension ManagerTaskView {
                 failureMessage = nil
                 succeeded?()
             } catch {
-                failureMessage = error.message
+                if let failed {
+                    failed(error.message)
+                } else {
+                    failureMessage = error.message
+                }
             }
         }
     }

@@ -10,6 +10,11 @@ import Domain
 import SwiftUI
 import UIKit
 
+extension EnvironmentValues {
+    @Entry var achievingVision: (@MainActor () -> Void)?
+    @Entry var presentingFailure: (@MainActor (String) -> Void)?
+}
+
 struct ContentView: View {
     let session: PartnershipSession
     let sharing: any PartnershipSharing
@@ -22,6 +27,7 @@ struct ContentView: View {
     @State private var failureMessage: String?
     @State private var refreshFailure: String?
     @State private var achievements = 0
+    @State private var operationFailure: String?
 
     init(
         session: PartnershipSession,
@@ -71,6 +77,13 @@ struct ContentView: View {
                 }
                 .environment(\.achievingVision) { achievements += 1 }
                 .sensoryFeedback(.success, trigger: achievements)
+                .environment(\.presentingFailure) { operationFailure = $0 }
+                .sensoryFeedback(.error, trigger: operationFailure) { _, message in message != nil }
+                .alert("操作できませんでした", isPresented: Binding(presenting: $operationFailure)) {
+                    Button("OK") {}
+                } message: {
+                    Text(operationFailure ?? "")
+                }
             } else if pairing.phase == .idle, let saved = savedPairing {
                 ReconnectingView(
                     failureMessage: failureMessage,
