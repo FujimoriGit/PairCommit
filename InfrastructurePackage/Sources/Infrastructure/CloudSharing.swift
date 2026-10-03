@@ -12,11 +12,16 @@ import OSLog
 
 /// iCloud の共有でペアを作る。
 public struct CloudSharing: PartnershipSharing {
-    public init() {}
+    private let shareTitle: String
+
+    /// - Parameter shareTitle: 共有に付ける名前。相手が参加するときに目にする。
+    public init(shareTitle: String) {
+        self.shareTitle = shareTitle
+    }
 
     public func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare) {
         do {
-            let made = try await PartnershipShare.makeShare(initialState: initialState)
+            let made = try await PartnershipShare.makeShare(initialState: initialState, title: shareTitle)
             return (made.url, CloudPairedShare(rootRecordID: made.rootRecordID, isOwner: true))
         } catch {
             Logger.pairing.error("makeShare: \(error, privacy: .public)")
