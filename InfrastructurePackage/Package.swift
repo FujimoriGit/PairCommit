@@ -19,7 +19,6 @@ let package = Package(
             name: "Infrastructure",
             dependencies: [
                 .product(name: "Domain", package: "LocalPackage"),
-                .product(name: "Application", package: "LocalPackage"),
             ],
             plugins: [
                 .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
