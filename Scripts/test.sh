@@ -11,14 +11,18 @@ SCHEME=PairCommit
 DEVICE_NAME="${DEVICE_NAME:-iPhone 17}"
 RESULT_BUNDLE=build/TestResults.xcresult
 
+# simctl は選択中の Xcode に関係なく、入っているランタイムをすべて並べる。
+# 新しいランタイムの端末を選ぶと、Xcode を固定していても描画が変わるので、SDK と同じ版に絞る
+SDK_VERSION=$(xcrun --sdk iphonesimulator --show-sdk-version)
+DEVICES=$(xcrun simctl list devices available "iOS ${SDK_VERSION}")
+
 # 指定デバイスがなければ、利用可能な iPhone シミュレータの先頭にフォールバック
-if ! xcrun simctl list devices available | grep -q "${DEVICE_NAME} ("; then
-  DEVICE_NAME=$(xcrun simctl list devices available | grep -oE "^ *iPhone [^(]+" | head -1 | sed -E 's/^ +| +$//g')
+if ! grep -qE "^ +${DEVICE_NAME} \(" <<< "$DEVICES"; then
+  DEVICE_NAME=$(grep -oE "^ *iPhone [^(]+" <<< "$DEVICES" | head -1 | sed -E 's/^ +| +$//g')
   echo "warning: 既定のシミュレータが見つからないため '${DEVICE_NAME}' を使います" >&2
 fi
 
-# simctl はランタイムを古い順に並べるので、最後の行が最新の OS
-DEVICE_ID=$(xcrun simctl list devices available | grep -E "^ +${DEVICE_NAME} \(" | tail -1 | grep -oE "[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}")
+DEVICE_ID=$(grep -E "^ +${DEVICE_NAME} \(" <<< "$DEVICES" | head -1 | grep -oE "[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}")
 
 # 起動に数分かかるので、ビルドと重ねる。起動済みなら失敗するが構わない
 xcrun simctl boot "$DEVICE_ID" 2>/dev/null &
