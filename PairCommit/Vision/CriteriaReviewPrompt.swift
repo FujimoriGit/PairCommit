@@ -18,6 +18,6 @@ enum CriteriaReviewPrompt {
         """)
 
     static func prompt(statement: String, doneCriteria: String) -> String {
-        String(localized: "ビジョン: \(statement)\n達成基準: \(doneCriteria)")
+        String(localized: "ビジョン: \(statement)\n達成基準: \(doneCriteria)", comment: "端末上のモデルに渡す入力で、画面には出ない。1つ目の %@ はビジョン、2つ目は達成基準")
     }
 }

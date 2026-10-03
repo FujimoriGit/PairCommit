@@ -58,7 +58,7 @@ private extension PlayerVisionView {
     var content: some View {
         switch stage {
         case .proposed(let vision):
-            summary(of: vision, note: String(localized: "\(Role.manager.label)の承認待ち"))
+            summary(of: vision, note: String(localized: "\(Role.manager.label)の承認待ち", comment: "提出したビジョンの状態。%@ は相手の役割名"))
         case .draft(let vision) where revising == vision.id:
             revisionForm(vision)
         case .draft(let vision):
@@ -153,7 +153,7 @@ private extension PlayerVisionView {
     func draftDetail(_ vision: Vision) -> some View {
         VisionDetail(vision: vision)
         VStack(spacing: 10) {
-            Button("\(Role.manager.label)に提出する") {
+            Button(String(localized: "\(Role.manager.label)に提出する", comment: "下書きのビジョンを相手に送るボタン。%@ は相手の役割名")) {
                 perform { state, role throws(DomainError) in try state.proposingVision(vision.id, by: role) }
             }
             .buttonStyle(.filled)

@@ -2,6 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "%@がビジョンを起案するとここに出ます" : {
+      "comment" : "ビジョンを達成したあと、次の起案を待つときの案内。%@ は相手の役割名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18,6 +19,7 @@
       }
     },
     "%@だけができる操作です" : {
+      "comment" : "操作が拒まれたときのエラー。%@ はその操作ができる役割名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -34,6 +36,7 @@
       }
     },
     "%@に提出する" : {
+      "comment" : "下書きのビジョンを相手に送るボタン。%@ は相手の役割名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -50,6 +53,7 @@
       }
     },
     "%@に起案" : {
+      "comment" : "記録の一覧で、ビジョンを起案した日。%@ は日付",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -66,6 +70,7 @@
       }
     },
     "%@の承認待ち" : {
+      "comment" : "提出したビジョンの状態。%@ は相手の役割名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -82,6 +87,7 @@
       }
     },
     "%@の期限を過ぎています" : {
+      "comment" : "ビジョンの残り日数の代わりに出す。%@ は期限の日付",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -98,6 +104,7 @@
       }
     },
     "%@の起案を待っています" : {
+      "comment" : "承認待ちのビジョンがないときの案内。%@ は相手の役割名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -130,6 +137,7 @@
       }
     },
     "2台とも「%@」を選んでいます。片方の端末では「%@」を選んでください" : {
+      "comment" : "近くの相手とのペアリングで、2台が同じ役割を選んだときのエラー。1つ目の %@ は選ばれた役割名、2つ目はもう一方の役割名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -306,6 +314,7 @@
       }
     },
     "「%@」の完了報告が承認されないままです" : {
+      "comment" : "通知。%@ はタスク名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -322,6 +331,7 @@
       }
     },
     "「%@」の期限は%@です" : {
+      "comment" : "通知。1つ目の %@ はタスク名、2つ目は期限の月日",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -338,6 +348,7 @@
       }
     },
     "「%@」の期限を確かめてください" : {
+      "comment" : "通知。%@ はタスク名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -354,6 +365,7 @@
       }
     },
     "「%@」の期限を過ぎています" : {
+      "comment" : "通知。%@ はタスク名",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -866,6 +878,7 @@
       }
     },
     "ビジョン: %@\n達成基準: %@" : {
+      "comment" : "端末上のモデルに渡す入力で、画面には出ない。1つ目の %@ はビジョン、2つ目は達成基準",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1186,6 +1199,7 @@
       }
     },
     "取りやめ" : {
+      "comment" : "閉じたビジョンの結果",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1202,6 +1216,7 @@
       }
     },
     "取りやめにする" : {
+      "comment" : "ビジョンを閉じる確認のボタン",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1218,6 +1233,7 @@
       }
     },
     "取りやめる" : {
+      "comment" : "ビジョンを閉じるときに選ぶ結果",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1250,6 +1266,7 @@
       }
     },
     "取り消し" : {
+      "comment" : "タスクの状態。取り消された",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1282,6 +1299,7 @@
       }
     },
     "完了" : {
+      "comment" : "タスクの状態。完了が承認された",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1410,6 +1428,7 @@
       }
     },
     "承認待ち" : {
+      "comment" : "タスクやビジョンの状態。見届ける人の承認を待っている",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1522,6 +1541,7 @@
       }
     },
     "採用待ち" : {
+      "comment" : "タスクの状態。起案されて、見届ける人の採用を待っている",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1634,6 +1654,7 @@
       }
     },
     "未完了" : {
+      "comment" : "タスクの状態。採用されて、まだ完了を報告していない",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1666,6 +1687,7 @@
       }
     },
     "残り%lld日（%@まで）" : {
+      "comment" : "ビジョンの残り日数。%lld は日数、%@ は期限の日付",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2136,6 +2158,7 @@
       }
     },
     "達成" : {
+      "comment" : "閉じたビジョンの結果",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2152,6 +2175,7 @@
       }
     },
     "達成した" : {
+      "comment" : "ビジョンを閉じるときに選ぶ結果",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2168,6 +2192,7 @@
       }
     },
     "達成にする" : {
+      "comment" : "ビジョンを閉じる確認のボタン",
       "localizations" : {
         "en" : {
           "stringUnit" : {

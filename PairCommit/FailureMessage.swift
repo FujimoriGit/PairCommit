@@ -21,7 +21,7 @@ extension PartnershipFailure {
 extension DomainError {
     var message: String {
         switch self {
-        case .roleForbidden(let required): String(localized: "\(required.label)だけができる操作です")
+        case .roleForbidden(let required): String(localized: "\(required.label)だけができる操作です", comment: "操作が拒まれたときのエラー。%@ はその操作ができる役割名")
         case .visionNotFound: String(localized: "ビジョンが見つかりません")
         case .taskNotFound: String(localized: "タスクが見つかりません")
         case .invalidVisionTransition: String(localized: "いまのビジョンの状態ではできない操作です")
@@ -55,7 +55,10 @@ extension NearbyPairing.Failure {
     var message: String {
         switch self {
         case .partnerFailed: String(localized: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください")
-        case .sameRole(let role): String(localized: "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください")
+        case .sameRole(let role): String(
+            localized: "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください",
+            comment: "近くの相手とのペアリングで、2台が同じ役割を選んだときのエラー。1つ目の %@ は選ばれた役割名、2つ目はもう一方の役割名"
+        )
         case .bothAccepting: String(localized: "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください")
         case .external(let failure): failure.message
         }

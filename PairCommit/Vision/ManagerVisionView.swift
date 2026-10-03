@@ -55,20 +55,20 @@ private extension ManagerVisionView {
             Placeholder(
                 symbol: "tray",
                 title: String(localized: "次の起案を待っています"),
-                message: String(localized: "\(Role.player.label)がビジョンを起案するとここに出ます")
+                message: String(localized: "\(Role.player.label)がビジョンを起案するとここに出ます", comment: "ビジョンを達成したあと、次の起案を待つときの案内。%@ は相手の役割名")
             )
         } else {
             Placeholder(
                 symbol: "tray",
                 title: String(localized: "承認待ちのビジョンはありません"),
-                message: String(localized: "\(Role.player.label)の起案を待っています")
+                message: String(localized: "\(Role.player.label)の起案を待っています", comment: "承認待ちのビジョンがないときの案内。%@ は相手の役割名")
             )
         }
     }
 
     @ViewBuilder
     func review(_ vision: Vision) -> some View {
-        VisionDetail(vision: vision, note: String(localized: "承認待ち"))
+        VisionDetail(vision: vision, note: String(localized: "承認待ち", comment: "タスクやビジョンの状態。見届ける人の承認を待っている"))
         VStack(spacing: 10) {
             Button("承認する") {
                 perform { state, role throws(DomainError) in try state.approvingVision(vision.id, by: role) }

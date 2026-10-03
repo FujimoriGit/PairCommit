@@ -64,9 +64,15 @@ private extension VisionCard {
     var remaining: String {
         switch vision.countdown(at: now, in: .current) {
         case .unbounded: String(localized: "期限なし")
-        case .overdue(let deadline): String(localized: "\(deadline.formatted(Date.FormatStyle.yearMonthDay))の期限を過ぎています")
+        case .overdue(let deadline): String(
+            localized: "\(deadline.formatted(Date.FormatStyle.yearMonthDay))の期限を過ぎています",
+            comment: "ビジョンの残り日数の代わりに出す。%@ は期限の日付"
+        )
         case .days(0, _): String(localized: "今日まで")
-        case .days(let days, let deadline): String(localized: "残り\(days)日（\(deadline.formatted(Date.FormatStyle.yearMonthDay))まで）")
+        case .days(let days, let deadline): String(
+            localized: "残り\(days)日（\(deadline.formatted(Date.FormatStyle.yearMonthDay))まで）",
+            comment: "ビジョンの残り日数。%lld は日数、%@ は期限の日付"
+        )
         }
     }
 

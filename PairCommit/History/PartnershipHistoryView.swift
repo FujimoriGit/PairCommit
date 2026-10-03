@@ -57,7 +57,7 @@ private extension PartnershipHistoryView {
                 HStack(spacing: 8) {
                     Text(closed.outcome.result)
                         .marker(closed.outcome.tint)
-                    Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案")
+                    Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案", comment: "記録の一覧で、ビジョンを起案した日。%@ は日付")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
