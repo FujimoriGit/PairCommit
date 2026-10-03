@@ -13,7 +13,7 @@ struct AchievementBanner: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("🎉 達成しました")
+            Text(.achievementBannerTitle)
                 .font(.system(.headline, design: .rounded))
                 .foregroundStyle(.green)
             Text(vision.statement)

@@ -16,7 +16,7 @@ struct PartnershipHistoryView: View {
         Screen(role: role) {
             content
         }
-        .navigationTitle("2人の記録")
+        .navigationTitle(.partnershipHistoryTitle)
     }
 }
 
@@ -28,8 +28,8 @@ private extension PartnershipHistoryView {
         if state.closedVisions.isEmpty {
             Placeholder(
                 symbol: "clock.arrow.circlepath",
-                title: String(localized: "まだ記録がありません"),
-                message: String(localized: "ビジョンを閉じるとここに残ります")
+                title: String(localized: .partnershipHistoryEmptyTitle),
+                message: String(localized: .partnershipHistoryEmptyMessage)
             )
         } else {
             ForEach(state.closedVisions) { closed in
@@ -57,7 +57,7 @@ private extension PartnershipHistoryView {
                 HStack(spacing: 8) {
                     Text(closed.outcome.result)
                         .marker(closed.outcome.tint)
-                    Text("\(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay))に起案")
+                    Text(.partnershipHistoryProposedOn(closed.vision.createdAt.formatted(Date.FormatStyle.yearMonthDay)))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

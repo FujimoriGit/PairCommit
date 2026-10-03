@@ -36,7 +36,7 @@ struct ManagerTaskView: View {
             }
         }
         .confirmationDialog(
-            "このビジョンを閉じますか",
+            .managerTaskCloseVisionConfirmationTitle,
             isPresented: Binding(presenting: $outcome),
             presenting: outcome
         ) { outcome in
@@ -44,7 +44,7 @@ struct ManagerTaskView: View {
                 close(as: outcome)
             }
         } message: { _ in
-            Text("進行中のタスクはすべて取り消されます")
+            Text(.managerTaskCloseVisionConfirmationMessage)
         }
     }
 }
@@ -70,7 +70,7 @@ private extension ManagerTaskView {
     @ViewBuilder
     func judgementList(_ tasks: [TaskItem]) -> some View {
         if !tasks.isEmpty {
-            SectionHeader(text: String(localized: "判断が要る"))
+            SectionHeader(text: String(localized: .managerTaskNeedsDecision))
             ForEach(tasks) { task in
                 row(task)
             }
@@ -80,7 +80,7 @@ private extension ManagerTaskView {
     @ViewBuilder
     func taskList(_ tasks: [TaskItem]) -> some View {
         if !tasks.isEmpty {
-            SectionHeader(text: String(localized: "タスク"))
+            SectionHeader(text: String(localized: .commonTasks))
             ForEach(tasks) { task in
                 row(task)
             }
@@ -90,8 +90,8 @@ private extension ManagerTaskView {
     var emptiness: some View {
         Placeholder(
             symbol: "checklist",
-            title: String(localized: "まだタスクがありません"),
-            message: String(localized: "やることを追加すると、ここに並びます")
+            title: String(localized: .taskListEmptyTitle),
+            message: String(localized: .managerTaskEmptyMessage)
         )
     }
 
@@ -125,7 +125,7 @@ private extension ManagerTaskView {
         switch task.status {
         case .proposed:
             VStack(spacing: 10) {
-                Button("採用する") {
+                Button(.managerTaskAccept) {
                     perform { state, role throws(DomainError) in try state.adoptingTask(task.id, by: role) }
                 }
                 .buttonStyle(.filled)
@@ -133,12 +133,12 @@ private extension ManagerTaskView {
             }
         case .reported:
             VStack(spacing: 10) {
-                Button("承認する") {
+                Button(.commonApprove) {
                     perform { state, role throws(DomainError) in try state.approvingTask(task.id, by: role) }
                 }
                 .buttonStyle(.filled)
                 HStack(spacing: 10) {
-                    Button("差し戻す") {
+                    Button(.managerTaskSendBack) {
                         perform { state, role throws(DomainError) in try state.returningTask(task.id, by: role) }
                     }
                     .buttonStyle(.soft(feedback: .warning))
@@ -153,25 +153,25 @@ private extension ManagerTaskView {
     }
 
     func cancellation(of task: TaskItem) -> some View {
-        Button("取り消す", role: .destructive) {
+        Button(.managerTaskCancelTask, role: .destructive) {
             perform { state, role throws(DomainError) in try state.cancellingTask(task.id, by: role) }
         }
         .buttonStyle(.soft)
     }
 
     var creation: some View {
-        Panel(title: String(localized: "タスクを追加")) {
-            TextField("やること", text: $input.title)
+        Panel(title: String(localized: .managerTaskCreationTitle)) {
+            TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
                 .fieldBox()
             DeadlineField(deadline: $input.deadline)
-            Button("追加する", action: create)
+            Button(.managerTaskAdd, action: create)
                 .buttonStyle(.filled)
                 .disabled(!input.isComplete)
         }
     }
 
     var judgement: some View {
-        Menu("達成判断", systemImage: "flag.checkered") {
+        Menu(.managerTaskJudgeOutcome, systemImage: "flag.checkered") {
             ForEach(Vision.Outcome.allCases, id: \.self) { candidate in
                 Button(candidate.label, role: candidate == .abandoned ? .destructive : nil) {
                     outcome = candidate

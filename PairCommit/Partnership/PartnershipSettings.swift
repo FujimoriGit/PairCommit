@@ -37,7 +37,7 @@ private struct PartnershipSettingsLink: ViewModifier {
                 if reset != nil {
                     ToolbarItem(placement: .topBarLeading) {
                         NavigationLink(value: PartnershipSettingsRoute()) {
-                            Label("設定", systemImage: "gearshape")
+                            Label(.commonSettings, systemImage: "gearshape")
                         }
                     }
                 }

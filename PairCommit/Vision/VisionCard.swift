@@ -15,7 +15,7 @@ struct VisionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("ビジョン")
+            Text(.commonVision)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
             Text(vision.statement)
@@ -63,10 +63,11 @@ private extension VisionCard {
 
     var remaining: String {
         switch vision.countdown(at: now, in: .current) {
-        case .unbounded: String(localized: "期限なし")
-        case .overdue(let deadline): String(localized: "\(deadline.formatted(Date.FormatStyle.yearMonthDay))の期限を過ぎています")
-        case .days(0, _): String(localized: "今日まで")
-        case .days(let days, let deadline): String(localized: "残り\(days)日（\(deadline.formatted(Date.FormatStyle.yearMonthDay))まで）")
+        case .unbounded: String(localized: .commonNoDeadline)
+        case .overdue(let deadline): String(localized: .visionCardOverdue(deadline.formatted(Date.FormatStyle.yearMonthDay)))
+        case .days(0, _): String(localized: .visionCardDueToday)
+        case .days(let days, let deadline):
+            String(localized: .visionCardDaysLeft(days: days, deadline.formatted(Date.FormatStyle.yearMonthDay)))
         }
     }
 

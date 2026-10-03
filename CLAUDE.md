@@ -53,6 +53,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - View 側は `@State`（旧 `@StateObject` は使わない）。
 - **`private` メソッドは `private extension` にまとめる。** 型本体には格納プロパティと公開 API を置き、private な実装は `// MARK: - Private` の `private extension` に分離する。
 - **不要な条件コンパイルを足さない。** 本アプリは iOS 専用（`SDKROOT = iphoneos`, iPhone のみ）。UIKit は常に使えるので `#if canImport(UIKit)` のようなプラットフォーム分岐は書かない。
+- **画面に出す文言は、`Localizable.xcstrings` に ID をキーにして置き、カタログが生成する記号で参照する**（`Text(.<ID>)`・`String(localized: .<ID>)`）。文言そのものをキーにしない。英語と日本語のどちらもキーにならず、ID を打ち間違えるとコンパイルが通らない。文言を足すときは、カタログに ID と英語・日本語の両方を入れる。
 - **ファイルヘッダーはテンプレートに揃える**（lint の `file_header` が強制。空コメント行は `//` のみ・末尾空白なし、ヘッダー後の空行は1行）。
   ```
   //

@@ -19,7 +19,7 @@ struct PairingView: View {
             SymbolBadge(symbol: "dot.radiowaves.left.and.right")
 
             VStack(spacing: 10) {
-                Text("相手と繋ぐ")
+                Text(.nearbyPairingTitle)
                     .font(.system(.title2, design: .rounded, weight: .bold))
                 Text(phase.label)
                     .font(.headline)
@@ -31,7 +31,7 @@ struct PairingView: View {
             .multilineTextAlignment(.center)
 
             Spacer()
-            Button(failure == nil ? String(localized: "やめる") : String(localized: "戻る"), action: onCancel)
+            Button(failure == nil ? .commonCancel : .commonBack, action: onCancel)
                 .buttonStyle(.soft)
         }
         .padding(24)
@@ -54,12 +54,12 @@ struct PairingView: View {
 private extension NearbyPairing.Phase {
     var label: String {
         switch self {
-        case .idle:        return String(localized: "待機中")
-        case .searching:   return String(localized: "相手を探しています…")
-        case .connected:   return String(localized: "相手が見つかりました")
-        case .sharing, .handedOver: return String(localized: "ペアを登録しています…")
-        case .done:        return String(localized: "ペアリングできました 🎉")
-        case .failed:      return String(localized: "ペアリングできませんでした")
+        case .idle:        return String(localized: .nearbyPairingIdle)
+        case .searching:   return String(localized: .nearbyPairingSearching)
+        case .connected:   return String(localized: .nearbyPairingConnected)
+        case .sharing, .handedOver: return String(localized: .nearbyPairingSharing)
+        case .done:        return String(localized: .nearbyPairingDone)
+        case .failed:      return String(localized: .commonPairingFailed)
         }
     }
 }
@@ -71,7 +71,7 @@ private extension PairingView {
     }
 
     var note: String {
-        failure?.message ?? String(localized: "2台を近くに置いたまま待ってください。")
+        failure?.message ?? String(localized: .nearbyPairingNote)
     }
 }
 

@@ -36,7 +36,7 @@ struct PairCommitApp: App {
 // MARK: - Private
 
 private extension PairCommitApp {
-    static let shareTitle = String(localized: "ふたりの帆柱")
+    static let shareTitle = String(localized: .shareTitle)
 }
 
 @MainActor

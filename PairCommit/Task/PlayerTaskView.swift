@@ -45,12 +45,12 @@ private extension PlayerTaskView {
 
     @ViewBuilder
     func taskList(_ tasks: [TaskItem]) -> some View {
-        SectionHeader(text: String(localized: "タスク"))
+        SectionHeader(text: String(localized: .commonTasks))
         if tasks.isEmpty {
             Placeholder(
                 symbol: "checklist",
-                title: String(localized: "まだタスクがありません"),
-                message: String(localized: "やることを起案すると、ここに並びます")
+                title: String(localized: .taskListEmptyTitle),
+                message: String(localized: .playerTaskEmptyMessage)
             )
         } else {
             ForEach(tasks) { task in
@@ -81,7 +81,7 @@ private extension PlayerTaskView {
                         try state.reportingTask(task.id, by: role)
                     }
                 } label: {
-                    Text("完了を報告する")
+                    Text(.playerTaskReport)
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundStyle(.tint)
                         .frame(minHeight: 44)
@@ -130,11 +130,11 @@ private extension PlayerTaskView {
     }
 
     var proposal: some View {
-        Panel(title: String(localized: "タスクを起案する")) {
-            TextField("やること", text: $input.title)
+        Panel(title: String(localized: .playerTaskProposalTitle)) {
+            TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
                 .fieldBox()
             DeadlineField(deadline: $input.deadline)
-            Button("起案する", action: create)
+            Button(.commonPropose, action: create)
                 .buttonStyle(.filled)
                 .disabled(!input.isComplete)
         }

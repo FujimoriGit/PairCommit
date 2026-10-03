@@ -30,16 +30,16 @@ private extension ReconnectingView {
             VStack(spacing: 14) {
                 Placeholder(
                     symbol: "wifi.exclamationmark",
-                    title: String(localized: "相手とつながりませんでした"),
+                    title: String(localized: .reconnectingFailed),
                     message: failureMessage
                 )
-                Button("もう一度試す", action: onRetry)
+                Button(.commonRetry, action: onRetry)
                     .buttonStyle(.filled)
-                Button("役割の選択からやり直す", role: .destructive, action: onStartOver)
+                Button(.reconnectingStartOver, role: .destructive, action: onStartOver)
                     .buttonStyle(.soft)
             }
         } else {
-            ProgressView("相手とつないでいます…")
+            ProgressView(.reconnectingProgress)
         }
     }
 }
