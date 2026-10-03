@@ -17,6 +17,12 @@ if ! xcrun simctl list devices available | grep -q "${DEVICE_NAME} ("; then
   echo "warning: 既定のシミュレータが見つからないため '${DEVICE_NAME}' を使います" >&2
 fi
 
+# simctl はランタイムを古い順に並べるので、最後の行が最新の OS
+DEVICE_ID=$(xcrun simctl list devices available | grep -E "^ +${DEVICE_NAME} \(" | tail -1 | grep -oE "[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}")
+
+# 起動に数分かかるので、ビルドと重ねる。起動済みなら失敗するが構わない
+xcrun simctl boot "$DEVICE_ID" 2>/dev/null &
+
 rm -rf "$RESULT_BUNDLE"
 
 # -skipPackagePluginValidation: PrefireTestsPlugin（テスト自動生成）を CLI から動かすのに必要
@@ -25,7 +31,7 @@ rm -rf "$RESULT_BUNDLE"
 # 複製したシミュレータでアプリが起動できず、10分ほど待たされることがある
 xcodebuild \
   -scheme "$SCHEME" \
-  -destination "platform=iOS Simulator,name=${DEVICE_NAME}" \
+  -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
   -resultBundlePath "$RESULT_BUNDLE" \
   -skipPackagePluginValidation \
   -skip-testing:PairCommitUITests \
