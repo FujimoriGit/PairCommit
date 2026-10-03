@@ -11,9 +11,9 @@ struct FilledButtonStyle: PrimitiveButtonStyle {
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         let button = FeedbackButton(configuration: configuration, feedback: .impact)
+            .font(.system(.headline, design: .rounded))
         if #available(iOS 26, *) {
             button
-                .font(.system(.headline, design: .rounded))
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
         } else {
@@ -31,10 +31,9 @@ struct SoftButtonStyle: PrimitiveButtonStyle {
             configuration: configuration,
             feedback: feedback ?? (configuration.role == .destructive ? .warning : .impact(weight: .light))
         )
+        .font(.system(.subheadline, design: .rounded, weight: .semibold))
         if #available(iOS 26, *) {
-            button
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .buttonStyle(.glass)
+            button.buttonStyle(.glass)
         } else {
             button.buttonStyle(Appearance())
         }
@@ -85,7 +84,6 @@ private extension FilledButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(.headline, design: .rounded))
                 .foregroundStyle(isEnabled ? AnyShapeStyle(.white) : AnyShapeStyle(Color.secondary))
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(fill, in: .capsule)
@@ -111,7 +109,6 @@ private extension SoftButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(fill)
                 .frame(maxWidth: .infinity, minHeight: 42)
                 .background(Color(.tertiarySystemFill), in: .capsule)
