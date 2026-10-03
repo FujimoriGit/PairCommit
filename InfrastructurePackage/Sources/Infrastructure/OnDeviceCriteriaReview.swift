@@ -54,9 +54,9 @@ private extension OnDeviceCriteriaReview {
 @available(iOS 26.0, *)
 @Generable
 private struct Reviewed {
-    @Guide(description: "達成できたかどうかを第三者が確認できる書き方なら true")
+    @Guide(description: "true if a third party can confirm whether it was achieved")
     let isVerifiable: Bool
 
-    @Guide(description: "日本語60字以内の助言を1文")
+    @Guide(description: "One sentence of advice, in the language and length the instructions ask for")
     let advice: String
 }

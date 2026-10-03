@@ -62,7 +62,7 @@ private extension NearbyPairing.Phase {
 }
 
 private extension PairingView {
-    var failure: PairingFailure? {
+    var failure: NearbyPairing.Failure? {
         guard case .failed(let reason) = phase else { return nil }
         return reason
     }
@@ -77,5 +77,5 @@ private extension PairingView {
 }
 
 #Preview("ペアリングの失敗") {
-    PairingView(phase: .failed(.signedOut), onCancel: {})
+    PairingView(phase: .failed(.external(.signedOut)), onCancel: {})
 }
