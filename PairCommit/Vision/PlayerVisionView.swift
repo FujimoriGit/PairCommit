@@ -7,7 +7,6 @@
 
 import Application
 import Domain
-import Infrastructure
 import SwiftUI
 
 struct PlayerVisionView: View {

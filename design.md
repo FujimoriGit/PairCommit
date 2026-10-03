@@ -64,8 +64,9 @@
 - ドメイン層は `PartnershipSyncing` のようなプロトコルとだけ会話する。CloudKitはその実装の一つ。**ドメインはCloudKitの存在を知らない。**
 - 同期層のセマンティクス（ドメインは何が保証されれば動くか）を先に決め、CloudKit依存をこのプロトコルの裏1点に隔離する。
 - これにより第二期のRust/自作バックエンドは「もう一つの実装」を差すだけで済む。
-- 実装上はローカルSPMパッケージ `LocalPackage` の `Domain` / `Application` / `Infrastructure` モジュールに分離済み（import できない＝依存方向をコンパイラが強制）。View はアプリターゲットに置く。
-- CloudKit を使う実装だけはアプリターゲット側に置く。パッケージに入れると ubuntu で回している `swift test` が壊れる（達成基準の下読みと同じ理由）。`InMemorySynchronizer` は `Infrastructure` に残す。
+- 実装上は `Domain` / `Application` / `Infrastructure` のモジュールに分ける（import できない＝依存方向をコンパイラが強制）。View はアプリターゲットに置く。
+- ペアリング（共有を作る・参加する・ペアを終える、近くの端末とやり取りする）も、同期と同じく `Application` の protocol だけで扱う。CloudKit と MultipeerConnectivity を使う実装は、すべて `Infrastructure` に置く。アプリで `Infrastructure` を import するのは、実装を作って画面に渡す `PairCommitApp` だけ。
+- `Domain` / `Application` は `LocalPackage`、`Infrastructure` は `InfrastructurePackage` と、パッケージを分ける。ubuntu の `swift test` はパッケージの中をすべてビルドするので、同じパッケージに Apple のフレームワークを使う `Infrastructure` があると落ちる。ubuntu で確かめるのは `Domain` と `Application` だけ。
 
 ### 第二期構想（後回し）
 
@@ -227,7 +228,7 @@ graph LR
    - 逆算の「ペース」は入れない。タスクに進捗率がなく（`todo` か `reported` か）、日数以外に測れるものがないため。
    - アプリ内表示と端末の通知の両方。判定し直すのは、画面の状態が変わったときと、相手の変更で飛ぶサイレントプッシュで起きたとき。アプリ内の表示は、開いている間1分ごとにも判定し直す。期限も催促の始まりも日付の境目ではなく任意の時刻なので、表示が遅れるのは最大1分に収まる。通知は、いま始まっている催促を出すものと、まだ始まっていない催促を始まる時刻に予約するものの2つ。予約があるので、誰も操作しないまま期限が過ぎても鳴る。プッシュで起きたときの判定と通知の掲示は画面の外（アプリのデリゲート）で行い、それが終わってからバックグラウンドの実行時間を返す。通知は催促1件につき1つで、識別子を固定して差し替える（同じ催促が続く間に増えない）。解消した催促の通知は取り下げる。配信済みのものは出し直さない。
 
-8. **テストとプレビューの代用品の置き場所** -> 未決。`Infrastructure` の中身は `InMemorySynchronizer` だけで、実物の同期層はアプリターゲットにある。層の名前が指すものが中に無く、代用品だけをアプリが製品ビルドでもリンクしている（`PreviewFixtures` に条件コンパイルはない）。どう切り離すか、そもそも切り離すかから決める。
+8. **テストとプレビューの代用品の置き場所** -> 決定。使う側に置く。`Application` のテストの代用品はテストの中、プレビューの代用品はアプリの `PreviewFixtures`。`Infrastructure` には実物だけを置く。
 
 9. **ウィジェット** -> 未決。やるかどうかから決めていない。やる場合に出すのは、自分のタスク一覧ではなく相手が待っていること ── 管理者には承認待ちの件数、プレイヤーには進行中のビジョンと残り日数（期限が無ければ「期限なし」）と未完了の件数。アプリを開かなくても相手の存在が見えている状態を作るのが目的なので、一覧の縮小版にすると開かない理由になって逆効果になる。サイズは small 1つ。ウィジェットから共有 DB を直に読むと、ウィジェットの更新の中でネットワーク取得をやることになる。アプリが App Group にスナップショットを書き、ウィジェットはそれを読む。App Group は entitlement なので capability の追加が要る。
 
@@ -236,8 +237,8 @@ graph LR
 **できていること**:
 
 - ドメイン層 ── 不変条件・ロールガード・全遷移。状態を変える操作は受け取った値を変更せず新しい値を返す（`mutating` なし）。
-- 同期境界 `PartnershipSyncing` と、CloudKit 実装・インメモリ実装。UI結節点の `PartnershipStore`。インメモリ実装はテストとプレビュー専用。
-- 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストも層ごとに `LocalPackage/Tests/` へ置き、`swift test` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
+- 同期境界 `PartnershipSyncing` と、CloudKit 実装・インメモリ実装。UI結節点の `PartnershipStore`。インメモリ実装はテスト専用。
+- 実装は `LocalPackage` の `Domain` / `Application` と、`InfrastructurePackage` の `Infrastructure` に分離。テストは `LocalPackage/Tests/` へ層ごとに置き、`swift test` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
 - CI は2本立て。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 - ロール別UI ── ビジョンの起案から承認・達成判断まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。ビジョンとタスクに期限を設定できる。
@@ -266,7 +267,7 @@ graph LR
 
 1. **ドメインモデル定義** -> 済（`LocalPackage/Sources/Domain/`）。
 2. **`PartnershipSyncing` プロトコル定義** -> 済（同上。セマンティクスはdoc comment参照）。
-3. **`InMemorySynchronizer` 実装** -> 済（`Sources/Infrastructure/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
+3. **`InMemorySynchronizer` 実装** -> 済（`Tests/ApplicationTests/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
 5. **ロール別UI** -> 済。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
    - Manager: タスク生成・採用・承認・差し戻し・取り消し、ビジョン承認・達成判断、催促の表示、感情ヒートマップ（行の色）。
@@ -274,5 +275,5 @@ graph LR
    - ロールはペアリングのときに固定する（未決事項5）。2台がそれぞれ違うロールを選ぶか、片方が選んでもう片方が相手の招待を受け、残りのロールになる。
 6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
 7. **催促ロジック（双方向）** -> 判定はドメインの純粋関数として済（`Nudge` / `nudges(for:now:)`）。アプリ内表示と端末の通知も済。アプリを開いていない間も、予約した通知で鳴る。
-8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。実装と配線は済（`PairCommit/Partnership/`）。残りは実機2台での実行検証。
+8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。実装と配線は済（`InfrastructurePackage/`）。残りは実機2台での実行検証。
 9. **（できれば）** 達成お祝い演出→次ビジョン設定 -> 済。Foundation Models でクライテリアをレビュー -> 済。
