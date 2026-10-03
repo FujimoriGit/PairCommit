@@ -45,11 +45,19 @@ extension PairingFailure {
         case .nearbyUnavailable:
             String(localized: "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください")
         case .disconnected: String(localized: "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください")
+        case .invitationWithdrawn: String(localized: "相手が招待をやめました。もう一度、招待リンクを送ってもらってください")
+        case .unexpected: String(localized: "うまくいきませんでした。もう一度お試しください")
+        }
+    }
+}
+
+extension NearbyPairing.Failure {
+    var message: String {
+        switch self {
         case .partnerFailed: String(localized: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください")
         case .sameRole(let role): String(localized: "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください")
         case .bothAccepting: String(localized: "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください")
-        case .invitationWithdrawn: String(localized: "相手が招待をやめました。もう一度、招待リンクを送ってもらってください")
-        case .unexpected: String(localized: "うまくいきませんでした。もう一度お試しください")
+        case .external(let failure): failure.message
         }
     }
 }
