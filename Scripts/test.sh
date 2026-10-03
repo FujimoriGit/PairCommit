@@ -16,6 +16,11 @@ RESULT_BUNDLE=build/TestResults.xcresult
 SDK_VERSION=$(xcrun --sdk iphonesimulator --show-sdk-version)
 DEVICES=$(xcrun simctl list devices available "iOS ${SDK_VERSION}")
 
+if ! grep -qE "^ +iPhone " <<< "$DEVICES"; then
+  echo "error: iOS ${SDK_VERSION} のシミュレータがありません（xcodebuild -downloadPlatform iOS で入ります）" >&2
+  exit 1
+fi
+
 # 指定デバイスがなければ、利用可能な iPhone シミュレータの先頭にフォールバック
 if ! grep -qE "^ +${DEVICE_NAME} \(" <<< "$DEVICES"; then
   DEVICE_NAME=$(grep -oE "^ *iPhone [^(]+" <<< "$DEVICES" | head -1 | sed -E 's/^ +| +$//g')
