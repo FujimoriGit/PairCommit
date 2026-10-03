@@ -13,6 +13,8 @@ test_configuration:
   preview_default_enabled: true
   # 実行OSのメジャーバージョンを固定（環境ズレによる無意味な差分を防ぐ）
   required_os: 26
+  # 実際のウィンドウに描いて撮る。画像に描き出す既定の方式では Liquid Glass が描けず、ガラスの部品が消える
+  draw_hierarchy_in_key_window_default_enabled: true
   # レンダリングの論理デバイスを固定（実行シミュレータの機種に依存させない）
   snapshot_devices:
     - iPhone 15
