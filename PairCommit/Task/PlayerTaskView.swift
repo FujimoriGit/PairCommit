@@ -16,6 +16,7 @@ struct PlayerTaskView: View {
 
     @State private var input = TaskInput()
     @State private var failureMessage: String?
+    @State private var feedback = FeedbackCue()
 
     var body: some View {
         Screen(role: store.role) {
@@ -24,6 +25,7 @@ struct PlayerTaskView: View {
         .animation(.default, value: store.state)
         .animation(.default, value: failureMessage)
         .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
+        .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
@@ -75,7 +77,9 @@ private extension PlayerTaskView {
             }
             if task.status == .todo {
                 Button {
-                    perform { state, role throws(DomainError) in try state.reportingTask(task.id, by: role) }
+                    perform(succeeding: .success) { state, role throws(DomainError) in
+                        try state.reportingTask(task.id, by: role)
+                    }
                 } label: {
                     Text("完了を報告する")
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
@@ -86,7 +90,6 @@ private extension PlayerTaskView {
                 .buttonStyle(.plain)
             }
         }
-        .sensoryFeedback(.success, trigger: task.status) { _, status in status == .reported }
         .card(tinted: task.reaction?.tint)
     }
 
@@ -94,6 +97,7 @@ private extension PlayerTaskView {
         HStack(spacing: 8) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button {
+                    feedback = feedback.playing(.selection)
                     perform { state, role throws(DomainError) in
                         try state.settingReaction(
                             task.reaction == reaction ? nil : reaction,
@@ -108,7 +112,6 @@ private extension PlayerTaskView {
                 .accessibilityAddTraits(task.reaction == reaction ? .isSelected : [])
             }
         }
-        .sensoryFeedback(.selection, trigger: task.reaction)
     }
 
     func reactionLabel(_ reaction: Reaction, chosen: Bool) -> some View {
@@ -153,12 +156,18 @@ private extension PlayerTaskView {
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+    func perform(
+        succeeding success: SensoryFeedback? = nil,
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
+    ) {
         failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
                 failureMessage = nil
+                if let success {
+                    feedback = feedback.playing(success)
+                }
             } catch {
                 failureMessage = error.message
             }

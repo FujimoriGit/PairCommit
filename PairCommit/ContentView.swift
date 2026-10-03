@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var pairing: NearbyPairing
     @State private var failureMessage: String?
     @State private var refreshFailure: String?
+    @State private var achievements = 0
 
     init(
         session: PartnershipSession,
@@ -68,9 +69,8 @@ struct ContentView: View {
                     let state = store.state
                     await notifications.post(for: store.role, in: state) { $0.message(in: state) }
                 }
-                .sensoryFeedback(.success, trigger: store.state.lastAchievedVision?.id) { _, achieved in
-                    store.role == .manager && achieved != nil
-                }
+                .environment(\.achievingVision) { achievements += 1 }
+                .sensoryFeedback(.success, trigger: achievements)
             } else if pairing.phase == .idle, let saved = savedPairing {
                 ReconnectingView(
                     failureMessage: failureMessage,
