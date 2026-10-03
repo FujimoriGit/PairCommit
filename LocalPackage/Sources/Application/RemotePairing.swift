@@ -61,9 +61,13 @@ public final class RemotePairing {
         failure = nil
     }
 
-    /// 相手とペアができるまで進める。
+    /// 相手とペアができるまで進める。やめる後始末が残っていれば、相手は待たずに後始末をやり直す。
     /// - Returns: できたペア。失敗したときは `failure` に入れて nil を返す。
     public func run() async -> (any PairedShare)? {
+        if isWithdrawing {
+            await cancel()
+            return nil
+        }
         let polling = Task { await advance() }
         self.polling = polling
         let outcome = await withTaskCancellationHandler { await polling.value } onCancel: { polling.cancel() }

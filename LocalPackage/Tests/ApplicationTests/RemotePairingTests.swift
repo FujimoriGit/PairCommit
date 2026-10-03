@@ -31,21 +31,23 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("後始末に失敗したあとにもう一度やめると、相手待ちに戻らず同じ後始末をやり直す")
+    @Test("後始末に失敗したあとにもう一度試すと、相手待ちに戻らず同じ後始末をやり直す")
     func retryAfterFailedCleanupRepeatsTheSameCleanup() async {
         // Given
         let inviting = FakeInviting()
+        inviting.progress = .paired(StubShare(isOwner: true))
         inviting.cleanupFailure = .offline
         let pairing = RemotePairing(inviting: inviting)
         pairing.invite(ownerRole: .manager)
         await pairing.cancel()
-        #expect(pairing.isWithdrawing)
         inviting.cleanupFailure = nil
 
         // When
-        await pairing.cancel()
+        pairing.retry()
+        let paired = await pairing.run()
 
         // Then
+        #expect(paired == nil)
         #expect(inviting.withdrawCalls == 2)
         #expect(inviting.advanceCalls == 0)
         #expect(pairing.phase == .idle)

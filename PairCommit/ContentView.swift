@@ -195,24 +195,25 @@ private extension ContentView {
                 InvitationView(
                     url: remote.invitationURL,
                     failureMessage: remote.failure?.message,
-                    onRetry: { Task { await retryRemote() } },
+                    onRetry: remote.retry,
                     onCancel: { Task { await cancelRemote() } }
                 )
             case .joining, .idle:
                 ReconnectingView(
                     failureMessage: remote.failure?.message,
-                    onRetry: { Task { await retryRemote() } },
+                    onRetry: remote.retry,
                     onStartOver: { Task { await cancelRemote() } }
                 )
             }
         }
         .task(id: remote.failure == nil) {
             guard remote.failure == nil else { return }
-            if remote.isWithdrawing {
-                await cancelRemote()
+            guard let outcome = await remote.run() else {
+                if remote.phase == .idle {
+                    await returnToPicker(with: nil)
+                }
                 return
             }
-            guard let outcome = await remote.run() else { return }
             outcome.save()
             savedPairing = outcome
             isResuming = false
@@ -241,14 +242,6 @@ private extension ContentView {
             failureMessage = nil
             methodRole = nil
             remote.receive(link)
-        }
-    }
-
-    func retryRemote() async {
-        if remote.isWithdrawing {
-            await cancelRemote()
-        } else {
-            remote.retry()
         }
     }
 
