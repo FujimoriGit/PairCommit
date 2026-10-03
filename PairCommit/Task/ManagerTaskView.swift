@@ -183,6 +183,7 @@ private extension ManagerTaskView {
 
     func create() {
         let entered = input
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
@@ -197,6 +198,7 @@ private extension ManagerTaskView {
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)

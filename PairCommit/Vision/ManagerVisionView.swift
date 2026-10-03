@@ -86,6 +86,7 @@ private extension ManagerVisionView {
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
