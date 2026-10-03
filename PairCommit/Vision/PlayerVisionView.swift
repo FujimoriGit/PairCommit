@@ -30,6 +30,10 @@ struct PlayerVisionView: View {
         Screen(role: store.role) {
             content
         }
+        .animation(.default, value: store.state)
+        .animation(.default, value: revising)
+        .animation(.default, value: failureMessage)
+        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
@@ -187,6 +191,7 @@ private extension PlayerVisionView {
 
     func draft() {
         let content = input.content
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
@@ -203,6 +208,7 @@ private extension PlayerVisionView {
 
     func revise(_ vision: Vision) {
         let content = input.content
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
@@ -219,6 +225,7 @@ private extension PlayerVisionView {
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)

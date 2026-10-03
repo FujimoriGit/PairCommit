@@ -14,10 +14,15 @@ struct ManagerVisionView: View {
 
     @State private var failureMessage: String?
 
+    @Environment(\.presentingFailure) private var presentingFailure
+
     var body: some View {
         Screen(role: store.role) {
             content
         }
+        .animation(.default, value: store.state)
+        .animation(.default, value: failureMessage)
+        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
@@ -71,24 +76,37 @@ private extension ManagerVisionView {
         VisionDetail(vision: vision, note: String(localized: "承認待ち"))
         VStack(spacing: 10) {
             Button("承認する") {
-                perform { state, role throws(DomainError) in try state.approvingVision(vision.id, by: role) }
+                approve(vision)
             }
             .buttonStyle(.filled)
             Button("起案者に差し戻す") {
                 perform { state, role throws(DomainError) in try state.rejectingVision(vision.id, by: role) }
             }
-            .buttonStyle(.soft)
+            .buttonStyle(.soft(feedback: .warning))
         }
         FailureNote(message: failureMessage)
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+    // 承認すると保存の前にこの画面が消えるので、失敗は画面の外へ知らせる
+    func approve(_ vision: Vision) {
+        perform(failed: presentingFailure) { state, role throws(DomainError) in try state.approvingVision(vision.id, by: role) }
+    }
+
+    func perform(
+        failed: (@MainActor (String) -> Void)? = nil,
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
+    ) {
+        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
                 failureMessage = nil
             } catch {
-                failureMessage = error.message
+                if let failed {
+                    failed(error.message)
+                } else {
+                    failureMessage = error.message
+                }
             }
         }
     }
