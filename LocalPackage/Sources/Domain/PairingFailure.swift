@@ -14,9 +14,6 @@ public enum PairingFailure: Error, Equatable, Sendable {
     case offline
     case nearbyUnavailable
     case disconnected
-    case partnerFailed
-    case sameRole(Role)
-    case bothAccepting
     case invitationWithdrawn
     case unexpected
 }
