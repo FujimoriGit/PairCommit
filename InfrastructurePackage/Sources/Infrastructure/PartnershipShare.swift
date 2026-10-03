@@ -15,6 +15,9 @@ enum PartnershipShareError: LocalizedError {
     case metadataMissing
     case saveResultMissing
     case deleteResultMissing
+    case invitationMissing
+    case invitationWithdrawn
+    case guestUnidentified
 
     var errorDescription: String? {
         switch self {
@@ -22,21 +25,27 @@ enum PartnershipShareError: LocalizedError {
         case .metadataMissing:      return "共有メタデータが取得できなかった"
         case .saveResultMissing:    return "保存した結果が返ってこなかった"
         case .deleteResultMissing:  return "削除した結果が返ってこなかった"
+        case .invitationMissing:    return "招待の共有が見つからなかった"
+        case .invitationWithdrawn:  return "招待の共有が消えていた"
+        case .guestUnidentified:    return "招待に参加した人の userRecordID が取れなかった"
         }
     }
 }
 
 enum PartnershipShare {
     static let container = CKContainer(identifier: "iCloud.com.fujimori.PairCommit")
-    private static let zoneName = "PairingZone"
-    private static let rootRecordName = "pairing-root"
+    /// 共有を作る側の private DB に置くルートレコード。
+    static let ownedRootRecordID = CKRecord.ID(
+        recordName: "pairing-root",
+        zoneID: CKRecordZone.ID(zoneName: "PairingZone", ownerName: CKCurrentUserDefaultName)
+    )
 
     // MARK: Owner 側
 
     static func makeShare(initialState: PartnershipState, title: String) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
         let database = container.privateCloudDatabase
-        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
-        let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
+        let rootRecordID = ownedRootRecordID
+        let zoneID = rootRecordID.zoneID
 
         // ゾーン名もレコード名も固定なので、前回のペアリングが途中で失敗していると共有が残っている。
         // 相手が受け終えて ACK だけが届かなかったときに同じ共有へつなぎ直せるよう、役割が同じなら残す。
@@ -51,10 +60,7 @@ enum PartnershipShare {
             try confirmDeleted(deleted.deleteResults[zoneID])
         }
 
-        // CloudKit の共有はカスタムゾーンが前提。
-        let created = try await database.modifyRecordZones(saving: [CKRecordZone(zoneID: zoneID)], deleting: [])
-        guard let result = created.saveResults[zoneID] else { throw PartnershipShareError.saveResultMissing }
-        _ = try result.get()
+        try await createZone(zoneID, in: database)
         let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
 
         let share = CKShare(rootRecord: pairing)
@@ -63,9 +69,21 @@ enum PartnershipShare {
         // ルートレコードを書ける必要がある。
         share.publicPermission = .readWrite
 
+        let url = try await saveSharing(pairing, with: share, in: database)
+        return (url, rootRecordID)
+    }
+
+    // CloudKit の共有はカスタムゾーンが前提。
+    static func createZone(_ zoneID: CKRecordZone.ID, in database: CKDatabase) async throws {
+        let created = try await database.modifyRecordZones(saving: [CKRecordZone(zoneID: zoneID)], deleting: [])
+        guard let result = created.saveResults[zoneID] else { throw PartnershipShareError.saveResultMissing }
+        _ = try result.get()
+    }
+
+    static func saveSharing(_ root: CKRecord, with share: CKShare, in database: CKDatabase) async throws -> URL {
         // ルートレコードと CKShare は同一オペレーションで原子的に保存する必要がある。
-        let saved = try await database.modifyRecords(saving: [pairing, share], deleting: [])
-        guard let rootResult = saved.saveResults[rootRecordID],
+        let saved = try await database.modifyRecords(saving: [root, share], deleting: [])
+        guard let rootResult = saved.saveResults[root.recordID],
               let shareResult = saved.saveResults[share.recordID] else {
             throw PartnershipShareError.saveResultMissing
         }
@@ -81,7 +99,7 @@ enum PartnershipShare {
         guard let url = (try shareResult.get() as? CKShare)?.url else {
             throw PartnershipShareError.shareURLUnavailable
         }
-        return (url, rootRecordID)
+        return url
     }
 
     // MARK: 両者共通
@@ -122,9 +140,9 @@ enum PartnershipShare {
     }
 }
 
-// MARK: - Private
+// MARK: - CloudKit の操作
 
-private extension PartnershipShare {
+extension PartnershipShare {
     static let absent: Set<CKError.Code> = [.zoneNotFound, .userDeletedZone, .unknownItem]
 
     // 消せたかどうかは項目ごとの結果に入る。オペレーション自体が投げるのは、そこへ辿り着けなかったとき。
@@ -143,9 +161,12 @@ private extension PartnershipShare {
     }
 
     static func shareURL(of root: CKRecord, in database: CKDatabase) async throws -> URL? {
-        guard let shareID = root.share?.recordID,
-              let share = try await database.record(for: shareID) as? CKShare else { return nil }
-        return share.url
+        try await share(of: root, in: database)?.url
+    }
+
+    static func share(of root: CKRecord, in database: CKDatabase) async throws -> CKShare? {
+        guard let shareID = root.share?.recordID else { return nil }
+        return try await database.record(for: shareID) as? CKShare
     }
 
     static func fetchMetadata(for url: URL) async throws -> CKShare.Metadata {

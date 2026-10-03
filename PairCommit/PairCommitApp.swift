@@ -21,6 +21,8 @@ struct PairCommitApp: App {
             ContentView(
                 session: delegate.session,
                 sharing: CloudSharing(shareTitle: Self.shareTitle),
+                inviting: CloudInviting(shareTitle: Self.shareTitle),
+                invitationLinks: InvitationSceneDelegate.links,
                 notifications: delegate.notifications,
                 makeCriteriaReviewing: {
                     OnDeviceCriteriaReview(instructions: CriteriaReviewPrompt.instructions, prompt: CriteriaReviewPrompt.prompt)
@@ -49,6 +51,16 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()
         return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = InvitationSceneDelegate.self
+        return configuration
     }
 
     // 取り直しと通知の掲示が終わってから返す。先に返すとバックグラウンドの実行がそこで打ち切られる。

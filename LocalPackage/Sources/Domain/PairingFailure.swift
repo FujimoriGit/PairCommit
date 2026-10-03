@@ -14,5 +14,6 @@ public enum PairingFailure: Error, Equatable, Sendable {
     case offline
     case nearbyUnavailable
     case disconnected
+    case invitationWithdrawn
     case unexpected
 }

@@ -9,6 +9,8 @@
 		<string>en</string>
 		<string>ja</string>
 	</array>
+	<key>CKSharingSupported</key>
+	<true/>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_paircommit-pr._tcp</string>

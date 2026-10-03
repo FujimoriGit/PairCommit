@@ -115,6 +115,44 @@ struct PreviewSharing: PartnershipSharing {
     func clearSavedShare() {}
 }
 
+struct PreviewInviting: PartnershipInviting {
+    func send() async throws(PairingFailure) -> URL {
+        throw .unexpected
+    }
+
+    func advance(ownerRole: Role) async throws(PairingFailure) -> InvitationProgress {
+        throw .unexpected
+    }
+
+    func withdraw() async throws(PairingFailure) {}
+
+    func join(_ link: URL) async throws(PairingFailure) {
+        throw .unexpected
+    }
+
+    func advanceJoining() async throws(PairingFailure) -> (any PairedShare)? {
+        throw .unexpected
+    }
+
+    func leave() async throws(PairingFailure) {}
+
+    func endPair() async throws(PairingFailure) {}
+
+    func savedStage() -> InvitationStage? {
+        nil
+    }
+
+    func savedWithdrawal() -> Withdrawal? {
+        nil
+    }
+
+    func save(_ stage: InvitationStage) {}
+
+    func save(_ withdrawal: Withdrawal) {}
+
+    func clearSaved() {}
+}
+
 final class PreviewNearbyChannel: NearbyChannel {
     let events = AsyncStream<NearbyEvent> { $0.finish() }
 
