@@ -65,7 +65,7 @@
 - 同期層のセマンティクス（ドメインは何が保証されれば動くか）を先に決め、CloudKit依存をこのプロトコルの裏1点に隔離する。
 - これにより第二期のRust/自作バックエンドは「もう一つの実装」を差すだけで済む。
 - 実装上は `Domain` / `Application` / `Infrastructure` のモジュールに分ける（import できない＝依存方向をコンパイラが強制）。View はアプリターゲットに置く。
-- ペアリング（共有を作る・参加する・ペアを終える、近くの端末とやり取りする）も、同期と同じく `Application` の protocol だけで扱う。CloudKit と MultipeerConnectivity を使う実装は、すべて `Infrastructure` に置く。アプリで `Infrastructure` を import するのは、実装を作って画面に渡す `PairCommitApp` だけ。
+- ペアリング（共有を作る・参加する・ペアを終える、近くの端末とやり取りする）も、同期と同じく、外界との約束を `Domain` の protocol にする。ペアを作る手順は `Application` に置く。CloudKit と MultipeerConnectivity を使う実装は、すべて `Infrastructure` に置く。アプリで `Infrastructure` を import するのは、実装を作って画面に渡す `PairCommitApp` だけ。
 - `Domain` / `Application` は `LocalPackage`、`Infrastructure` は `InfrastructurePackage` と、パッケージを分ける。ubuntu の `swift test` はパッケージの中をすべてビルドするので、同じパッケージに Apple のフレームワークを使う `Infrastructure` があると落ちる。ubuntu で確かめるのは `Domain` と `Application` だけ。
 
 ### 第二期構想（後回し）
