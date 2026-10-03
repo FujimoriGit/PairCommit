@@ -21,6 +21,9 @@ struct PlayerTaskView: View {
         Screen(role: store.role) {
             content
         }
+        .animation(.default, value: store.state)
+        .animation(.default, value: failureMessage)
+        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
@@ -83,6 +86,7 @@ private extension PlayerTaskView {
                 .buttonStyle(.plain)
             }
         }
+        .sensoryFeedback(.success, trigger: task.status) { _, status in status == .reported }
         .card(tinted: task.reaction?.tint)
     }
 
@@ -104,6 +108,7 @@ private extension PlayerTaskView {
                 .accessibilityAddTraits(task.reaction == reaction ? .isSelected : [])
             }
         }
+        .sensoryFeedback(.selection, trigger: task.reaction)
     }
 
     func reactionLabel(_ reaction: Reaction, chosen: Bool) -> some View {

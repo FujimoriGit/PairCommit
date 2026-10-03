@@ -26,58 +26,65 @@ struct ContentView: View {
     }
 
     var body: some View {
-        if let store = session.store {
-            NavigationStack {
-                screen(for: store)
-                    .refreshable { await refresh(store) }
-                    .partnershipHistoryDestination(store.state, role: store.role)
-                    .partnershipSettingsDestination(role: store.role)
-            }
-            .tint(store.role.accent)
-            .task {
-                for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
-                    try? await store.refresh()
+        Group {
+            if let store = session.store {
+                NavigationStack {
+                    screen(for: store)
+                        .refreshable { await refresh(store) }
+                        .partnershipHistoryDestination(store.state, role: store.role)
+                        .partnershipSettingsDestination(role: store.role)
                 }
-            }
-            .alert("最新の状態を取得できませんでした", isPresented: Binding(presenting: $refreshFailure)) {
-                Button("OK") {}
-            } message: {
-                Text(refreshFailure ?? "")
-            }
-            .environment(\.resettingPartnership) { await reset() }
-            .task(id: store.state) {
-                guard store.state.pairing != nil else {
-                    await returnToPicker(with: "パートナーシップは終了しました")
-                    return
+                .tint(store.role.accent)
+                .task {
+                    for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
+                        try? await store.refresh()
+                    }
                 }
-                await NudgeNotifications.post(for: store.role, in: store.state)
-            }
-        } else if pairing.phase == .idle, let saved = savedPairing {
-            ReconnectingView(
-                failureMessage: failureMessage,
-                onRetry: { failureMessage = nil },
-                onStartOver: { Task { await returnToPicker(with: nil) } }
-            )
-            .task(id: failureMessage == nil) {
-                guard failureMessage == nil else { return }
-                await enter(saved, resuming: isResuming)
-            }
-        } else if pairing.phase == .idle {
-            rolePicker
-        } else {
-            PairingView(phase: pairing.phase, onCancel: pairing.reset)
-                .task(id: pairing.phase) {
-                    guard pairing.phase == .done else { return }
-                    guard let outcome = pairing.outcome else {
-                        await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+                .alert("最新の状態を取得できませんでした", isPresented: Binding(presenting: $refreshFailure)) {
+                    Button("OK") {}
+                } message: {
+                    Text(refreshFailure ?? "")
+                }
+                .environment(\.resettingPartnership) { await reset() }
+                .task(id: store.state) {
+                    guard store.state.pairing != nil else {
+                        await returnToPicker(with: "パートナーシップは終了しました")
                         return
                     }
-                    SavedPairing.save(outcome)
-                    savedPairing = outcome
-                    isResuming = false
-                    await enter(outcome, resuming: false)
+                    await NudgeNotifications.post(for: store.role, in: store.state)
                 }
+                .sensoryFeedback(.success, trigger: store.state.lastAchievedVision?.id) { _, achieved in
+                    store.role == .manager && achieved != nil
+                }
+            } else if pairing.phase == .idle, let saved = savedPairing {
+                ReconnectingView(
+                    failureMessage: failureMessage,
+                    onRetry: { failureMessage = nil },
+                    onStartOver: { Task { await returnToPicker(with: nil) } }
+                )
+                .task(id: failureMessage == nil) {
+                    guard failureMessage == nil else { return }
+                    await enter(saved, resuming: isResuming)
+                }
+            } else if pairing.phase == .idle {
+                rolePicker
+            } else {
+                PairingView(phase: pairing.phase, onCancel: pairing.reset)
+                    .task(id: pairing.phase) {
+                        guard pairing.phase == .done else { return }
+                        guard let outcome = pairing.outcome else {
+                            await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+                            return
+                        }
+                        SavedPairing.save(outcome)
+                        savedPairing = outcome
+                        isResuming = false
+                        await enter(outcome, resuming: false)
+                    }
+            }
         }
+        .animation(.default, value: session.store == nil)
+        .animation(.default, value: pairing.phase == .idle)
     }
 }
 

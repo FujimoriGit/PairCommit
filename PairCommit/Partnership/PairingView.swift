@@ -41,6 +41,15 @@ struct PairingView: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Backdrop())
+        .animation(.default, value: phase)
+        .sensoryFeedback(trigger: phase) { _, phase in
+            switch phase {
+            case .connected: .impact
+            case .done: .success
+            case .failed: .error
+            case .idle, .searching, .sharing, .handedOver: nil
+            }
+        }
     }
 }
 

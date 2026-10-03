@@ -18,6 +18,9 @@ struct ManagerVisionView: View {
         Screen(role: store.role) {
             content
         }
+        .animation(.default, value: store.state)
+        .animation(.default, value: failureMessage)
+        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
@@ -77,7 +80,7 @@ private extension ManagerVisionView {
             Button("起案者に差し戻す") {
                 perform { state, role throws(DomainError) in try state.rejectingVision(vision.id, by: role) }
             }
-            .buttonStyle(.soft)
+            .buttonStyle(.soft(feedback: .warning))
         }
         FailureNote(message: failureMessage)
     }

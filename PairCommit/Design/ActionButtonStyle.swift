@@ -10,12 +10,19 @@ import SwiftUI
 struct FilledButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         Surface(configuration: configuration)
+            .sensoryFeedback(.success, onReleaseOf: configuration)
     }
 }
 
 struct SoftButtonStyle: ButtonStyle {
+    let feedback: SensoryFeedback?
+
     func makeBody(configuration: Configuration) -> some View {
         Surface(configuration: configuration)
+            .sensoryFeedback(
+                feedback ?? (configuration.role == .destructive ? .warning : .impact(weight: .light)),
+                onReleaseOf: configuration
+            )
     }
 }
 
@@ -24,10 +31,20 @@ extension ButtonStyle where Self == FilledButtonStyle {
 }
 
 extension ButtonStyle where Self == SoftButtonStyle {
-    static var soft: Self { .init() }
+    static var soft: Self { .init(feedback: nil) }
+
+    static func soft(feedback: SensoryFeedback) -> Self { .init(feedback: feedback) }
 }
 
 // MARK: - Private
+
+private extension View {
+    func sensoryFeedback(_ feedback: SensoryFeedback, onReleaseOf configuration: ButtonStyleConfiguration) -> some View {
+        sensoryFeedback(feedback, trigger: configuration.isPressed) { wasPressed, isPressed in
+            wasPressed && !isPressed
+        }
+    }
+}
 
 private extension FilledButtonStyle {
     struct Surface: View {

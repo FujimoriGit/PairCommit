@@ -31,6 +31,10 @@ struct PlayerVisionView: View {
         Screen(role: store.role) {
             content
         }
+        .animation(.default, value: store.state)
+        .animation(.default, value: revising)
+        .animation(.default, value: failureMessage)
+        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
