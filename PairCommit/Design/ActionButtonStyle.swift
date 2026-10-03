@@ -33,7 +33,9 @@ struct SoftButtonStyle: PrimitiveButtonStyle {
         )
         .font(.system(.subheadline, design: .rounded, weight: .semibold))
         if #available(iOS 26, *) {
-            button.buttonStyle(.glass)
+            button
+                .foregroundStyle(Self.ink(for: configuration.role))
+                .buttonStyle(.glass)
         } else {
             button.buttonStyle(Appearance())
         }
@@ -97,6 +99,10 @@ private extension FilledButtonStyle {
 }
 
 private extension SoftButtonStyle {
+    static func ink(for role: ButtonRole?) -> AnyShapeStyle {
+        role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
+    }
+
     struct Appearance: ButtonStyle {
         func makeBody(configuration: Configuration) -> some View {
             Surface(configuration: configuration)
@@ -116,8 +122,7 @@ private extension SoftButtonStyle {
         }
 
         var fill: AnyShapeStyle {
-            guard isEnabled else { return AnyShapeStyle(Color.secondary) }
-            return configuration.role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
+            isEnabled ? SoftButtonStyle.ink(for: configuration.role) : AnyShapeStyle(Color.secondary)
         }
     }
 }
