@@ -8,7 +8,6 @@
 import Application
 import Domain
 import Foundation
-import Infrastructure
 import Testing
 
 @MainActor
@@ -190,6 +189,31 @@ struct PartnershipStoreTests {
         }
         #expect(store.state == latest)
     }
+
+    @Test("共有に参加した側は、共有を作った側が選ばなかった役割になる")
+    func participantTakesTheRoleTheOwnerDidNotChoose() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
+
+        // When
+        let store = try await PartnershipStore(starting: share)
+
+        // Then
+        #expect(store?.role == .player)
+    }
+
+    @Test("共有にペアが入っていなければ、始めずに nil を返す")
+    func startingWithoutPairingReturnsNil() async throws {
+        // Given
+        let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer())
+
+        // When
+        let store = try await PartnershipStore(starting: share)
+
+        // Then
+        #expect(store == nil)
+    }
 }
 
 // MARK: - Private
@@ -244,4 +268,22 @@ private final class InterruptibleSynchronizer: PartnershipSyncing {
         guard stored == base else { throw .outdated(latest: stored) }
         stored = state
     }
+}
+
+private struct StubShare: PairedShare {
+    let isOwner: Bool
+    let stored: InMemorySynchronizer
+
+    init(isOwner: Bool, synchronizer: InMemorySynchronizer) {
+        self.isOwner = isOwner
+        stored = synchronizer
+    }
+
+    func synchronizer() -> any PartnershipSyncing {
+        stored
+    }
+
+    func save() {}
+
+    func end() async throws(PairingFailure) {}
 }

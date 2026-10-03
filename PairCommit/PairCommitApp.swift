@@ -7,6 +7,7 @@
 
 import Application
 import Domain
+import Infrastructure
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -17,7 +18,7 @@ struct PairCommitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(session: delegate.session, savedPairing: SavedPairing.load())
+            ContentView(session: delegate.session, sharing: CloudSharing(), makeNearbyChannel: makeNearbyChannel)
         }
     }
 }
