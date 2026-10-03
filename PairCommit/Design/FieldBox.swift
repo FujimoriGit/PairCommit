@@ -25,8 +25,18 @@ private struct FieldBox<Content: View>: View {
             .focused($isFocused)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color(.tertiarySystemFill), in: .rect(cornerRadius: 12))
+            .modifier(FieldSurface())
             .contentShape(.rect)
             .onTapGesture { isFocused = true }
+    }
+}
+
+private struct FieldSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular, in: .rect(cornerRadius: 12))
+        } else {
+            content.background(Color(.tertiarySystemFill), in: .rect(cornerRadius: 12))
+        }
     }
 }

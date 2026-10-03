@@ -8,21 +8,36 @@
 import SwiftUI
 
 struct FilledButtonStyle: PrimitiveButtonStyle {
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        FeedbackButton(configuration: configuration, feedback: .impact)
-            .buttonStyle(Appearance())
+        let button = FeedbackButton(configuration: configuration, feedback: .impact)
+        if #available(iOS 26, *) {
+            button
+                .font(.system(.headline, design: .rounded))
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+        } else {
+            button.buttonStyle(Appearance())
+        }
     }
 }
 
 struct SoftButtonStyle: PrimitiveButtonStyle {
     let feedback: SensoryFeedback?
 
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        FeedbackButton(
+        let button = FeedbackButton(
             configuration: configuration,
             feedback: feedback ?? (configuration.role == .destructive ? .warning : .impact(weight: .light))
         )
-        .buttonStyle(Appearance())
+        if #available(iOS 26, *) {
+            button
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                .buttonStyle(.glass)
+        } else {
+            button.buttonStyle(Appearance())
+        }
     }
 }
 
@@ -51,6 +66,7 @@ private struct FeedbackButton: View {
             configuration.trigger()
         } label: {
             configuration.label
+                .frame(maxWidth: .infinity)
         }
         .sensoryFeedback(feedback, trigger: actions)
     }
