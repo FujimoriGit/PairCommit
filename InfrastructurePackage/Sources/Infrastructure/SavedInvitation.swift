@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
-import Application
 import CloudKit
 import Domain
 import Foundation

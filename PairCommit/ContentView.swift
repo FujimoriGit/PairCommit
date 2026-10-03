@@ -14,7 +14,7 @@ struct ContentView: View {
     let session: PartnershipSession
     let sharing: any PartnershipSharing
 
-    let inbox: InvitationInbox
+    let invitationLinks: AsyncStream<URL>
 
     @State private var savedPairing: (any PairedShare)?
     @State private var isResuming: Bool
@@ -29,12 +29,12 @@ struct ContentView: View {
         session: PartnershipSession,
         sharing: any PartnershipSharing,
         inviting: any PartnershipInviting,
-        inbox: InvitationInbox,
+        invitationLinks: AsyncStream<URL>,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
         self.session = session
         self.sharing = sharing
-        self.inbox = inbox
+        self.invitationLinks = invitationLinks
         let savedPairing = sharing.savedShare()
         _savedPairing = State(initialValue: savedPairing)
         _isResuming = State(initialValue: savedPairing != nil)
@@ -44,10 +44,10 @@ struct ContentView: View {
 
     var body: some View {
         content
-            .task(id: inbox.received) {
-                guard let link = inbox.received else { return }
-                inbox.received = nil
-                receive(link)
+            .task {
+                for await link in invitationLinks {
+                    receive(link)
+                }
             }
             .alert(linkRefusal?.title ?? "", isPresented: Binding(presenting: $linkRefusal)) {
                 Button("OK") {}
@@ -305,7 +305,7 @@ private extension ContentView {
         session: PartnershipSession(),
         sharing: PreviewSharing(),
         inviting: PreviewInviting(),
-        inbox: InvitationInbox(),
+        invitationLinks: AsyncStream { $0.finish() },
         makeNearbyChannel: { PreviewNearbyChannel() }
     )
 }

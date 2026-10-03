@@ -5,7 +5,7 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
-import Application
+import Domain
 import SwiftUI
 
 struct InvitationView: View {
