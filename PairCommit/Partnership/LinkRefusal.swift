@@ -5,6 +5,8 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
+import Foundation
+
 /// 招待リンクを開いても参加しない理由。
 enum LinkRefusal: Sendable {
     case alreadyPaired
@@ -12,15 +14,15 @@ enum LinkRefusal: Sendable {
 
     var title: String {
         switch self {
-        case .alreadyPaired: "すでに相手とつながっています"
-        case .pairingInProgress: "ペアリングの途中です"
+        case .alreadyPaired: String(localized: .linkRefusalAlreadyPairedTitle)
+        case .pairingInProgress: String(localized: .linkRefusalPairingInProgressTitle)
         }
     }
 
     var message: String {
         switch self {
-        case .alreadyPaired: "このリンクで参加するには、設定の「ペアリングをやり直す」をしてから、もう一度リンクを開いてください。"
-        case .pairingInProgress: "いまのペアリングをやめてから、もう一度リンクを開いてください。"
+        case .alreadyPaired: String(localized: .linkRefusalAlreadyPairedMessage)
+        case .pairingInProgress: String(localized: .linkRefusalPairingInProgressMessage)
         }
     }
 }

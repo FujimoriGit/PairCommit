@@ -20,12 +20,12 @@ struct InvitationView: View {
             SymbolBadge(symbol: "link")
 
             VStack(spacing: 10) {
-                Text("リンクを送る")
+                Text(.invitationTitle)
                     .font(.system(.title2, design: .rounded, weight: .bold))
                 Text(status)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text(failureMessage ?? "LINE やメッセージで、相手に招待リンクを送ってください。相手がリンクを開いたら、ペアができるまでこの画面を開いたままにしてください。")
+                Text(failureMessage ?? String(localized: .invitationInstructions))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -34,13 +34,13 @@ struct InvitationView: View {
             Spacer()
             VStack(spacing: 12) {
                 if failureMessage != nil {
-                    Button("もう一度試す", action: onRetry)
+                    Button(.commonRetry, action: onRetry)
                         .buttonStyle(.filled)
                 } else if let url {
-                    ShareLink("招待リンクを送る", item: url)
+                    ShareLink(.invitationShare, item: url)
                         .buttonStyle(.filled)
                 }
-                Button("やめる", action: onCancel)
+                Button(.commonCancel, action: onCancel)
                     .buttonStyle(.soft)
             }
         }
@@ -54,8 +54,8 @@ struct InvitationView: View {
 
 private extension InvitationView {
     var status: String {
-        if failureMessage != nil { return "ペアリングできませんでした" }
-        return url == nil ? "招待リンクを用意しています…" : "相手の参加を待っています…"
+        if failureMessage != nil { return String(localized: .commonPairingFailed) }
+        return url == nil ? String(localized: .invitationPreparing) : String(localized: .invitationWaiting)
     }
 }
 

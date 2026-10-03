@@ -66,7 +66,7 @@ struct ContentView: View {
                 }
             }
             .alert(linkRefusal?.title ?? "", isPresented: Binding(presenting: $linkRefusal)) {
-                Button("OK") {}
+                Button(.commonOk) {}
             } message: {
                 Text(linkRefusal?.message ?? "")
             }
@@ -91,15 +91,15 @@ private extension ContentView {
                     try? await store.refresh()
                 }
             }
-            .alert("最新の状態を取得できませんでした", isPresented: Binding(presenting: $refreshFailure)) {
-                Button("OK") {}
+            .alert(.rootRefreshFailed, isPresented: Binding(presenting: $refreshFailure)) {
+                Button(.commonOk) {}
             } message: {
                 Text(refreshFailure ?? "")
             }
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
                 guard store.state.pairing != nil else {
-                    await returnToPicker(with: "パートナーシップは終了しました")
+                    await returnToPicker(with: String(localized: .rootPartnershipEnded))
                     return
                 }
                 let state = store.state
@@ -109,8 +109,8 @@ private extension ContentView {
             .sensoryFeedback(.success, trigger: achievements)
             .environment(\.presentingFailure) { operationFailure = $0 }
             .sensoryFeedback(.error, trigger: operationFailure) { _, message in message != nil }
-            .alert("操作できませんでした", isPresented: Binding(presenting: $operationFailure)) {
-                Button("OK") {}
+            .alert(.rootOperationFailed, isPresented: Binding(presenting: $operationFailure)) {
+                Button(.commonOk) {}
             } message: {
                 Text(operationFailure ?? "")
             }
@@ -133,7 +133,7 @@ private extension ContentView {
                 .task(id: pairing.phase) {
                     guard pairing.phase == .done else { return }
                     guard let outcome = pairing.outcome else {
-                        await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
+                        await returnToPicker(with: String(localized: .rootPairingResultMissing))
                         return
                     }
                     outcome.save()
@@ -173,17 +173,17 @@ private extension ContentView {
                         .buttonStyle(.plain)
                     }
 
-                    Text("役割は途中で入れ替えられません。入れ替えるには、ペアリングをやり直します。")
+                    Text(.rolePickerNote)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Panel {
-                        Button("相手の招待を受ける") {
+                        Button(.rolePickerAcceptInvitation) {
                             begin(with: .invitation)
                         }
                         .buttonStyle(.filled)
-                        Text("相手が選ばなかったほうの役割になります。")
+                        Text(.rolePickerAcceptInvitationNote)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -194,7 +194,7 @@ private extension ContentView {
                 .padding(.bottom, 36)
             }
             .background(Backdrop())
-            .navigationTitle("どちらで使いますか")
+            .navigationTitle(.rolePickerTitle)
             .navigationDestination(item: $methodRole) { role in
                 PairingMethodView(
                     role: role,
@@ -282,7 +282,7 @@ private extension ContentView {
             return
         }
         guard let started else {
-            await returnToPicker(with: resuming ? "パートナーシップは終了しました" : "相手の設定がまだ届いていません")
+            await returnToPicker(with: resuming ? String(localized: .rootPartnershipEnded) : String(localized: .rootPartnerSetupMissing))
             return
         }
         await notifications.requestPermission()
@@ -299,7 +299,7 @@ private extension ContentView {
 
     func reset() async -> String? {
         guard let outcome = savedPairing else {
-            return "端末に残したペアを読めませんでした"
+            return String(localized: .rootSavedPairUnreadable)
         }
         do throws(PairingFailure) {
             try await outcome.end()

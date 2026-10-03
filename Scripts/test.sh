@@ -40,9 +40,12 @@ rm -rf "$RESULT_BUNDLE"
 # PairCommitUITests はテンプレートのままで起動計測だけに数分かかるため除外（中身ができたら外す）
 # -parallel-testing-enabled NO: 並列はクラス単位で振り分けるが、テストは生成される1クラスだけなので速くならない。
 # 複製したシミュレータでアプリが起動できず、10分ほど待たされることがある
+# -testLanguage / -testRegion: 基準画像は日本語で撮ったものなので、シミュレータの言語によらず日本語で描く
 xcodebuild \
   -scheme "$SCHEME" \
   -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
+  -testLanguage ja \
+  -testRegion JP \
   -resultBundlePath "$RESULT_BUNDLE" \
   -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
   -skipPackagePluginValidation \

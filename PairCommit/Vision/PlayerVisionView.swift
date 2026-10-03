@@ -62,7 +62,7 @@ private extension PlayerVisionView {
     var content: some View {
         switch stage {
         case .proposed(let vision):
-            summary(of: vision, note: "\(Role.manager.label)の承認待ち")
+            summary(of: vision, note: String(localized: .playerVisionAwaitingManager(Role.manager.label)))
         case .draft(let vision) where revising == vision.id:
             revisionForm(vision)
         case .draft(let vision):
@@ -78,7 +78,7 @@ private extension PlayerVisionView {
             AchievementBanner(vision: achieved)
         }
         fields
-        Button("起案する", action: draft)
+        Button(.commonPropose, action: draft)
             .buttonStyle(.filled)
             .disabled(!input.isComplete)
         FailureNote(message: failureMessage)
@@ -88,10 +88,10 @@ private extension PlayerVisionView {
     func revisionForm(_ vision: Vision) -> some View {
         fields
         VStack(spacing: 10) {
-            Button("書き直す") { revise(vision) }
+            Button(.playerVisionRevise) { revise(vision) }
                 .buttonStyle(.filled)
                 .disabled(!input.isComplete)
-            Button("やめる") {
+            Button(.commonCancel) {
                 revising = nil
                 input = .init()
                 review = nil
@@ -104,18 +104,18 @@ private extension PlayerVisionView {
 
     @ViewBuilder
     var fields: some View {
-        Panel(title: "ビジョン") {
-            TextField("何を達成したいか", text: $input.statement, axis: .vertical)
+        Panel(title: String(localized: .commonVision)) {
+            TextField(.visionFormStatementPlaceholder, text: $input.statement, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
         }
-        Panel(title: "達成基準") {
-            TextField("どうなれば達成か", text: $input.doneCriteria, axis: .vertical)
+        Panel(title: String(localized: .commonDoneCriteria)) {
+            TextField(.visionFormDoneCriteriaPlaceholder, text: $input.doneCriteria, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
         }
-        Panel(title: "動機") {
-            TextField("なぜ達成したいか", text: $input.why, axis: .vertical)
+        Panel(title: String(localized: .commonWhy)) {
+            TextField(.visionFormWhyPlaceholder, text: $input.why, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
         }
@@ -128,8 +128,8 @@ private extension PlayerVisionView {
     @ViewBuilder
     var reviewSection: some View {
         if let reviewing {
-            Panel(title: "達成基準の下読み") {
-                Button("この基準で判定できるか見てもらう") {
+            Panel(title: String(localized: .criteriaReviewTitle)) {
+                Button(.criteriaReviewRequest) {
                     let entered = input
                     Task {
                         review = try? await reviewing.review(
@@ -157,28 +157,28 @@ private extension PlayerVisionView {
     func draftDetail(_ vision: Vision) -> some View {
         VisionDetail(vision: vision)
         VStack(spacing: 10) {
-            Button("\(Role.manager.label)に提出する") {
+            Button(.playerVisionSubmit(Role.manager.label)) {
                 perform { state, role throws(DomainError) in try state.proposingVision(vision.id, by: role) }
             }
             .buttonStyle(.filled)
-            Button("書き直す") {
+            Button(.playerVisionRevise) {
                 input = .init(vision)
                 review = nil
                 failureMessage = nil
                 revising = vision.id
             }
             .buttonStyle(.soft)
-            Button("取り下げる", role: .destructive) {
+            Button(.playerVisionWithdraw, role: .destructive) {
                 confirmingDiscard = true
             }
             .buttonStyle(.soft)
         }
-        .confirmationDialog("このビジョンを取り下げますか", isPresented: $confirmingDiscard) {
-            Button("取り下げる", role: .destructive) {
+        .confirmationDialog(.playerVisionWithdrawConfirmationTitle, isPresented: $confirmingDiscard) {
+            Button(.playerVisionWithdraw, role: .destructive) {
                 perform { state, role throws(DomainError) in try state.discardingVision(vision.id, by: role) }
             }
         } message: {
-            Text("書いた内容は消え、記録にも残りません。")
+            Text(.playerVisionWithdrawConfirmationMessage)
         }
         FailureNote(message: failureMessage)
     }

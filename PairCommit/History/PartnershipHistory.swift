@@ -13,7 +13,7 @@ extension View {
         toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: PartnershipHistoryRoute()) {
-                    Label("記録", systemImage: "clock.arrow.circlepath")
+                    Label(.commonHistory, systemImage: "clock.arrow.circlepath")
                 }
             }
         }

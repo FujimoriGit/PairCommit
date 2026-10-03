@@ -7,6 +7,7 @@
 
 import Application
 import Domain
+import Foundation
 
 extension PartnershipFailure {
     var message: String {
@@ -20,15 +21,15 @@ extension PartnershipFailure {
 extension DomainError {
     var message: String {
         switch self {
-        case .roleForbidden(let required): "\(required.label)だけができる操作です"
-        case .visionNotFound: "ビジョンが見つかりません"
-        case .taskNotFound: "タスクが見つかりません"
-        case .invalidVisionTransition: "いまのビジョンの状態ではできない操作です"
-        case .invalidTaskTransition: "いまのタスクの状態ではできない操作です"
-        case .activeVisionAlreadyExists: "進行中のビジョンがすでにあります"
-        case .noActiveVision: "進行中のビジョンがありません"
-        case .alreadyPaired: "すでにペアが成立しています"
-        case .blankText: "空白だけの内容は登録できません"
+        case .roleForbidden(let required): String(localized: .errorRoleForbidden(required.label))
+        case .visionNotFound: String(localized: .errorVisionNotFound)
+        case .taskNotFound: String(localized: .errorTaskNotFound)
+        case .invalidVisionTransition: String(localized: .errorInvalidVisionTransition)
+        case .invalidTaskTransition: String(localized: .errorInvalidTaskTransition)
+        case .activeVisionAlreadyExists: String(localized: .errorActiveVisionAlreadyExists)
+        case .noActiveVision: String(localized: .errorNoActiveVision)
+        case .alreadyPaired: String(localized: .errorAlreadyPaired)
+        case .blankText: String(localized: .errorBlankText)
         }
     }
 }
@@ -36,16 +37,16 @@ extension DomainError {
 extension PairingFailure {
     var message: String {
         switch self {
-        case .signedOut: "iCloud にサインインしていません。設定アプリでサインインしてから、もう一度お試しください"
-        case .accountUnverified: "iCloud アカウントの確認が済んでいません。設定アプリで確かめてから、もう一度お試しください"
-        case .storageFull: "iCloud のストレージがいっぱいです。空きを作ってから、もう一度お試しください"
-        case .serverBusy: "iCloud が混み合っています。しばらくしてから、もう一度お試しください"
-        case .offline: "インターネットにつながっていません。通信できる場所で、もう一度お試しください"
+        case .signedOut: String(localized: .errorSignedOut)
+        case .accountUnverified: String(localized: .errorAccountUnverified)
+        case .storageFull: String(localized: .errorStorageFull)
+        case .serverBusy: String(localized: .errorServerBusy)
+        case .offline: String(localized: .errorOffline)
         case .nearbyUnavailable:
-            "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください"
-        case .disconnected: "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください"
-        case .invitationWithdrawn: "相手が招待をやめました。もう一度、招待リンクを送ってもらってください"
-        case .unexpected: "うまくいきませんでした。もう一度お試しください"
+            String(localized: .errorNearbyUnavailable)
+        case .disconnected: String(localized: .errorDisconnected)
+        case .invitationWithdrawn: String(localized: .errorInvitationWithdrawn)
+        case .unexpected: String(localized: .errorUnexpected)
         }
     }
 }
@@ -53,9 +54,9 @@ extension PairingFailure {
 extension NearbyPairing.Failure {
     var message: String {
         switch self {
-        case .partnerFailed: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください"
-        case .sameRole(let role): "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください"
-        case .bothAccepting: "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください"
+        case .partnerFailed: String(localized: .errorPartnerFailed)
+        case .sameRole(let role): String(localized: .errorSameRole(role.label, role.counterpart.label))
+        case .bothAccepting: String(localized: .errorBothAccepting)
         case .external(let failure): failure.message
         }
     }
@@ -64,8 +65,8 @@ extension NearbyPairing.Failure {
 extension SyncFailure {
     var message: String {
         switch self {
-        case .unavailable: "相手と同期できませんでした"
-        case .outdated: "相手の操作と重なりました。もう一度お試しください"
+        case .unavailable: String(localized: .errorSyncUnavailable)
+        case .outdated: String(localized: .errorSyncOutdated)
         }
     }
 }

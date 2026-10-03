@@ -59,27 +59,27 @@ private extension ManagerVisionView {
             AchievementBanner(vision: achieved)
             Placeholder(
                 symbol: "tray",
-                title: "次の起案を待っています",
-                message: "\(Role.player.label)がビジョンを起案するとここに出ます"
+                title: String(localized: .managerVisionNextTitle),
+                message: String(localized: .managerVisionNextMessage(Role.player.label))
             )
         } else {
             Placeholder(
                 symbol: "tray",
-                title: "承認待ちのビジョンはありません",
-                message: "\(Role.player.label)の起案を待っています"
+                title: String(localized: .managerVisionEmptyTitle),
+                message: String(localized: .managerVisionEmptyMessage(Role.player.label))
             )
         }
     }
 
     @ViewBuilder
     func review(_ vision: Vision) -> some View {
-        VisionDetail(vision: vision, note: "承認待ち")
+        VisionDetail(vision: vision, note: String(localized: .commonAwaitingApproval))
         VStack(spacing: 10) {
-            Button("承認する") {
+            Button(.commonApprove) {
                 approve(vision)
             }
             .buttonStyle(.filled)
-            Button("起案者に差し戻す") {
+            Button(.managerVisionSendBack) {
                 perform { state, role throws(DomainError) in try state.rejectingVision(vision.id, by: role) }
             }
             .buttonStyle(.soft(feedback: .warning))

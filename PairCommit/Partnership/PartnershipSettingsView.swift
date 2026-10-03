@@ -17,21 +17,21 @@ struct PartnershipSettingsView: View {
 
     var body: some View {
         Screen(role: role) {
-            Button("ペアリングをやり直す", role: .destructive) {
+            Button(.settingsRepair, role: .destructive) {
                 confirming = true
             }
             .buttonStyle(.soft)
         }
-        .navigationTitle("設定")
-        .confirmationDialog("ペアリングをやり直しますか", isPresented: $confirming) {
-            Button("ペアリングをやり直す", role: .destructive) {
+        .navigationTitle(.commonSettings)
+        .confirmationDialog(.settingsRepairConfirmationTitle, isPresented: $confirming) {
+            Button(.settingsRepair, role: .destructive) {
                 Task { failureMessage = await reset?() }
             }
         } message: {
-            Text("ビジョンとタスクはすべて消えます。相手も最初の画面に戻ります。")
+            Text(.settingsRepairConfirmationMessage)
         }
-        .alert("ペアリングをやり直せませんでした", isPresented: Binding(presenting: $failureMessage)) {
-            Button("OK") {}
+        .alert(.settingsRepairFailed, isPresented: Binding(presenting: $failureMessage)) {
+            Button(.commonOk) {}
         } message: {
             Text(failureMessage ?? "")
         }
