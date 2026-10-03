@@ -5,7 +5,7 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
-import Application
+import Domain
 import Foundation
 import MultipeerConnectivity
 import OSLog

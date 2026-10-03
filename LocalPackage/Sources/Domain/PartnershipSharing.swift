@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/10/03
 //
 
-import Domain
 import Foundation
 
 /// ペアの入った共有を作り、それに参加する。
