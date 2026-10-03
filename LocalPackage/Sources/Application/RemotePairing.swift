@@ -9,37 +9,36 @@ import Domain
 import Foundation
 import Observation
 
-/// 離れた相手と、招待リンクでペアを作る。
+/// 離れた相手と、招待リンクでペアを作る。前回の招待の途中があれば、そこから再開する。
 @MainActor
 @Observable
-final class RemotePairing {
-    enum Phase: Equatable {
+public final class RemotePairing {
+    public enum Phase: Equatable, Sendable {
         case idle
         case inviting
         case joining
     }
 
-    private(set) var invitationURL: URL?
-    private(set) var failure: FailureReason?
+    public private(set) var invitationURL: URL?
+    public private(set) var failure: PairingFailure?
 
+    private let inviting: any PartnershipInviting
     private var step: InvitationStep?
-    private var polling: Task<PairedShare?, Never>?
+    private var polling: Task<(any PairedShare)?, Never>?
     private var withdrawal: Withdrawal?
 
-    /// 前回の招待の途中から再開する。
-    static func restored() -> Self {
-        let pairing = Self()
-        pairing.step = SavedInvitation.load()
-        pairing.withdrawal = SavedInvitation.loadWithdrawal()
-        return pairing
+    public init(inviting: any PartnershipInviting) {
+        self.inviting = inviting
+        step = inviting.savedStep()
+        withdrawal = inviting.savedWithdrawal()
     }
 
     /// やめる後始末が終わっていない。続けるときは `cancel()` を呼ぶ。
-    var isWithdrawing: Bool {
+    public var isWithdrawing: Bool {
         withdrawal != nil
     }
 
-    var phase: Phase {
+    public var phase: Phase {
         switch step {
         case .sending, .sent: .inviting
         case .accepting, .joined: .joining
@@ -48,23 +47,23 @@ final class RemotePairing {
         }
     }
 
-    func invite(ownerRole: Role) {
+    public func invite(ownerRole: Role) {
         reset()
         step = .sending(ownerRole: ownerRole)
     }
 
-    func receive(_ link: InvitationLink) {
+    public func receive(_ link: URL) {
         reset()
-        step = .accepting(link.metadata)
+        step = .accepting(link)
     }
 
-    func retry() {
+    public func retry() {
         failure = nil
     }
 
     /// 相手とペアができるまで進める。
     /// - Returns: できたペア。失敗したときは `failure` に入れて nil を返す。
-    func run() async -> PairedShare? {
+    public func run() async -> (any PairedShare)? {
         let polling = Task { await advance() }
         self.polling = polling
         let outcome = await withTaskCancellationHandler { await polling.value } onCancel: { polling.cancel() }
@@ -74,7 +73,7 @@ final class RemotePairing {
 
     /// 招待をやめ、作った共有を消すか、参加した共有から抜ける。止める前にペアができていたら、ペアごと終わらせる。
     /// 失敗したときは `failure` に入れて、招待の途中に留まる。
-    func cancel() async {
+    public func cancel() async {
         let pending: Withdrawal
         if let withdrawal {
             pending = withdrawal
@@ -83,25 +82,25 @@ final class RemotePairing {
             polling?.cancel()
             let paired = await polling?.value ?? nil
             polling = nil
-            guard let cleanup = paired.map(Withdrawal.pair) ?? invitationWithdrawal else {
+            guard let cleanup = paired == nil ? invitationWithdrawal : .pair else {
                 reset()
                 return
             }
-            SavedInvitation.save(cleanup)
+            inviting.save(cleanup)
             withdrawal = cleanup
             pending = cleanup
         }
-        do {
+        do throws(PairingFailure) {
             try await perform(pending)
         } catch {
-            failure = FailureReason(error)
+            failure = error
             return
         }
         reset()
     }
 
-    func reset() {
-        SavedInvitation.clear()
+    public func reset() {
+        inviting.clearSaved()
         step = nil
         invitationURL = nil
         failure = nil
@@ -117,24 +116,34 @@ private extension RemotePairing {
     var invitationWithdrawal: Withdrawal? {
         switch step {
         case .sending, .sent: .invitation
-        case .joined(let invitationID): .membership(invitationID: invitationID)
+        case .joined: .membership
         case .accepting, nil: nil
         }
     }
 
-    func perform(_ withdrawal: Withdrawal) async throws {
-        switch withdrawal {
-        case .invitation:
-            try await PartnershipInvitation.withdraw()
-        case .membership(let invitationID):
-            try await PartnershipInvitation.leave(invitationID)
-        case .pair(let paired):
-            try await paired.end()
+    // 打ち切られずに待ち終えたら true。
+    static func waitForNextPoll() async -> Bool {
+        do {
+            try await Task.sleep(for: pollingInterval)
+            return true
+        } catch {
+            return false
         }
     }
 
-    func advance() async -> PairedShare? {
-        do {
+    func perform(_ withdrawal: Withdrawal) async throws(PairingFailure) {
+        switch withdrawal {
+        case .invitation:
+            try await inviting.withdraw()
+        case .membership:
+            try await inviting.leave()
+        case .pair:
+            try await inviting.endPair()
+        }
+    }
+
+    func advance() async -> (any PairedShare)? {
+        do throws(PairingFailure) {
             switch step {
             case .sending(let ownerRole), .sent(let ownerRole):
                 return try await awaitGuest(ownerRole: ownerRole)
@@ -146,47 +155,47 @@ private extension RemotePairing {
         } catch {
             // やめたり画面を離れたりして打ち切られたときは、失敗として出さない。
             if !Task.isCancelled {
-                failure = FailureReason(error)
+                failure = error
             }
             return nil
         }
     }
 
-    func awaitGuest(ownerRole: Role) async throws -> PairedShare {
+    func awaitGuest(ownerRole: Role) async throws(PairingFailure) -> (any PairedShare)? {
         if case .sending = step {
-            invitationURL = try await PartnershipInvitation.send()
-            try Task.checkCancellation()
+            invitationURL = try await inviting.send()
+            guard !Task.isCancelled else { return nil }
             step = .sent(ownerRole: ownerRole)
-            SavedInvitation.save(.sent(ownerRole: ownerRole))
+            inviting.save(.sent(ownerRole: ownerRole))
         }
         while true {
-            let progress = try await PartnershipInvitation.advance(ownerRole: ownerRole)
-            try Task.checkCancellation()
+            let progress = try await inviting.advance(ownerRole: ownerRole)
+            guard !Task.isCancelled else { return nil }
             switch progress {
             case .waiting(let url):
                 invitationURL = url
-            case .paired(let rootRecordID):
-                return .init(rootRecordID: rootRecordID, isOwner: true)
+            case .paired(let share):
+                return share
             }
-            try await Task.sleep(for: Self.pollingInterval)
+            guard await Self.waitForNextPoll() else { return nil }
         }
     }
 
-    func awaitHost() async throws -> PairedShare? {
-        if case .accepting(let metadata) = step {
+    func awaitHost() async throws(PairingFailure) -> (any PairedShare)? {
+        if case .accepting(let link) = step {
             // 参加が通ったら、打ち切られていても抜けられるように残す。
-            let invitationID = try await PartnershipInvitation.join(metadata)
-            step = .joined(invitationID: invitationID)
-            SavedInvitation.save(.joined(invitationID: invitationID))
+            try await inviting.join(link)
+            step = .joined
+            inviting.save(.joined)
         }
-        guard case .joined(let invitationID) = step else { return nil }
+        guard case .joined = step else { return nil }
         while true {
-            let joined = try await PartnershipInvitation.advanceJoining(invitationID)
-            try Task.checkCancellation()
-            if let rootRecordID = joined {
-                return .init(rootRecordID: rootRecordID, isOwner: false)
+            let joined = try await inviting.advanceJoining()
+            guard !Task.isCancelled else { return nil }
+            if let joined {
+                return joined
             }
-            try await Task.sleep(for: Self.pollingInterval)
+            guard await Self.waitForNextPoll() else { return nil }
         }
     }
 }

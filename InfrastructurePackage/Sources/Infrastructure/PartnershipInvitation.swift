@@ -76,6 +76,16 @@ enum PartnershipInvitation {
         try await PartnershipShare.teardown(rootRecordID: PartnershipShare.ownedRootRecordID, isOwner: true)
     }
 
+    /// 招待リンクで作ったペアを、相手の側でも終わらせる。
+    /// - Parameter invitationID: 招待を受けた側なら、参加した招待のレコードの ID。招待した側なら nil。
+    static func endPair(joining invitationID: CKRecord.ID?) async throws {
+        guard let invitationID else {
+            try await withdraw()
+            return
+        }
+        try await PartnershipShare.teardown(rootRecordID: pairingRootRecordID(besides: invitationID), isOwner: false)
+    }
+
     // MARK: 招待を受ける側
 
     /// - Returns: 招待のレコードの ID。

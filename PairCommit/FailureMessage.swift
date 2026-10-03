@@ -33,13 +33,13 @@ extension DomainError {
     }
 }
 
-extension FailureReason {
+extension PairingFailure {
     var message: String {
         switch self {
-        case .signedOutOfICloud: "iCloud にサインインしていません。設定アプリでサインインしてから、もう一度お試しください"
-        case .iCloudAccountUnverified: "iCloud アカウントの確認が済んでいません。設定アプリで確かめてから、もう一度お試しください"
-        case .iCloudFull: "iCloud のストレージがいっぱいです。空きを作ってから、もう一度お試しください"
-        case .iCloudBusy: "iCloud が混み合っています。しばらくしてから、もう一度お試しください"
+        case .signedOut: "iCloud にサインインしていません。設定アプリでサインインしてから、もう一度お試しください"
+        case .accountUnverified: "iCloud アカウントの確認が済んでいません。設定アプリで確かめてから、もう一度お試しください"
+        case .storageFull: "iCloud のストレージがいっぱいです。空きを作ってから、もう一度お試しください"
+        case .serverBusy: "iCloud が混み合っています。しばらくしてから、もう一度お試しください"
         case .offline: "インターネットにつながっていません。通信できる場所で、もう一度お試しください"
         case .nearbyUnavailable:
             "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください"
