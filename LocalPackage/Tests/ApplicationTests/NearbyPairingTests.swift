@@ -13,8 +13,8 @@ import Testing
 @MainActor
 struct NearbyPairingTests {
 
-    @Test("2台とも同じ役割を選んでいたら、共有を作らずに止まる")
-    func sameRoleOnBothDevicesStopsWithoutSharing() async {
+    @Test("話し合いの結果が止まるなら、共有を作らずに失敗で終わる")
+    func stopPlanFailsWithoutSharing() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
 
