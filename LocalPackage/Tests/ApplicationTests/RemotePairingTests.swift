@@ -70,6 +70,39 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
+    @Test("招待リンクを送ったあとで開き直したら、リンクを作り直さずに相手を待つ")
+    func restoringAfterSendingWaitsForTheGuest() async {
+        // Given
+        let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
+        inviting.progress = .paired(StubShare(isOwner: true))
+        let pairing = RemotePairing(inviting: inviting)
+
+        // When
+        let paired = await pairing.run()
+
+        // Then
+        #expect(pairing.phase == .inviting)
+        #expect(paired != nil)
+        #expect(inviting.sendCalls == 0)
+        #expect(inviting.advanceCalls == 1)
+    }
+
+    @Test("招待リンクで参加したあとで開き直したら、参加し直さずに招待した側を待つ")
+    func restoringAfterJoiningWaitsForTheHost() async {
+        // Given
+        let inviting = FakeInviting(savedStage: .joined)
+        inviting.joinedShare = StubShare(isOwner: false)
+        let pairing = RemotePairing(inviting: inviting)
+
+        // When
+        let paired = await pairing.run()
+
+        // Then
+        #expect(pairing.phase == .joining)
+        #expect(paired != nil)
+        #expect(inviting.joinCalls == 0)
+    }
+
     @Test("相手を待っている間に打ち切ったら、そのあとペアができても返さない")
     func cancelledRunDoesNotReturnThePair() async {
         // Given
@@ -95,16 +128,21 @@ struct RemotePairingTests {
 private final class FakeInviting: PartnershipInviting {
     nonisolated let link = URL(fileURLWithPath: "/invitation")
     var progress: InvitationProgress
+    var joinedShare: (any PairedShare)?
     var cleanupFailure: PairingFailure?
+    private(set) var sendCalls = 0
     private(set) var advanceCalls = 0
+    private(set) var joinCalls = 0
     private(set) var withdrawCalls = 0
     private(set) var endPairCalls = 0
 
+    private nonisolated let restoredStage: InvitationStage?
     private nonisolated let restoredWithdrawal: Withdrawal?
     private var held = false
     private var waiting: CheckedContinuation<Void, Never>?
 
-    init(savedWithdrawal: Withdrawal? = nil) {
+    init(savedStage: InvitationStage? = nil, savedWithdrawal: Withdrawal? = nil) {
+        restoredStage = savedStage
         restoredWithdrawal = savedWithdrawal
         progress = .waiting(link)
     }
@@ -124,7 +162,8 @@ private final class FakeInviting: PartnershipInviting {
     }
 
     func send() async throws(PairingFailure) -> URL {
-        link
+        sendCalls += 1
+        return link
     }
 
     func advance(ownerRole: Role) async throws(PairingFailure) -> InvitationProgress {
@@ -142,10 +181,12 @@ private final class FakeInviting: PartnershipInviting {
         }
     }
 
-    func join(_ link: URL) async throws(PairingFailure) {}
+    func join(_ link: URL) async throws(PairingFailure) {
+        joinCalls += 1
+    }
 
     func advanceJoining() async throws(PairingFailure) -> (any PairedShare)? {
-        nil
+        joinedShare
     }
 
     func leave() async throws(PairingFailure) {}
@@ -157,15 +198,15 @@ private final class FakeInviting: PartnershipInviting {
         }
     }
 
-    nonisolated func savedStep() -> InvitationStep? {
-        nil
+    nonisolated func savedStage() -> InvitationStage? {
+        restoredStage
     }
 
     nonisolated func savedWithdrawal() -> Withdrawal? {
         restoredWithdrawal
     }
 
-    nonisolated func save(_ step: InvitationStep) {}
+    nonisolated func save(_ stage: InvitationStage) {}
 
     nonisolated func save(_ withdrawal: Withdrawal) {}
 

@@ -23,13 +23,13 @@ public final class RemotePairing {
     public private(set) var failure: PairingFailure?
 
     private let inviting: any PartnershipInviting
-    private var step: InvitationStep?
+    private var step: Step?
     private var polling: Task<(any PairedShare)?, Never>?
     private var withdrawal: Withdrawal?
 
     public init(inviting: any PartnershipInviting) {
         self.inviting = inviting
-        step = inviting.savedStep()
+        step = inviting.savedStage().map(Step.init)
         withdrawal = inviting.savedWithdrawal()
     }
 
@@ -110,6 +110,20 @@ public final class RemotePairing {
 // MARK: - Private
 
 private extension RemotePairing {
+    enum Step: Equatable {
+        case sending(ownerRole: Role)
+        case sent(ownerRole: Role)
+        case accepting(URL)
+        case joined
+
+        init(_ stage: InvitationStage) {
+            switch stage {
+            case .sent(let ownerRole): self = .sent(ownerRole: ownerRole)
+            case .joined: self = .joined
+            }
+        }
+    }
+
     static let pollingInterval: Duration = .seconds(5)
 
     var invitationWithdrawal: Withdrawal? {

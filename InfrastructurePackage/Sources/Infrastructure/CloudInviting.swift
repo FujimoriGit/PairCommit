@@ -70,16 +70,16 @@ public struct CloudInviting: PartnershipInviting {
         }
     }
 
-    public func savedStep() -> InvitationStep? {
-        SavedInvitation.loadStep()
+    public func savedStage() -> InvitationStage? {
+        SavedInvitation.loadStage()
     }
 
     public func savedWithdrawal() -> Withdrawal? {
         SavedInvitation.loadWithdrawal()
     }
 
-    public func save(_ step: InvitationStep) {
-        SavedInvitation.save(step)
+    public func save(_ stage: InvitationStage) {
+        SavedInvitation.save(stage)
     }
 
     public func save(_ withdrawal: Withdrawal) {
