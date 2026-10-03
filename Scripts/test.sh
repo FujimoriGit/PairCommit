@@ -21,10 +21,13 @@ rm -rf "$RESULT_BUNDLE"
 
 # -skipPackagePluginValidation: PrefireTestsPlugin（テスト自動生成）を CLI から動かすのに必要
 # PairCommitUITests はテンプレートのままで起動計測だけに数分かかるため除外（中身ができたら外す）
+# -parallel-testing-enabled NO: 並列はクラス単位で振り分けるが、テストは生成される1クラスだけなので速くならない。
+# 複製したシミュレータでアプリが起動できず、10分ほど待たされることがある
 xcodebuild \
   -scheme "$SCHEME" \
   -destination "platform=iOS Simulator,name=${DEVICE_NAME}" \
   -resultBundlePath "$RESULT_BUNDLE" \
   -skipPackagePluginValidation \
   -skip-testing:PairCommitUITests \
+  -parallel-testing-enabled NO \
   test
