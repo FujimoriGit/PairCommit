@@ -12,17 +12,22 @@ import Foundation
 
 /// iCloud の共有の URL を招待リンクにして、離れた相手とペアを作る。
 public struct CloudInviting: PartnershipInviting {
-    public init() {}
+    private let shareTitle: String
+
+    /// - Parameter shareTitle: 共有に付ける名前。相手が参加するときに目にする。
+    public init(shareTitle: String) {
+        self.shareTitle = shareTitle
+    }
 
     public func send() async throws(PairingFailure) -> URL {
         try await translatingErrors {
-            try await PartnershipInvitation.send()
+            try await PartnershipInvitation.send(title: shareTitle)
         }
     }
 
     public func advance(ownerRole: Role) async throws(PairingFailure) -> InvitationProgress {
         try await translatingErrors { () async throws -> InvitationProgress in
-            switch try await PartnershipInvitation.advance(ownerRole: ownerRole) {
+            switch try await PartnershipInvitation.advance(ownerRole: ownerRole, title: shareTitle) {
             case .waiting(let url):
                 return .waiting(url)
             case .paired(let rootRecordID):

@@ -20,13 +20,19 @@ struct PairCommitApp: App {
         WindowGroup {
             ContentView(
                 session: delegate.session,
-                sharing: CloudSharing(),
-                inviting: CloudInviting(),
+                sharing: CloudSharing(shareTitle: Self.shareTitle),
+                inviting: CloudInviting(shareTitle: Self.shareTitle),
                 inbox: InvitationSceneDelegate.inbox,
                 makeNearbyChannel: makeNearbyChannel
             )
         }
     }
+}
+
+// MARK: - Private
+
+private extension PairCommitApp {
+    static let shareTitle = String(localized: "ふたりの帆柱")
 }
 
 @MainActor

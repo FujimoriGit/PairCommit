@@ -34,7 +34,6 @@ enum PartnershipShareError: LocalizedError {
 
 enum PartnershipShare {
     static let container = CKContainer(identifier: "iCloud.com.fujimori.PairCommit")
-    static let title = String(localized: "ふたりの帆柱")
     /// 共有を作る側の private DB に置くルートレコード。
     static let ownedRootRecordID = CKRecord.ID(
         recordName: "pairing-root",
@@ -43,7 +42,7 @@ enum PartnershipShare {
 
     // MARK: Owner 側
 
-    static func makeShare(initialState: PartnershipState) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
+    static func makeShare(initialState: PartnershipState, title: String) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
         let database = container.privateCloudDatabase
         let rootRecordID = ownedRootRecordID
         let zoneID = rootRecordID.zoneID
