@@ -6,6 +6,7 @@
 //
 
 import Application
+import Domain
 import SwiftUI
 
 struct PairingView: View {
