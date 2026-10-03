@@ -2,7 +2,6 @@
 import PackageDescription
 
 // Data ではなく Infrastructure なのは、モジュール名 `Data` が Foundation.Data と衝突するため。
-// LocalPackage と分けるのは、ubuntu で回している LocalPackage の `swift test` に Apple のフレームワークを持ち込まないため。
 let package = Package(
     name: "InfrastructurePackage",
     platforms: [
