@@ -11,31 +11,27 @@ import Foundation
 
 /// 離れた相手とのペアリングの途中を端末に残す。開き直しても、相手を待っていたところか、やめる後始末の途中に戻る。
 enum SavedInvitation {
-    static func loadStep() -> InvitationStep? {
+    static func loadStage() -> InvitationStage? {
         let defaults = UserDefaults.standard
         if let role = defaults.string(forKey: ownerRoleKey).flatMap(Role.init(rawValue:)) {
             return .sent(ownerRole: role)
         }
-        guard defaults.bool(forKey: joinedKey), joinedInvitationID() != nil else { return nil }
-        return .joined
+        return defaults.bool(forKey: joinedKey) ? .joined : nil
     }
 
     static func loadWithdrawal() -> Withdrawal? {
         UserDefaults.standard.string(forKey: withdrawalKey).flatMap(Kind.init(rawValue:))?.withdrawal
     }
 
-    static func save(_ step: InvitationStep) {
+    static func save(_ stage: InvitationStage) {
         let defaults = UserDefaults.standard
-        for key in [ownerRoleKey, joinedKey, withdrawalKey] {
-            defaults.removeObject(forKey: key)
-        }
-        switch step {
+        switch stage {
         case .sent(let role):
             defaults.set(role.rawValue, forKey: ownerRoleKey)
+            defaults.removeObject(forKey: joinedKey)
         case .joined:
+            defaults.removeObject(forKey: ownerRoleKey)
             defaults.set(true, forKey: joinedKey)
-        case .sending, .accepting:
-            break
         }
     }
 

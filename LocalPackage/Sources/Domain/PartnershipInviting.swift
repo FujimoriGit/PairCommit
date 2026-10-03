@@ -26,10 +26,9 @@ public protocol PartnershipInviting: Sendable {
     /// 招待リンクで作ったペアを、相手の側でも終わらせる。
     func endPair() async throws(PairingFailure)
 
-    func savedStep() -> InvitationStep?
+    func savedStage() -> InvitationStage?
     func savedWithdrawal() -> Withdrawal?
-    /// 送る途中と参加する途中は残らない。
-    func save(_ step: InvitationStep)
+    func save(_ stage: InvitationStage)
     func save(_ withdrawal: Withdrawal)
     func clearSaved()
 }
@@ -39,11 +38,9 @@ public enum InvitationProgress: Sendable {
     case paired(any PairedShare)
 }
 
-/// 離れた相手とのペアリングの途中。
-public enum InvitationStep: Equatable, Sendable {
-    case sending(ownerRole: Role)
+/// 開き直したときに戻る、離れた相手とのペアリングの段階。
+public enum InvitationStage: Equatable, Sendable {
     case sent(ownerRole: Role)
-    case accepting(URL)
     case joined
 }
 

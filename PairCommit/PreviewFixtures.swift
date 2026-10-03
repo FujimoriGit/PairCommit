@@ -138,7 +138,7 @@ struct PreviewInviting: PartnershipInviting {
 
     func endPair() async throws(PairingFailure) {}
 
-    func savedStep() -> InvitationStep? {
+    func savedStage() -> InvitationStage? {
         nil
     }
 
@@ -146,7 +146,7 @@ struct PreviewInviting: PartnershipInviting {
         nil
     }
 
-    func save(_ step: InvitationStep) {}
+    func save(_ stage: InvitationStage) {}
 
     func save(_ withdrawal: Withdrawal) {}
 
