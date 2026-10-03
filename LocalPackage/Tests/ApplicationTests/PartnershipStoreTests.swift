@@ -8,7 +8,6 @@
 import Application
 import Domain
 import Foundation
-import Infrastructure
 import Testing
 
 @MainActor
@@ -189,6 +188,31 @@ struct PartnershipStoreTests {
             }
         }
         #expect(store.state == latest)
+    }
+
+    @Test("共有から始めた Store は、共有から読んだ状態で始まる")
+    func startingFromShareBeginsWithTheSharedState() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
+
+        // When
+        let store = try await PartnershipStore(starting: share)
+
+        // Then
+        #expect(store?.state == paired)
+    }
+
+    @Test("共有にペアが入っていなければ、始めずに nil を返す")
+    func startingWithoutPairingReturnsNil() async throws {
+        // Given
+        let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer())
+
+        // When
+        let store = try await PartnershipStore(starting: share)
+
+        // Then
+        #expect(store == nil)
     }
 }
 

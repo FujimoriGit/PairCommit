@@ -33,21 +33,29 @@ extension DomainError {
     }
 }
 
-extension FailureReason {
+extension PairingFailure {
     var message: String {
         switch self {
-        case .signedOutOfICloud: "iCloud にサインインしていません。設定アプリでサインインしてから、もう一度お試しください"
-        case .iCloudAccountUnverified: "iCloud アカウントの確認が済んでいません。設定アプリで確かめてから、もう一度お試しください"
-        case .iCloudFull: "iCloud のストレージがいっぱいです。空きを作ってから、もう一度お試しください"
-        case .iCloudBusy: "iCloud が混み合っています。しばらくしてから、もう一度お試しください"
+        case .signedOut: "iCloud にサインインしていません。設定アプリでサインインしてから、もう一度お試しください"
+        case .accountUnverified: "iCloud アカウントの確認が済んでいません。設定アプリで確かめてから、もう一度お試しください"
+        case .storageFull: "iCloud のストレージがいっぱいです。空きを作ってから、もう一度お試しください"
+        case .serverBusy: "iCloud が混み合っています。しばらくしてから、もう一度お試しください"
         case .offline: "インターネットにつながっていません。通信できる場所で、もう一度お試しください"
         case .nearbyUnavailable:
             "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください"
         case .disconnected: "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください"
+        case .unexpected: "うまくいきませんでした。もう一度お試しください"
+        }
+    }
+}
+
+extension NearbyPairing.Failure {
+    var message: String {
+        switch self {
         case .partnerFailed: "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください"
         case .sameRole(let role): "2台とも「\(role.label)」を選んでいます。片方の端末では「\(role.counterpart.label)」を選んでください"
         case .bothAccepting: "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください"
-        case .unexpected: "うまくいきませんでした。もう一度お試しください"
+        case .external(let failure): failure.message
         }
     }
 }
