@@ -5,6 +5,7 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
+import Application
 import SwiftUI
 
 struct InvitationView: View {
@@ -68,5 +69,5 @@ private extension InvitationView {
 }
 
 #Preview("招待リンクの失敗") {
-    InvitationView(url: nil, failureMessage: FailureReason.offline.message, onRetry: {}, onCancel: {})
+    InvitationView(url: nil, failureMessage: PairingFailure.offline.message, onRetry: {}, onCancel: {})
 }

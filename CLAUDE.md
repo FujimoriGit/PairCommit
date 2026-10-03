@@ -26,7 +26,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - 境界は protocol で抽象化する。外部サービスへの依存は、その protocol の実装の一つとして差し替えられる状態を保つ。
   - UseCase クラスや Presenter 層などの儀式は導入しない。ドメインロジックは集約ルート（`PartnershipState`）のメソッド、アプリケーションロジックは Store に置く。層を増やすのは痛みが出てから。
 - **不変条件はドメインが守る。** active な Vision は高々1個 / ロール権限 / 状態遷移 ── すべて `PartnershipState` で強制し、UI や同期層に分散させない。
-- **モジュール構成**: `LocalPackage` に `Domain` / `Application` / `Infrastructure`。View はアプリターゲットに置く（パッケージの外側なので、公開APIの境界はそれで効く）。SwiftUI や Apple のフレームワークに依存するものをパッケージに入れると、ubuntu で回している `swift test` が壊れる。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
+- **モジュール構成**: `LocalPackage` に `Domain` / `Application`、`InfrastructurePackage` に `Infrastructure`。View はアプリターゲットに置く（パッケージの外側なので、公開APIの境界はそれで効く）。`LocalPackage` に SwiftUI や Apple のフレームワークに依存するものを入れると、ubuntu で回している `swift test` が壊れる。Apple のフレームワークを使う実装は `Infrastructure` に置き、アプリで import するのは実装を組み立てる App だけにする。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
 
 ## コーディング規約
 
@@ -112,7 +112,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 ## プロジェクト構成メモ
 
-- モジュール: `LocalPackage`（`Sources/` に Domain / Application / Infrastructure、`Tests/` に各層のテスト）。アプリターゲットはこのローカルパッケージに依存する。
+- モジュール: `LocalPackage`（`Sources/` に Domain / Application、`Tests/` に各層のテスト）と `InfrastructurePackage`（`Sources/Infrastructure`）。アプリターゲットはこの2つのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
   - 例外は `PairCommit/Info.plist`。同期グループに任せるとリソースとしても複製され、生成される Info.plist と衝突してビルドが落ちるので、`membershipExceptions` で除外してある。
 - Bundle ID: `com.fujimori.PairCommit` / CloudKit コンテナ: `iCloud.com.fujimori.PairCommit`

@@ -6,8 +6,8 @@
 //
 
 import Application
-import CloudKit
 import Domain
+import Infrastructure
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -20,8 +20,10 @@ struct PairCommitApp: App {
         WindowGroup {
             ContentView(
                 session: delegate.session,
-                savedPairing: SavedPairing.load(),
-                remote: .restored()
+                sharing: CloudSharing(),
+                inviting: CloudInviting(),
+                inbox: InvitationSceneDelegate.inbox,
+                makeNearbyChannel: makeNearbyChannel
             )
         }
     }
@@ -46,7 +48,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
         let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
-        configuration.delegateClass = PairCommitSceneDelegate.self
+        configuration.delegateClass = InvitationSceneDelegate.self
         return configuration
     }
 
@@ -66,27 +68,6 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             await NudgeNotifications.post(for: store.role, in: store.state)
         }
         return .newData
-    }
-}
-
-// SwiftUI の App には、招待リンクを開いたときの参加の情報を受け取る口がない。
-@MainActor
-final class PairCommitSceneDelegate: NSObject, UIWindowSceneDelegate {
-    // 起動していなかったときは、こちらで渡される。
-    func scene(
-        _ scene: UIScene,
-        willConnectTo session: UISceneSession,
-        options connectionOptions: UIScene.ConnectionOptions
-    ) {
-        guard let metadata = connectionOptions.cloudKitShareMetadata else { return }
-        InvitationLinkInbox.shared.received = InvitationLink(metadata: metadata)
-    }
-
-    func windowScene(
-        _ windowScene: UIWindowScene,
-        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-    ) {
-        InvitationLinkInbox.shared.received = InvitationLink(metadata: cloudKitShareMetadata)
     }
 }
 

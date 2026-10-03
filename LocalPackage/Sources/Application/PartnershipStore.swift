@@ -24,6 +24,15 @@ public final class PartnershipStore {
         self.state = state
     }
 
+    /// 共有から同期を始め、ペアでの役割を決める。共有にまだペアが入っていないか、もう終わっていれば nil。
+    public convenience init?(starting share: any PairedShare) async throws(SyncFailure) {
+        let synchronizer = share.synchronizer()
+        let state = try await synchronizer.start()
+        guard let ownerRole = state.pairing?.ownerRole else { return nil }
+        let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: share.isOwner)
+        self.init(role: agreement.role, synchronizer: synchronizer, state: state)
+    }
+
     public func refresh() async throws(SyncFailure) {
         let failure = await serialized { [self] () -> SyncFailure? in
             do throws(SyncFailure) {

@@ -10,7 +10,7 @@ import Foundation
 
 /// 成立したペアリングの結果を端末に残す。起動し直しても、役割の選択からやり直さずに済む。
 enum SavedPairing {
-    static func load() -> PairedShare? {
+    static func load() -> CloudPairedShare? {
         let defaults = UserDefaults.standard
         guard
             let recordName = defaults.string(forKey: recordNameKey),
@@ -24,7 +24,7 @@ enum SavedPairing {
         )
     }
 
-    static func save(_ outcome: PairedShare) {
+    static func save(_ outcome: CloudPairedShare) {
         let defaults = UserDefaults.standard
         defaults.set(outcome.rootRecordID.recordName, forKey: recordNameKey)
         defaults.set(outcome.rootRecordID.zoneID.zoneName, forKey: zoneNameKey)

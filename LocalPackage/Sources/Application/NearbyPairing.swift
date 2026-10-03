@@ -1,63 +1,59 @@
 //
-//  MultipeerPairing.swift
+//  NearbyPairing.swift
 //  PairCommit
 //
-//  Created by Daiki Fujimori on 2026/06/20
+//  Created by Daiki Fujimori on 2026/10/03
 //
 
 import Domain
 import Foundation
 import Observation
-import OSLog
-import UIKit
 
+/// 近くにいる相手と、ペアの入った共有を受け渡す。
 @MainActor
 @Observable
-final class MultipeerPairing {
-    enum Phase: Equatable {
+public final class NearbyPairing {
+    public enum Phase: Equatable, Sendable {
         case idle
         case searching
         case connected
         case sharing
         case handedOver
         case done
-        case failed(FailureReason)
-
-        var label: String {
-            switch self {
-            case .idle:        return String(localized: "待機中")
-            case .searching:   return String(localized: "相手を探しています…")
-            case .connected:   return String(localized: "相手が見つかりました")
-            case .sharing, .handedOver: return String(localized: "ペアを登録しています…")
-            case .done:        return String(localized: "ペアリングできました 🎉")
-            case .failed:      return String(localized: "ペアリングできませんでした")
-            }
-        }
+        case failed(PairingFailure)
     }
 
-    private(set) var phase: Phase = .idle
-    private(set) var outcome: PairedShare?
+    public private(set) var phase: Phase = .idle
+    public private(set) var outcome: (any PairedShare)?
 
-    private var multipeer: MultipeerSession?
+    private let sharing: any PartnershipSharing
+    private let makeChannel: @MainActor () -> any NearbyChannel
+    private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
     private var choice: PairingChoice = .invitation
 
-    func start(with choice: PairingChoice) {
+    public init(sharing: any PartnershipSharing, makeChannel: @escaping @MainActor () -> any NearbyChannel) {
+        self.sharing = sharing
+        self.makeChannel = makeChannel
+    }
+
+    public func start(with choice: PairingChoice) {
         guard phase == .idle else { return }
         self.choice = choice
         phase = .searching
 
-        let session = MultipeerSession(displayName: Self.makeDisplayName())
-        multipeer = session
+        let channel = makeChannel()
+        self.channel = channel
+        let events = channel.events
         eventTask = Task { [weak self] in
-            for await event in session.events {
+            for await event in events {
                 self?.handle(event)
             }
         }
-        session.start()
+        channel.start()
     }
 
-    func reset() {
+    public func reset() {
         tearDown()
         outcome = nil
         phase = .idle
@@ -66,7 +62,7 @@ final class MultipeerPairing {
 
 // MARK: - Private
 
-private extension MultipeerPairing {
+private extension NearbyPairing {
     static let ackMessage = "paircommit://ack"
     static let failureMessage = "paircommit://failed"
     static let choicePrefix = "paircommit://choice/"
@@ -87,12 +83,15 @@ private extension MultipeerPairing {
         return Role(rawValue: name).map { .role($0) }
     }
 
-    // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
-    static func makeDisplayName() -> String {
-        "\(UIDevice.current.name.prefix(24))#\(UUID().uuidString.prefix(4))"
+    static func initialState(ownerRole: Role) throws(PairingFailure) -> PartnershipState {
+        do throws(DomainError) {
+            return try PartnershipState().establishingPairing(ownerRole: ownerRole)
+        } catch {
+            throw .unexpected
+        }
     }
 
-    func handle(_ event: MultipeerSession.Event) {
+    func handle(_ event: NearbyEvent) {
         switch event {
         case .connected:
             handleConnected()
@@ -101,7 +100,6 @@ private extension MultipeerPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing, .handedOver:
-                Logger.pairing.error("disconnected: \(String(describing: self.phase), privacy: .public)")
                 phase = .failed(.disconnected)
                 tearDown()
             case .done, .failed:
@@ -120,15 +118,15 @@ private extension MultipeerPairing {
         if phase == .searching {
             phase = .connected
         }
-        do {
-            try multipeer?.send(Self.message(for: choice))
+        do throws(PairingFailure) {
+            try channel?.send(Self.message(for: choice))
         } catch {
             fail(with: error)
         }
     }
 
     func handlePartnerChoice(_ partner: PairingChoice) {
-        // MC は、接続の知らせと受信のどちらが先に届くかを文書で約束していない。
+        // 接続の知らせと受信のどちらが先に届くかは、文書で約束されていない。
         guard phase == .searching || phase == .connected else { return }
         phase = .connected
         // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
@@ -146,35 +144,33 @@ private extension MultipeerPairing {
 
     func makeShare(ownerRole: Role, handsOverOnRefusal: Bool) {
         phase = .sharing
-        let session = multipeer
+        let channel = channel
         Task {
-            do {
-                let paired = try PartnershipState().establishingPairing(ownerRole: ownerRole)
-                let share = try await PartnershipShare.makeShare(initialState: paired)
+            do throws(PairingFailure) {
+                let made = try await sharing.makeShare(initialState: Self.initialState(ownerRole: ownerRole))
                 // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
-                guard isSharing(in: session) else { return }
-                outcome = PairedShare(rootRecordID: share.rootRecordID, isOwner: true)
-                try multipeer?.send(share.url.absoluteString)
+                guard isSharing(on: channel) else { return }
+                outcome = made.share
+                try channel?.send(made.url.absoluteString)
                 // 完了にするのは ACK を受け取った時点。
-            } catch let error where handsOverOnRefusal && FailureReason(error) == .iCloudFull {
-                guard isSharing(in: session) else { return }
+            } catch .storageFull where handsOverOnRefusal {
+                guard isSharing(on: channel) else { return }
                 // ファミリー共有の iCloud+ に空きがあっても、自分の使用量が無料の 5GB を超えていると断られる（FB16214848）。
-                Logger.pairing.error("hand over: \(error, privacy: .public)")
                 handOver(ownerRole)
             } catch {
-                guard isSharing(in: session) else { return }
+                guard isSharing(on: channel) else { return }
                 fail(with: error)
             }
         }
     }
 
-    func isSharing(in session: MultipeerSession?) -> Bool {
-        multipeer === session && phase == .sharing
+    func isSharing(on channel: (any NearbyChannel)?) -> Bool {
+        self.channel === channel && phase == .sharing
     }
 
     func handOver(_ role: Role) {
-        do {
-            try multipeer?.send(Self.handOverPrefix + role.rawValue)
+        do throws(PairingFailure) {
+            try channel?.send(Self.handOverPrefix + role.rawValue)
             phase = .handedOver
         } catch {
             fail(with: error)
@@ -183,17 +179,17 @@ private extension MultipeerPairing {
 
     func acceptShare(from url: URL) {
         phase = .sharing
-        let session = multipeer
+        let channel = channel
         Task {
-            do {
-                let rootRecordID = try await PartnershipShare.acceptShare(from: url)
-                guard isSharing(in: session) else { return }
-                outcome = PairedShare(rootRecordID: rootRecordID, isOwner: false)
-                try multipeer?.send(Self.ackMessage)
+            do throws(PairingFailure) {
+                let share = try await sharing.acceptShare(from: url)
+                guard isSharing(on: channel) else { return }
+                outcome = share
+                try channel?.send(Self.ackMessage)
                 // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                 phase = .done
             } catch {
-                guard isSharing(in: session) else { return }
+                guard isSharing(on: channel) else { return }
                 fail(with: error)
             }
         }
@@ -208,7 +204,7 @@ private extension MultipeerPairing {
         case Self.failureMessage:
             guard phase == .connected || phase == .sharing || phase == .handedOver else { return }
             outcome = nil
-            phase = .failed(phase == .handedOver ? .iCloudFull : .partnerFailed)
+            phase = .failed(phase == .handedOver ? .storageFull : .partnerFailed)
             tearDown()
         case Self.ackMessage:
             guard phase == .sharing, outcome?.isOwner == true else { return }
@@ -224,14 +220,13 @@ private extension MultipeerPairing {
         }
     }
 
-    func fail(with error: any Error) {
-        Logger.pairing.error("\(String(describing: self.choice), privacy: .public): \(error, privacy: .public)")
+    func fail(with failure: PairingFailure) {
         outcome = nil
-        phase = .failed(FailureReason(error))
+        phase = .failed(failure)
         // 知らせないと、相手には接続が切れたとしか見えない。すぐ切ると届く前にセッションが落ちるので、
         // 切るのは相手が受け取って切断したとき。
-        do {
-            try multipeer?.send(Self.failureMessage)
+        do throws(PairingFailure) {
+            try channel?.send(Self.failureMessage)
         } catch {
             tearDown()
         }
@@ -240,7 +235,7 @@ private extension MultipeerPairing {
     func tearDown() {
         eventTask?.cancel()
         eventTask = nil
-        multipeer?.stop()
-        multipeer = nil
+        channel?.stop()
+        channel = nil
     }
 }
