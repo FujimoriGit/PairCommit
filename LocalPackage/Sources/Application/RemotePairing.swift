@@ -121,7 +121,6 @@ private extension RemotePairing {
         }
     }
 
-    // 打ち切られずに待ち終えたら true。
     static func waitForNextPoll() async -> Bool {
         do {
             try await Task.sleep(for: pollingInterval)
