@@ -1537,6 +1537,22 @@
         }
       }
     },
+    "操作できませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t complete the action"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作できませんでした"
+          }
+        }
+      }
+    },
     "書いた内容は消え、記録にも残りません。" : {
       "localizations" : {
         "en" : {
