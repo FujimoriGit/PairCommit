@@ -71,6 +71,10 @@ struct CloudPairedShare: PairedShare {
 
 extension PairingFailure {
     init(_ error: any Error) {
+        if case .invitationWithdrawn? = error as? PartnershipShareError {
+            self = .invitationWithdrawn
+            return
+        }
         let cloudError = error as? CKError
         switch cloudError?.code {
         case .partialFailure:

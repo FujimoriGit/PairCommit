@@ -44,6 +44,7 @@ extension PairingFailure {
         case .nearbyUnavailable:
             "近くの端末を探せませんでした。Wi-Fi と Bluetooth がオンになっているか、設定アプリで「ローカルネットワーク」が許可されているかを確かめてください"
         case .disconnected: "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください"
+        case .invitationWithdrawn: "相手が招待をやめました。もう一度、招待リンクを送ってもらってください"
         case .unexpected: "うまくいきませんでした。もう一度お試しください"
         }
     }
