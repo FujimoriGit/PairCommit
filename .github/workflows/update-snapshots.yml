@@ -19,6 +19,12 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.2.app
 
+      - name: Cache Swift packages
+        uses: actions/cache@v6
+        with:
+          path: build/SourcePackages
+          key: swift-packages-${{ hashFiles('PairCommit.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
       # 基準画像がないテストは record したうえで失敗するので、失敗を握って画像だけ拾う
       - name: Record
         run: |

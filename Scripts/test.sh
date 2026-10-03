@@ -10,6 +10,8 @@ cd "$(dirname "$0")/.."
 SCHEME=PairCommit
 DEVICE_NAME="${DEVICE_NAME:-iPhone 17}"
 RESULT_BUNDLE=build/TestResults.xcresult
+# CI がダウンロードしたライブラリを次の実行でも使えるよう、置き場所を DerivedData の外に固定する
+SOURCE_PACKAGES=build/SourcePackages
 
 # simctl は選択中の Xcode に関係なく、入っているランタイムをすべて並べる。
 # 新しいランタイムの端末を選ぶと、Xcode を固定していても描画が変わるので、SDK と同じ版に絞る
@@ -45,6 +47,7 @@ xcodebuild \
   -testLanguage ja \
   -testRegion JP \
   -resultBundlePath "$RESULT_BUNDLE" \
+  -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
   -skipPackagePluginValidation \
   -skip-testing:PairCommitUITests \
   -parallel-testing-enabled NO \
