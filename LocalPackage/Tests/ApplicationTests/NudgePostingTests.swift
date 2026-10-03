@@ -16,22 +16,20 @@ struct NudgePostingTests {
     @Test("始まっている催促はすぐ、これから始まる催促は始まる時刻に通知する")
     func postsCurrentNudgesNowAndUpcomingOnesWhenTheyStart() async throws {
         // Given
-        let state = try Self.stateWithTasks(dueInDays: [1, 10])
-        let now = Self.day(2)
+        let active = try Self.activeVision()
+        let overdue = try active.creatingTask(title: "o", deadline: Self.day(1), by: .manager, now: Self.day(0))
+        let later = try overdue.state.creatingTask(title: "l", deadline: Self.day(10), by: .manager, now: Self.day(0))
         let notifications = RecordingNotifications()
 
         // When
-        await notifications.post(for: .player, in: state, now: now) { _ in "催促" }
+        await notifications.post(for: .player, in: later.state, now: Self.day(2)) { _ in "催促" }
 
         // Then
-        let current = state.nudges(for: .player, now: now).map {
-            NudgeNotice(nudge: $0, message: "催促", startsAt: nil)
-        }
-        let upcoming = state.upcomingNudges(for: .player, now: now).map {
-            NudgeNotice(nudge: $0.key, message: "催促", startsAt: $0.value)
-        }
-        #expect(!current.isEmpty && !upcoming.isEmpty)
-        #expect(Set(notifications.notices) == Set(current + upcoming))
+        #expect(Set(notifications.notices) == [
+            NudgeNotice(nudge: .taskOverdue(overdue.taskID), message: "催促", startsAt: nil),
+            NudgeNotice(nudge: .taskDueSoon(later.taskID), message: "催促", startsAt: Self.day(10 - 3)),
+            NudgeNotice(nudge: .taskOverdue(later.taskID), message: "催促", startsAt: Self.day(10)),
+        ])
     }
 }
 
@@ -42,16 +40,13 @@ private extension NudgePostingTests {
         Date(timeIntervalSince1970: 0).addingTimeInterval(Double(offset) * 24 * 60 * 60)
     }
 
-    static func stateWithTasks(dueInDays days: [Int]) throws -> PartnershipState {
+    static func activeVision() throws -> PartnershipState {
         let drafted = try PartnershipState()
             .establishingPairing(ownerRole: .manager)
             .draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player)
-        let active = try drafted.state
+        return try drafted.state
             .proposingVision(drafted.visionID, by: .player)
             .approvingVision(drafted.visionID, by: .manager)
-        return try days.reduce(active) { state, offset in
-            try state.creatingTask(title: "t\(offset)", deadline: day(offset), by: .manager, now: day(0)).state
-        }
     }
 }
 

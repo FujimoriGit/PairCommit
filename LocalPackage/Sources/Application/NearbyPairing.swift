@@ -20,7 +20,14 @@ public final class NearbyPairing {
         case sharing
         case handedOver
         case done
-        case failed(PairingFailure)
+        case failed(Failure)
+    }
+
+    public enum Failure: Equatable, Sendable {
+        case sameRole(Role)
+        case bothAccepting
+        case partnerFailed
+        case external(PairingFailure)
     }
 
     public private(set) var phase: Phase = .idle
@@ -100,7 +107,7 @@ private extension NearbyPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing, .handedOver:
-                phase = .failed(.disconnected)
+                phase = .failed(.external(.disconnected))
                 tearDown()
             case .done, .failed:
                 // 完了後や、失敗を知らせたあとの切断は正常。
@@ -109,7 +116,7 @@ private extension NearbyPairing {
                 break
             }
         case .failed:
-            phase = .failed(.nearbyUnavailable)
+            phase = .failed(.external(.nearbyUnavailable))
             tearDown()
         }
     }
@@ -204,7 +211,7 @@ private extension NearbyPairing {
         case Self.failureMessage:
             guard phase == .connected || phase == .sharing || phase == .handedOver else { return }
             outcome = nil
-            phase = .failed(phase == .handedOver ? .storageFull : .partnerFailed)
+            phase = .failed(phase == .handedOver ? .external(.storageFull) : .partnerFailed)
             tearDown()
         case Self.ackMessage:
             guard phase == .sharing, outcome?.isOwner == true else { return }
@@ -222,7 +229,7 @@ private extension NearbyPairing {
 
     func fail(with failure: PairingFailure) {
         outcome = nil
-        phase = .failed(failure)
+        phase = .failed(.external(failure))
         // 知らせないと、相手には接続が切れたとしか見えない。すぐ切ると届く前にセッションが落ちるので、
         // 切るのは相手が受け取って切断したとき。
         do throws(PairingFailure) {
