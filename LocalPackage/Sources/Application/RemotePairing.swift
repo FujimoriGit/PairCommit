@@ -33,11 +33,6 @@ public final class RemotePairing {
         withdrawal = inviting.savedWithdrawal()
     }
 
-    /// やめる後始末が終わっていない。続けるときは `cancel()` を呼ぶ。
-    public var isWithdrawing: Bool {
-        withdrawal != nil
-    }
-
     public var phase: Phase {
         switch step {
         case .sending, .sent: .inviting
@@ -64,7 +59,7 @@ public final class RemotePairing {
     /// 相手とペアができるまで進める。やめる後始末が残っていれば、相手は待たずに後始末をやり直す。
     /// - Returns: できたペア。失敗したときは `failure` に入れて nil を返す。
     public func run() async -> (any PairedShare)? {
-        if isWithdrawing {
+        if withdrawal != nil {
             await cancel()
             return nil
         }

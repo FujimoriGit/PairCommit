@@ -53,17 +53,21 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("後始末の途中で開き直したら、相手待ちではなく後始末の途中から始まる")
-    func restoringDuringCleanupContinuesTheCleanup() {
+    @Test("後始末の途中で開き直したら、相手を待たずに後始末を続ける")
+    func restoringDuringCleanupContinuesTheCleanup() async {
         // Given
         let inviting = FakeInviting(savedWithdrawal: .invitation)
-
-        // When
+        inviting.progress = .paired(StubShare(isOwner: true))
         let pairing = RemotePairing(inviting: inviting)
 
+        // When
+        let paired = await pairing.run()
+
         // Then
-        #expect(pairing.phase == .inviting)
-        #expect(pairing.isWithdrawing)
+        #expect(paired == nil)
+        #expect(inviting.withdrawCalls == 1)
+        #expect(inviting.advanceCalls == 0)
+        #expect(pairing.phase == .idle)
     }
 
     @Test("相手を待っている間に打ち切ったら、そのあとペアができても返さない")

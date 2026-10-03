@@ -21,12 +21,19 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - 命名は Swift API Design Guidelines の非破壊側に倣い `-ing` / `-ed` 形にする（`approvingVision`）。
   - **型が文脈から決まるところで型名を繰り返さない。** 自分自身を返すなら戻り値の型は `Self`、生成は `.init(...)`。リネームに強く、読み手も型名の一致を確かめずに済む。
   - 可変状態を持ってよいのは、同一性とライフサイクルを持つ端（Store・セッション）だけ。
-- **依存方向ルール（軽量クリーンアーキテクチャ）。**
-  - `Domain` ← `Application` ← アプリ（UI / Infrastructure）。内側は外側を知らない。**ドメインは CloudKit / UIKit / SwiftUI を import しない。**
-  - 境界は protocol で抽象化する。外部サービスへの依存は、その protocol の実装の一つとして差し替えられる状態を保つ。
-  - UseCase クラスや Presenter 層などの儀式は導入しない。ドメインロジックは集約ルート（`PartnershipState`）のメソッド、アプリケーションロジックは Store に置く。層を増やすのは痛みが出てから。
-- **不変条件はドメインが守る。** active な Vision は高々1個 / ロール権限 / 状態遷移 ── すべて `PartnershipState` で強制し、UI や同期層に分散させない。
-- **モジュール構成**: `LocalPackage` に `Domain` / `Application`、`InfrastructurePackage` に `Infrastructure`。View はアプリターゲットに置く（パッケージの外側なので、公開APIの境界はそれで効く）。`LocalPackage` に SwiftUI や Apple のフレームワークに依存するものを入れると、ubuntu で回している `swift test` が壊れる。Apple のフレームワークを使う実装は `Infrastructure` に置き、アプリで import するのは実装を組み立てる App だけにする。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
+- **層と依存。** 置き場所と依存は、規約の文を照らし合わせて決めるのではなく、次の考え方から導く。文が曖昧なときもここに戻る。
+  - **中心は Domain。依存は内側にだけ向く。** Domain はアプリが何であるか（概念と規則）だけを知り、外界（iCloud・端末間の通信・端末への保存・OS・画面）を知らない。CloudKit・UIKit・SwiftUI のような Apple にしかないフレームワークを import しない（Foundation は使ってよい）。
+  - **外界との約束は Domain が持つ。** 外界に頼むこと（保存・共有・通信など）は、Domain の言葉で protocol にし、その失敗の型と一緒に Domain に置く。外界の実装は約束を満たす差し替え可能な部品で、約束の置き場所を決める側ではない。
+  - **層ごとの役割と、見てよい相手。**
+    - `Domain`: 概念・規則・外界との約束。何も見ない。不変条件（active な Vision は高々1個 / ロール権限 / 状態遷移）はすべて集約ルートで強制し、ほかの層に分散させない。
+    - `Application`: Domain の約束を使って、利用者の手順を組み立てる。手順の決まりはここに置く。見てよいのは Domain だけ。
+    - `Infrastructure`: Domain の約束を外界の技術で満たす。見てよいのは Domain だけで、Application は見ない。
+    - 画面: Application を呼んで結果を表示する。手順の決まりを持たず、Infrastructure を見ない。
+    - App（組み立て）: Infrastructure の実装を作り、Application と画面に渡す。外側どうしを結び付けるのはここだけ。
+  - **置き場所は「差し替えたら何が変わるか」で決める。** 外界の技術を別のもの（iCloud を自前のサーバーなど）に替えたとき、変わってよいのは Infrastructure と App だけ。ほかの層に手が入るなら、境界の位置が間違っている。Infrastructure の外で外界の型名が要るなら、外界の言葉が漏れている。型・protocol・モジュールの依存を足すときは、書く前にこの問いに答える。
+  - **道具の都合で層を曲げない。** CI・ビルド・フレームワークの制約で層の形が崩れるなら、直すのは道具の側。
+  - **儀式は足さない。** UseCase クラスや Presenter 層は作らない。ドメインロジックは集約ルートのメソッド、アプリケーションロジックは Store に置く。層を増やすのは痛みが出てから。
+- **モジュール構成**: `LocalPackage` に `Domain` / `Application`、`InfrastructurePackage` に `Infrastructure`、画面と App はアプリターゲット。モジュールの境界で、上の「見てよい相手」をコンパイラに強制させる。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。`swift test` はパッケージの中をすべてビルドするので、Apple のフレームワークを使う `Infrastructure` は `LocalPackage` に入れない（ubuntu で回している単体テストが壊れる）。
 
 ## コーディング規約
 

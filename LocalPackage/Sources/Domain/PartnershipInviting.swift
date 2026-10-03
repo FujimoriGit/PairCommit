@@ -5,7 +5,6 @@
 //  Created by Daiki Fujimori on 2026/10/03
 //
 
-import Domain
 import Foundation
 
 /// 離れた相手と、招待リンクでペアを作る。

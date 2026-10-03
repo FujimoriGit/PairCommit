@@ -22,7 +22,7 @@ struct PairCommitApp: App {
                 session: delegate.session,
                 sharing: CloudSharing(shareTitle: Self.shareTitle),
                 inviting: CloudInviting(shareTitle: Self.shareTitle),
-                inbox: InvitationSceneDelegate.inbox,
+                invitationLinks: InvitationSceneDelegate.links,
                 makeNearbyChannel: makeNearbyChannel
             )
         }
