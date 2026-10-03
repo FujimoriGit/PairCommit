@@ -33,7 +33,7 @@ enum PartnershipShare {
 
     // MARK: Owner 側
 
-    static func makeShare(initialState: PartnershipState) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
+    static func makeShare(initialState: PartnershipState, title: String) async throws -> (url: URL, rootRecordID: CKRecord.ID) {
         let database = container.privateCloudDatabase
         let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
         let rootRecordID = CKRecord.ID(recordName: rootRecordName, zoneID: zoneID)
@@ -58,7 +58,7 @@ enum PartnershipShare {
         let pairing = try PartnershipRootRecord.creating(initialState, id: rootRecordID)
 
         let share = CKShare(rootRecord: pairing)
-        share[CKShare.SystemFieldKey.title] = "ふたりの帆柱" as CKRecordValue
+        share[CKShare.SystemFieldKey.title] = title as CKRecordValue
         // 参加者を名指しで招待する仕組みを持たない。URL を知っている人が参加でき、
         // ルートレコードを書ける必要がある。
         share.publicPermission = .readWrite
