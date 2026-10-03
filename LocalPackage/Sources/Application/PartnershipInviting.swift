@@ -27,7 +27,6 @@ public protocol PartnershipInviting: Sendable {
     /// 招待リンクで作ったペアを、相手の側でも終わらせる。
     func endPair() async throws(PairingFailure)
 
-    /// `save(_:)` で端末に残したもの。
     func savedStep() -> InvitationStep?
     func savedWithdrawal() -> Withdrawal?
     /// 送る途中と参加する途中は残らない。
