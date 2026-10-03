@@ -40,6 +40,13 @@ jobs:
         if: steps.filter.outputs.app == 'true'
         run: sudo xcode-select -s /Applications/Xcode_26.2.app
 
+      - name: Cache Swift packages
+        if: steps.filter.outputs.app == 'true'
+        uses: actions/cache@v6
+        with:
+          path: build/SourcePackages
+          key: swift-packages-${{ hashFiles('PairCommit.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
       - name: Build & VRT
         if: steps.filter.outputs.app == 'true'
         run: ./Scripts/test.sh
