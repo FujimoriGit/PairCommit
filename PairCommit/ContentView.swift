@@ -12,17 +12,31 @@ import UIKit
 
 struct ContentView: View {
     let session: PartnershipSession
+    let sharing: any PartnershipSharing
+    let notifications: any NudgeNotifying
+    let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
-    @State private var savedPairing: MultipeerPairing.Outcome?
+    @State private var savedPairing: (any PairedShare)?
     @State private var isResuming: Bool
-    @State private var pairing = MultipeerPairing()
+    @State private var pairing: NearbyPairing
     @State private var failureMessage: String?
     @State private var refreshFailure: String?
 
-    init(session: PartnershipSession, savedPairing: MultipeerPairing.Outcome? = nil) {
+    init(
+        session: PartnershipSession,
+        sharing: any PartnershipSharing,
+        notifications: any NudgeNotifying,
+        makeCriteriaReviewing: @escaping () -> (any CriteriaReviewing)?,
+        makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
+    ) {
         self.session = session
+        self.sharing = sharing
+        self.notifications = notifications
+        self.makeCriteriaReviewing = makeCriteriaReviewing
+        let savedPairing = sharing.savedShare()
         _savedPairing = State(initialValue: savedPairing)
         _isResuming = State(initialValue: savedPairing != nil)
+        _pairing = State(initialValue: NearbyPairing(sharing: sharing, makeChannel: makeNearbyChannel))
     }
 
     var body: some View {
@@ -50,7 +64,8 @@ struct ContentView: View {
                     await returnToPicker(with: "パートナーシップは終了しました")
                     return
                 }
-                await NudgeNotifications.post(for: store.role, in: store.state)
+                let state = store.state
+                await notifications.post(for: store.role, in: state) { $0.message(in: state) }
             }
         } else if pairing.phase == .idle, let saved = savedPairing {
             ReconnectingView(
@@ -72,7 +87,7 @@ struct ContentView: View {
                         await returnToPicker(with: "ペアリングの結果を受け取れませんでした")
                         return
                     }
-                    SavedPairing.save(outcome)
+                    outcome.save()
                     savedPairing = outcome
                     isResuming = false
                     await enter(outcome, resuming: false)
@@ -92,17 +107,12 @@ private extension ContentView {
             TimelineView(.everyMinute) { context in
                 ManagerTaskView(store: store, vision: vision, now: context.date)
             }
-        case (.player, .none): PlayerVisionView(store: store, reviewing: criteriaReviewing)
+        case (.player, .none): PlayerVisionView(store: store, reviewing: makeCriteriaReviewing())
         case (.player, .some(let vision)):
             TimelineView(.everyMinute) { context in
                 PlayerTaskView(store: store, vision: vision, now: context.date)
             }
         }
-    }
-
-    // Apple Intelligence が使えない端末では下読みごと出さない
-    var criteriaReviewing: (any CriteriaReviewing)? {
-        OnDeviceCriteriaReview.isAvailable ? OnDeviceCriteriaReview() : nil
     }
 
     var rolePicker: some View {
@@ -174,32 +184,21 @@ private extension ContentView {
         pairing.start(with: choice)
     }
 
-    func enter(_ outcome: MultipeerPairing.Outcome, resuming: Bool) async {
-        let synchronizer = CloudKitSynchronizer(
-            rootRecordID: outcome.rootRecordID,
-            isOwner: outcome.isOwner,
-            container: PartnershipShare.container
-        )
-
-        let state: PartnershipState
-        do {
-            state = try await synchronizer.start()
+    func enter(_ outcome: any PairedShare, resuming: Bool) async {
+        let started: PartnershipStore?
+        do throws(SyncFailure) {
+            started = try await PartnershipStore(starting: outcome)
         } catch {
             failureMessage = error.message
             pairing.reset()
             return
         }
-        guard let ownerRole = state.pairing?.ownerRole else {
+        guard let started else {
             await returnToPicker(with: resuming ? "パートナーシップは終了しました" : "相手の設定がまだ届いていません")
             return
         }
-        let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: outcome.isOwner)
-        await NudgeNotifications.requestPermission()
-        session.store = PartnershipStore(
-            role: agreement.role,
-            synchronizer: synchronizer,
-            state: state
-        )
+        await notifications.requestPermission()
+        session.store = started
     }
 
     func refresh(_ store: PartnershipStore) async {
@@ -214,18 +213,18 @@ private extension ContentView {
         guard let outcome = savedPairing else {
             return "端末に残したペアを読めませんでした"
         }
-        do {
-            try await PartnershipShare.teardown(rootRecordID: outcome.rootRecordID, isOwner: outcome.isOwner)
+        do throws(PairingFailure) {
+            try await outcome.end()
         } catch {
-            return FailureReason(error).message
+            return error.message
         }
         await returnToPicker(with: nil)
         return nil
     }
 
     func returnToPicker(with message: String?) async {
-        await NudgeNotifications.withdrawAll()
-        SavedPairing.clear()
+        await notifications.withdrawAll()
+        sharing.clearSavedShare()
         savedPairing = nil
         failureMessage = message
         session.store = nil
@@ -234,5 +233,11 @@ private extension ContentView {
 }
 
 #Preview("役割の選択") {
-    ContentView(session: PartnershipSession())
+    ContentView(
+        session: PartnershipSession(),
+        sharing: PreviewSharing(),
+        notifications: PreviewNudgeNotifications(),
+        makeCriteriaReviewing: { nil },
+        makeNearbyChannel: { PreviewNearbyChannel() }
+    )
 }

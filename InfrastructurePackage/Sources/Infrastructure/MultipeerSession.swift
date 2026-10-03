@@ -5,36 +5,28 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
+import Domain
 import Foundation
 import MultipeerConnectivity
 import OSLog
+import UIKit
 
-enum MultipeerSessionError: LocalizedError {
-    case notConnected
-
-    var errorDescription: String? {
-        switch self {
-        case .notConnected: return "相手と接続されていない"
-        }
-    }
+/// 近くにいる相手の端末との通信路を開く。
+@MainActor
+public func makeNearbyChannel() -> any NearbyChannel {
+    // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
+    MultipeerSession(displayName: "\(UIDevice.current.name.prefix(24))#\(UUID().uuidString.prefix(4))")
 }
 
 // MC のデリゲートは任意のスレッドから呼ばれるため、イベントは AsyncStream に流す。
-final class MultipeerSession: NSObject {
-    enum Event: Sendable {
-        case connected
-        case received(String)
-        case disconnected
-        case failed
-    }
-
+final class MultipeerSession: NSObject, NearbyChannel {
     // MC の制約: 15文字以内・英小文字/数字/ハイフンのみ。
     // 変えるときは Info.plist の NSBonjourServices も同じ値にすること。
     private static let serviceType = "paircommit-pr"
 
-    let events: AsyncStream<Event>
+    let events: AsyncStream<NearbyEvent>
 
-    private let eventContinuation: AsyncStream<Event>.Continuation
+    private let eventContinuation: AsyncStream<NearbyEvent>.Continuation
     private let myPeerID: MCPeerID
     private let session: MCSession
     private let advertiser: MCNearbyServiceAdvertiser
@@ -73,9 +65,14 @@ final class MultipeerSession: NSObject {
         eventContinuation.finish()
     }
 
-    func send(_ text: String) throws {
-        guard !session.connectedPeers.isEmpty else { throw MultipeerSessionError.notConnected }
-        try session.send(Data(text.utf8), toPeers: session.connectedPeers, with: .reliable)
+    func send(_ text: String) throws(PairingFailure) {
+        guard !session.connectedPeers.isEmpty else { throw .disconnected }
+        do {
+            try session.send(Data(text.utf8), toPeers: session.connectedPeers, with: .reliable)
+        } catch {
+            Logger.pairing.error("send: \(error, privacy: .public)")
+            throw .unexpected
+        }
     }
 }
 

@@ -8,7 +8,6 @@
 import Application
 import Domain
 import Foundation
-import Infrastructure
 
 // プレビューが「いま」とみなす瞬間。期限も状態の変更時刻もここからの相対で置く。
 // 実時間を使うと、期限を過ぎた日から催促が出はじめて基準画像が壊れる。
@@ -70,7 +69,7 @@ extension PartnershipStore {
     static func preview(role: Role, visions: [Vision], tasks: [TaskItem] = []) -> Self {
         .init(
             role: role,
-            synchronizer: InMemorySynchronizer(),
+            synchronizer: PreviewSynchronizer(),
             state: PartnershipState(
                 pairing: Pairing(id: UUID(), ownerRole: role, createdAt: Date()),
                 visions: visions,
@@ -78,6 +77,52 @@ extension PartnershipStore {
             )
         )
     }
+}
+
+struct PreviewSynchronizer: PartnershipSyncing {
+    func start() -> PartnershipState {
+        .init()
+    }
+
+    func load() -> PartnershipState {
+        .init()
+    }
+
+    func save(_ state: PartnershipState, replacing base: PartnershipState) {}
+}
+
+struct PreviewNudgeNotifications: NudgeNotifying {
+    func requestPermission() async {}
+
+    func replace(with notices: [NudgeNotice], now: Date) async {}
+
+    func withdrawAll() async {}
+}
+
+struct PreviewSharing: PartnershipSharing {
+    func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare) {
+        throw .unexpected
+    }
+
+    func acceptShare(from url: URL) async throws(PairingFailure) -> any PairedShare {
+        throw .unexpected
+    }
+
+    func savedShare() -> (any PairedShare)? {
+        nil
+    }
+
+    func clearSavedShare() {}
+}
+
+final class PreviewNearbyChannel: NearbyChannel {
+    let events = AsyncStream<NearbyEvent> { $0.finish() }
+
+    func start() {}
+
+    func stop() {}
+
+    func send(_ text: String) throws(PairingFailure) {}
 }
 
 struct PreviewCriteriaReview: CriteriaReviewing {

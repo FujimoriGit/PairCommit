@@ -9,45 +9,47 @@ import Domain
 import Foundation
 import UserNotifications
 
-/// 催促を端末の通知として出す。何を催促するかはドメインが決め、ここは出すだけ。
-enum NudgeNotifications {
-    static func requestPermission() async {
+public struct NudgeNotifications: NudgeNotifying {
+    public init() {}
+
+    public func requestPermission() async {
         _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
 
-    static func post(for role: Role, in state: PartnershipState) async {
+    public func replace(with notices: [NudgeNotice], now: Date) async {
         let center = UNUserNotificationCenter.current()
-        let now = Date.now
-        let nudges = state.nudges(for: role, now: now)
-        let wanted = Dictionary(nudges.map { (identifier(of: $0), $0) }, uniquingKeysWith: { first, _ in first })
+        let current = Dictionary(
+            notices.filter { $0.startsAt == nil }.map { (Self.identifier(of: $0.nudge), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
 
         // 解消した催促の通知は残さない。読んだときにはもう終わっている、が起きる。
         center.removeDeliveredNotifications(
-            withIdentifiers: delivered.filter { $0.hasPrefix(prefix) && wanted[$0] == nil }
+            withIdentifiers: delivered.filter { $0.hasPrefix(Self.prefix) && current[$0] == nil }
         )
 
         // 配信済みの催促は出し直さない。同じ識別子で add し直すと、差し替わると同時にもう一度鳴る。
-        for (id, nudge) in wanted where !delivered.contains(id) {
-            try? await center.add(request(for: nudge, in: state, trigger: nil))
+        for (id, notice) in current where !delivered.contains(id) {
+            try? await center.add(Self.request(for: notice, trigger: nil))
         }
 
         // 誰も操作しなければプッシュは来ないので、期限が過ぎるだけの催促は先に予約しておく。
         // 予約も同じ識別子で出すので、鳴ったあとは配信済みとして上の重複除けに掛かる。
         // 未配信の予約は同じ識別子の add で置き換わるので、消すのは予約しなくなったものだけにする。
         // 予約できるのはアプリごとに64件までで、超えた分は発火の遅いものから黙って捨てられる。
-        let upcoming = state.upcomingNudges(for: role, now: now)
-        await withdrawPending(keeping: Set(upcoming.keys.map(identifier(of:))))
-        for (nudge, startsAt) in upcoming {
-            try? await center.add(request(for: nudge, in: state, trigger: trigger(at: startsAt, after: now)))
+        let upcoming = notices.compactMap { notice in notice.startsAt.map { (notice, $0) } }
+        await Self.withdrawPending(keeping: Set(upcoming.map { Self.identifier(of: $0.0.nudge) }))
+        for (notice, startsAt) in upcoming {
+            try? await center.add(Self.request(for: notice, trigger: Self.trigger(at: startsAt, after: now)))
         }
     }
 
-    static func withdrawAll() async {
+    public func withdrawAll() async {
         let center = UNUserNotificationCenter.current()
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
-        center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(prefix) })
-        await withdrawPending(keeping: [])
+        center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(Self.prefix) })
+        await Self.withdrawPending(keeping: [])
     }
 }
 
@@ -65,15 +67,11 @@ private extension NudgeNotifications {
         }
     }
 
-    static func request(
-        for nudge: Nudge,
-        in state: PartnershipState,
-        trigger: UNNotificationTrigger?
-    ) -> UNNotificationRequest {
+    static func request(for notice: NudgeNotice, trigger: UNNotificationTrigger?) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
-        content.body = nudge.message(in: state)
+        content.body = notice.message
         content.sound = .default
-        return UNNotificationRequest(identifier: identifier(of: nudge), content: content, trigger: trigger)
+        return UNNotificationRequest(identifier: identifier(of: notice.nudge), content: content, trigger: trigger)
     }
 
     // 経過秒で予約すると、端末の時計を直しても追随しない。タイムゾーンを外すと、成分は発火を待つ時点の
