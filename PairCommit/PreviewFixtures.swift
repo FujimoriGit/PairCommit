@@ -91,6 +91,14 @@ struct PreviewSynchronizer: PartnershipSyncing {
     func save(_ state: PartnershipState, replacing base: PartnershipState) {}
 }
 
+struct PreviewNudgeNotifications: NudgeNotifying {
+    func requestPermission() async {}
+
+    func replace(with notices: [NudgeNotice], now: Date) async {}
+
+    func withdrawAll() async {}
+}
+
 struct PreviewSharing: PartnershipSharing {
     func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare) {
         throw .unexpected

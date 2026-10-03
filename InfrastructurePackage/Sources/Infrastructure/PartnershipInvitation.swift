@@ -19,7 +19,7 @@ enum PartnershipInvitation {
     // MARK: 招待する側
 
     /// - Returns: 相手に送る招待リンク。
-    static func send() async throws -> URL {
+    static func send(title: String) async throws -> URL {
         let database = PartnershipShare.container.privateCloudDatabase
         // 前回のペアリングが途中で終わっていると、同じゾーンに共有が残っている。
         try await PartnershipShare.teardown(rootRecordID: PartnershipShare.ownedRootRecordID, isOwner: true)
@@ -27,14 +27,14 @@ enum PartnershipInvitation {
 
         let invitation = CKRecord(recordType: recordType, recordID: invitationRecordID)
         let share = CKShare(rootRecord: invitation)
-        share[CKShare.SystemFieldKey.title] = PartnershipShare.title as CKRecordValue
+        share[CKShare.SystemFieldKey.title] = title as CKRecordValue
         share.publicPermission = .readWrite
         return try await PartnershipShare.saveSharing(invitation, with: share, in: database)
     }
 
     /// 相手が招待リンクで参加していたら、その相手だけが参加できる共有をペアのルートレコードに作る。
     /// 相手がそちらにも参加していたら、招待リンクの共有を消してペアの成立を返す。
-    static func advance(ownerRole: Role) async throws -> Progress {
+    static func advance(ownerRole: Role, title: String) async throws -> Progress {
         let database = PartnershipShare.container.privateCloudDatabase
         let rootRecordID = PartnershipShare.ownedRootRecordID
         if let root = try await PartnershipShare.fetchRoot(rootRecordID, from: database),
@@ -64,7 +64,7 @@ enum PartnershipInvitation {
         let paired = try PartnershipState().establishingPairing(ownerRole: ownerRole)
         let root = try PartnershipRootRecord.creating(paired, id: rootRecordID)
         let pairingShare = CKShare(rootRecord: root)
-        pairingShare[CKShare.SystemFieldKey.title] = PartnershipShare.title as CKRecordValue
+        pairingShare[CKShare.SystemFieldKey.title] = title as CKRecordValue
         pairingShare.publicPermission = .none
         pairingShare.addParticipant(participant)
         let pairingURL = try await PartnershipShare.saveSharing(root, with: pairingShare, in: database)

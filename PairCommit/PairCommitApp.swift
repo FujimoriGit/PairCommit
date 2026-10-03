@@ -20,18 +20,29 @@ struct PairCommitApp: App {
         WindowGroup {
             ContentView(
                 session: delegate.session,
-                sharing: CloudSharing(),
-                inviting: CloudInviting(),
+                sharing: CloudSharing(shareTitle: Self.shareTitle),
+                inviting: CloudInviting(shareTitle: Self.shareTitle),
                 invitationLinks: InvitationSceneDelegate.links,
+                notifications: delegate.notifications,
+                makeCriteriaReviewing: {
+                    OnDeviceCriteriaReview(instructions: CriteriaReviewPrompt.instructions, prompt: CriteriaReviewPrompt.prompt)
+                },
                 makeNearbyChannel: makeNearbyChannel
             )
         }
     }
 }
 
+// MARK: - Private
+
+private extension PairCommitApp {
+    static let shareTitle = "ふたりの帆柱"
+}
+
 @MainActor
 final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     let session = PartnershipSession()
+    let notifications = NudgeNotifications()
 
     func application(
         _ application: UIApplication,
@@ -65,7 +76,8 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         }
         // 前面では取り直しで画面が更新され、そちらからも掲示が走る。二重に出すと鳴り直す。
         if application.applicationState != .active {
-            await NudgeNotifications.post(for: store.role, in: store.state)
+            let state = store.state
+            await notifications.post(for: store.role, in: state) { $0.message(in: state) }
         }
         return .newData
     }

@@ -13,6 +13,8 @@ import UIKit
 struct ContentView: View {
     let session: PartnershipSession
     let sharing: any PartnershipSharing
+    let notifications: any NudgeNotifying
+    let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     let invitationLinks: AsyncStream<URL>
 
@@ -30,11 +32,15 @@ struct ContentView: View {
         sharing: any PartnershipSharing,
         inviting: any PartnershipInviting,
         invitationLinks: AsyncStream<URL>,
+        notifications: any NudgeNotifying,
+        makeCriteriaReviewing: @escaping () -> (any CriteriaReviewing)?,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
         self.session = session
         self.sharing = sharing
         self.invitationLinks = invitationLinks
+        self.notifications = notifications
+        self.makeCriteriaReviewing = makeCriteriaReviewing
         let savedPairing = sharing.savedShare()
         _savedPairing = State(initialValue: savedPairing)
         _isResuming = State(initialValue: savedPairing != nil)
@@ -86,7 +92,8 @@ private extension ContentView {
                     await returnToPicker(with: "パートナーシップは終了しました")
                     return
                 }
-                await NudgeNotifications.post(for: store.role, in: store.state)
+                let state = store.state
+                await notifications.post(for: store.role, in: state) { $0.message(in: state) }
             }
         } else if pairing.phase == .idle, let saved = savedPairing {
             ReconnectingView(
@@ -126,17 +133,12 @@ private extension ContentView {
             TimelineView(.everyMinute) { context in
                 ManagerTaskView(store: store, vision: vision, now: context.date)
             }
-        case (.player, .none): PlayerVisionView(store: store, reviewing: criteriaReviewing)
+        case (.player, .none): PlayerVisionView(store: store, reviewing: makeCriteriaReviewing())
         case (.player, .some(let vision)):
             TimelineView(.everyMinute) { context in
                 PlayerTaskView(store: store, vision: vision, now: context.date)
             }
         }
-    }
-
-    // Apple Intelligence が使えない端末では下読みごと出さない
-    var criteriaReviewing: (any CriteriaReviewing)? {
-        OnDeviceCriteriaReview.isAvailable ? OnDeviceCriteriaReview() : nil
     }
 
     var rolePicker: some View {
@@ -264,7 +266,7 @@ private extension ContentView {
             await returnToPicker(with: resuming ? "パートナーシップは終了しました" : "相手の設定がまだ届いていません")
             return
         }
-        await NudgeNotifications.requestPermission()
+        await notifications.requestPermission()
         session.store = started
     }
 
@@ -290,7 +292,7 @@ private extension ContentView {
     }
 
     func returnToPicker(with message: String?) async {
-        await NudgeNotifications.withdrawAll()
+        await notifications.withdrawAll()
         sharing.clearSavedShare()
         savedPairing = nil
         remote.reset()
@@ -306,6 +308,8 @@ private extension ContentView {
         sharing: PreviewSharing(),
         inviting: PreviewInviting(),
         invitationLinks: AsyncStream { $0.finish() },
+        notifications: PreviewNudgeNotifications(),
+        makeCriteriaReviewing: { nil },
         makeNearbyChannel: { PreviewNearbyChannel() }
     )
 }
