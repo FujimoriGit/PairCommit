@@ -31,12 +31,36 @@ struct VisionCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(role.accent, in: .rect(cornerRadius: 24))
+        .modifier(Surface(role: role))
         .shadow(color: role.accent.opacity(0.3), radius: 12, y: 6)
     }
 }
 
 // MARK: - Private
+
+private struct Surface: ViewModifier {
+    let role: Role
+
+    @Environment(\.self) private var environment
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 24)
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(.clear, in: shape)
+                .background(
+                    LinearGradient(
+                        colors: [role.glassHighlight(in: environment), role.accent],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: shape
+                )
+        } else {
+            content.background(role.accent, in: shape)
+        }
+    }
+}
 
 private extension VisionCard {
     var countdown: some View {

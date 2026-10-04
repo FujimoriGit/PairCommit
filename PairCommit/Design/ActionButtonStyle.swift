@@ -8,21 +8,37 @@
 import SwiftUI
 
 struct FilledButtonStyle: PrimitiveButtonStyle {
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        FeedbackButton(configuration: configuration, feedback: .impact)
-            .buttonStyle(Appearance())
+        let button = FeedbackButton(configuration: configuration, feedback: .impact)
+            .font(.system(.headline, design: .rounded))
+        if #available(iOS 26, *) {
+            button
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+        } else {
+            button.buttonStyle(Appearance())
+        }
     }
 }
 
 struct SoftButtonStyle: PrimitiveButtonStyle {
     let feedback: SensoryFeedback?
 
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        FeedbackButton(
+        let button = FeedbackButton(
             configuration: configuration,
             feedback: feedback ?? (configuration.role == .destructive ? .warning : .impact(weight: .light))
         )
-        .buttonStyle(Appearance())
+        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+        if #available(iOS 26, *) {
+            button
+                .foregroundStyle(Self.ink(for: configuration.role))
+                .buttonStyle(.glass)
+        } else {
+            button.buttonStyle(Appearance())
+        }
     }
 }
 
@@ -51,6 +67,7 @@ private struct FeedbackButton: View {
             configuration.trigger()
         } label: {
             configuration.label
+                .frame(maxWidth: .infinity)
         }
         .sensoryFeedback(feedback, trigger: actions)
     }
@@ -69,7 +86,6 @@ private extension FilledButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(.headline, design: .rounded))
                 .foregroundStyle(isEnabled ? AnyShapeStyle(.white) : AnyShapeStyle(Color.secondary))
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(fill, in: .capsule)
@@ -83,6 +99,10 @@ private extension FilledButtonStyle {
 }
 
 private extension SoftButtonStyle {
+    static func ink(for role: ButtonRole?) -> AnyShapeStyle {
+        role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
+    }
+
     struct Appearance: ButtonStyle {
         func makeBody(configuration: Configuration) -> some View {
             Surface(configuration: configuration)
@@ -95,7 +115,6 @@ private extension SoftButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(fill)
                 .frame(maxWidth: .infinity, minHeight: 42)
                 .background(Color(.tertiarySystemFill), in: .capsule)
@@ -103,8 +122,7 @@ private extension SoftButtonStyle {
         }
 
         var fill: AnyShapeStyle {
-            guard isEnabled else { return AnyShapeStyle(Color.secondary) }
-            return configuration.role == .destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tint)
+            isEnabled ? SoftButtonStyle.ink(for: configuration.role) : AnyShapeStyle(Color.secondary)
         }
     }
 }
