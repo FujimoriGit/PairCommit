@@ -10,6 +10,7 @@ let package = Package(
     products: [
         .library(name: "Domain", targets: ["Domain"]),
         .library(name: "Application", targets: ["Application"]),
+        .library(name: "Infrastructure", targets: ["Infrastructure"]),
     ],
     dependencies: [
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.65.0"),
@@ -23,6 +24,14 @@ let package = Package(
         ),
         .target(
             name: "Application",
+            dependencies: ["Domain"],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+            ]
+        ),
+        // Data ではなく Infrastructure なのは、モジュール名 `Data` が Foundation.Data と衝突するため。
+        .target(
+            name: "Infrastructure",
             dependencies: ["Domain"],
             plugins: [
                 .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
