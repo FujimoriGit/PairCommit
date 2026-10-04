@@ -77,6 +77,21 @@ struct TaskLifecycleTests {
         #expect(state.status(of: taskID) == .todo)
     }
 
+    @Test("採用を待つ間に期限が過ぎたタスクは、採用できない")
+    func taskWhoseDeadlinePassedCannotBeAdopted() throws {
+        // Given
+        let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let (active, _) = try PartnershipState().activeVision()
+        let (proposed, taskID) = try active.creatingTask(
+            title: "起案", deadline: deadline, by: .player, now: deadline.addingTimeInterval(-60)
+        )
+
+        // When / Then
+        #expect(throws: DomainError.pastDeadline) {
+            try proposed.adoptingTask(taskID, by: .manager, now: deadline)
+        }
+    }
+
     @Test("管理者は完了報告を差し戻して todo に戻せる（やり直しの指示）")
     func managerCanReturnReportedTaskToTodo() throws {
         // Given

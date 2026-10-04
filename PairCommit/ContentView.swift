@@ -157,7 +157,10 @@ private extension ContentView {
             TimelineView(.everyMinute) { context in
                 ManagerTaskView(store: store, vision: vision, now: context.date)
             }
-        case (.player, .none): PlayerVisionView(store: store, reviewing: makeCriteriaReviewing())
+        case (.player, .none):
+            TimelineView(.everyMinute) { context in
+                PlayerVisionView(store: store, reviewing: makeCriteriaReviewing(), now: context.date)
+            }
         case (.player, .some(let vision)):
             TimelineView(.everyMinute) { context in
                 PlayerTaskView(store: store, vision: vision, now: context.date)

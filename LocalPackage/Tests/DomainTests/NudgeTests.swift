@@ -193,8 +193,8 @@ private extension NudgeTests {
         let drafted = try paired.draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: deadline, why: nil), by: .player, now: day(0)
         )
-        let proposed = try drafted.state.proposingVision(drafted.visionID, by: .player)
-        return (try proposed.approvingVision(drafted.visionID, by: .manager), drafted.visionID)
+        let proposed = try drafted.state.proposingVision(drafted.visionID, by: .player, now: day(0))
+        return (try proposed.approvingVision(drafted.visionID, by: .manager, now: day(0)), drafted.visionID)
     }
 }
 

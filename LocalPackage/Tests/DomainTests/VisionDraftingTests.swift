@@ -92,6 +92,22 @@ struct VisionDraftingTests {
         }
     }
 
+    @Test("期限が過ぎた起案は、書き直さずに出し直せない")
+    func visionWhoseDeadlinePassedCannotBeProposed() throws {
+        // Given
+        let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let (state, visionID) = try PartnershipState().draftingVision(
+            .init(statement: "s", doneCriteria: "c", deadline: deadline, why: nil),
+            by: .player,
+            now: deadline.addingTimeInterval(-60)
+        )
+
+        // When / Then
+        #expect(throws: DomainError.pastDeadline) {
+            try state.proposingVision(visionID, by: .player, now: deadline)
+        }
+    }
+
     @Test("書き直しでも、ビジョンの期限を過去にはできない")
     func visionCannotBeRevisedToPastDeadline() throws {
         // Given

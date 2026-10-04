@@ -95,15 +95,19 @@ extension PartnershipState {
         return updating(visions: visions.filter { $0.id != id })
     }
 
-    public func proposingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
+    public func proposingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .player)
-        return updating(visions: try transitioningVision(id, from: [.draft], to: .proposed))
+        let proposed = try transitioningVision(id, from: [.draft], to: .proposed)
+        _ = try requiringUpcoming(visions.first { $0.id == id }?.deadline, at: now)
+        return updating(visions: proposed)
     }
 
-    public func approvingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
+    public func approvingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         guard activeVision == nil else { throw DomainError.activeVisionAlreadyExists }
-        return updating(visions: try transitioningVision(id, from: [.proposed], to: .active))
+        let approved = try transitioningVision(id, from: [.proposed], to: .active)
+        _ = try requiringUpcoming(visions.first { $0.id == id }?.deadline, at: now)
+        return updating(visions: approved)
     }
 
     public func rejectingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
@@ -155,7 +159,9 @@ extension PartnershipState {
 
     public func adoptingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.proposed], to: .todo, at: now))
+        let adopted = try transitioningTask(id, from: [.proposed], to: .todo, at: now)
+        _ = try requiringUpcoming(tasks.first { $0.id == id }?.deadline, at: now)
+        return updating(tasks: adopted)
     }
 
     public func reportingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {

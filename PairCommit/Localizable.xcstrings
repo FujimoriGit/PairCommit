@@ -358,6 +358,23 @@
         }
       }
     },
+    "deadlineField.passed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deadline has passed. Choose a time later than now."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この期限は過ぎています。今より後の日時を選び直してください。"
+          }
+        }
+      }
+    },
     "deadlineField.toggle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -602,13 +619,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose a deadline later than now."
+            "value" : "The deadline has already passed. It needs a new one."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "期限は今より後の日時を選んでください。"
+            "value" : "期限がすでに過ぎています。期限を決め直す必要があります。"
           }
         }
       }

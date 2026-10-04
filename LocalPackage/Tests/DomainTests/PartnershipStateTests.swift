@@ -72,8 +72,8 @@ struct PartnershipStateTests {
                 now: now
             )
         let (active, taskID) = try paired
-            .proposingVision(visionID, by: .player)
-            .approvingVision(visionID, by: .manager)
+            .proposingVision(visionID, by: .player, now: now)
+            .approvingVision(visionID, by: .manager, now: now)
             .creatingTask(title: "毎朝30分歩く", deadline: deadline, by: .manager, now: now)
         let state = try active.settingReaction(.angry, on: taskID, by: .player)
 

@@ -134,7 +134,7 @@ private extension PlayerTaskView {
         Panel(title: String(localized: .playerTaskProposalTitle)) {
             TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
                 .fieldBox()
-            DeadlineField(deadline: $input.deadline)
+            DeadlineField(deadline: $input.deadline, now: now)
             Button(.commonPropose, action: create)
                 .buttonStyle(.filled)
                 .disabled(!input.isComplete)

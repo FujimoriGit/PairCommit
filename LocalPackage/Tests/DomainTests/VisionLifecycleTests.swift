@@ -38,6 +38,22 @@ struct VisionLifecycleTests {
         }
     }
 
+    @Test("承認を待つ間に期限が過ぎたビジョンは、承認できない")
+    func visionWhoseDeadlinePassedCannotBeApproved() throws {
+        // Given
+        let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let before = deadline.addingTimeInterval(-60)
+        let (drafted, visionID) = try PartnershipState().draftingVision(
+            .init(statement: "s", doneCriteria: "c", deadline: deadline, why: nil), by: .player, now: before
+        )
+        let state = try drafted.proposingVision(visionID, by: .player, now: before)
+
+        // When / Then
+        #expect(throws: DomainError.pastDeadline) {
+            try state.approvingVision(visionID, by: .manager, now: deadline)
+        }
+    }
+
     @Test("active なビジョンは高々1個 ── 既に active があるとき2つ目の承認は失敗する")
     func approvingSecondVisionWhileOneIsActiveFails() throws {
         // Given
