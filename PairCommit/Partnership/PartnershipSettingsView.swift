@@ -14,17 +14,19 @@ struct PartnershipSettingsView: View {
     @Environment(\.resettingPartnership) private var reset
     @State private var confirming = false
     @State private var failureMessage: String?
+    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Screen(role: role) {
             Button(.settingsRepair, role: .destructive) {
                 confirming = true
             }
-            .buttonStyle(.soft)
+            .buttonStyle(.soft(feedback: .impact(weight: .light)))
         }
         .navigationTitle(.commonSettings)
         .confirmationDialog(.settingsRepairConfirmationTitle, isPresented: $confirming) {
             Button(.settingsRepair, role: .destructive) {
+                playingFeedback?(.warning)
                 Task { failureMessage = await reset?() }
             }
         } message: {

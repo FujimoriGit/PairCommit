@@ -42,6 +42,13 @@ struct SoftButtonStyle: PrimitiveButtonStyle {
     }
 }
 
+struct ChoiceButtonStyle: PrimitiveButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        FeedbackButton(configuration: configuration, feedback: .impact(weight: .light))
+            .buttonStyle(.plain)
+    }
+}
+
 extension PrimitiveButtonStyle where Self == FilledButtonStyle {
     static var filled: Self { .init() }
 }
@@ -52,6 +59,17 @@ extension PrimitiveButtonStyle where Self == SoftButtonStyle {
     static func soft(feedback: SensoryFeedback) -> Self { .init(feedback: feedback) }
 }
 
+extension PrimitiveButtonStyle where Self == ChoiceButtonStyle {
+    static var choice: Self { .init() }
+}
+
+extension View {
+    // ツールバーの項目はボタンのスタイルを差し替えると見た目が変わるので、スタイルではなくタップのジェスチャーで鳴らす
+    func tapFeedback() -> some View {
+        modifier(TapFeedback())
+    }
+}
+
 // MARK: - Private
 
 // 押下状態の変化で鳴らすと、タップを取り消したときやスクロールし始めたときにも鳴る
@@ -59,17 +77,25 @@ private struct FeedbackButton: View {
     let configuration: PrimitiveButtonStyleConfiguration
     let feedback: SensoryFeedback
 
-    @State private var actions = 0
+    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Button(role: configuration.role) {
-            actions += 1
+            playingFeedback?(feedback)
             configuration.trigger()
         } label: {
             configuration.label
                 .frame(maxWidth: .infinity)
         }
-        .sensoryFeedback(feedback, trigger: actions)
+    }
+}
+
+private struct TapFeedback: ViewModifier {
+    @Environment(\.playingFeedback) private var playingFeedback
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(TapGesture().onEnded { playingFeedback?(.impact(weight: .light)) })
     }
 }
 

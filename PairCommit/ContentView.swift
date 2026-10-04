@@ -13,6 +13,7 @@ import UIKit
 extension EnvironmentValues {
     @Entry var achievingVision: (@MainActor () -> Void)?
     @Entry var presentingFailure: (@MainActor (String) -> Void)?
+    @Entry var playingFeedback: (@MainActor (SensoryFeedback) -> Void)?
 }
 
 struct ContentView: View {
@@ -33,6 +34,7 @@ struct ContentView: View {
     @State private var linkRefusal: LinkRefusal?
     @State private var achievements = 0
     @State private var operationFailure: String?
+    @State private var feedback = FeedbackCue()
 
     init(
         session: PartnershipSession,
@@ -70,6 +72,9 @@ struct ContentView: View {
             } message: {
                 Text(linkRefusal?.message ?? "")
             }
+            // 押すと画面が切り替わる操作では、押した画面ごと振動の指定が消えるので、ここで鳴らす
+            .environment(\.playingFeedback) { feedback = feedback.playing($0) }
+            .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
     }
 }
 
@@ -170,7 +175,7 @@ private extension ContentView {
                         } label: {
                             roleCard(role)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.choice)
                     }
 
                     Text(.rolePickerNote)

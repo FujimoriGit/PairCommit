@@ -24,7 +24,7 @@ struct PairingMethodView: View {
                         accent: role.accent
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.choice)
 
                 Button(action: onRemote) {
                     ChoiceCard(
@@ -34,7 +34,7 @@ struct PairingMethodView: View {
                         accent: role.accent
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.choice)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 36)

@@ -39,6 +39,7 @@ private struct PartnershipSettingsLink: ViewModifier {
                         NavigationLink(value: PartnershipSettingsRoute()) {
                             Label(.commonSettings, systemImage: "gearshape")
                         }
+                        .tapFeedback()
                     }
                 }
             }

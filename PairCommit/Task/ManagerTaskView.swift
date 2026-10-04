@@ -20,6 +20,7 @@ struct ManagerTaskView: View {
 
     @Environment(\.achievingVision) private var achievingVision
     @Environment(\.presentingFailure) private var presentingFailure
+    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Screen(role: store.role) {
@@ -41,6 +42,7 @@ struct ManagerTaskView: View {
             presenting: outcome
         ) { outcome in
             Button(outcome.confirmation, role: .destructive) {
+                playingFeedback?(outcome == .achieved ? .impact : .warning)
                 close(as: outcome)
             }
         } message: { _ in
