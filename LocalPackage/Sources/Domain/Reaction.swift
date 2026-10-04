@@ -13,7 +13,7 @@ public enum Reaction: String, Sendable, Codable, CaseIterable {
     public var emoji: String {
         switch self {
         case .angry:  return "😡"
-        case .uneasy: return "😕"
+        case .uneasy: return "😐"
         case .happy:  return "😊"
         }
     }
