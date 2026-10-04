@@ -43,15 +43,18 @@ private extension VisionHistoryView {
     }
 
     func row(_ task: TaskItem) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(task.title)
-                .font(.system(.body, design: .rounded, weight: .semibold))
-            Spacer(minLength: 8)
-            if let reaction = task.reaction {
-                Text(reaction.emoji)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(task.title)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                Spacer(minLength: 8)
+                if let reaction = task.reaction {
+                    Text(reaction.emoji)
+                }
+                Text(task.status.label)
+                    .marker(task.status.tint)
             }
-            Text(task.status.label)
-                .marker(task.status.tint)
+            TaskDetailText(task: task)
         }
         .card(tinted: task.reaction?.tint)
     }
@@ -64,6 +67,22 @@ private extension VisionHistoryView {
             .preview(visionID: vision.id, title: "毎日30分歩く", status: .approved, reaction: .happy),
             .preview(visionID: vision.id, title: "間食をやめる", status: .cancelled, reaction: .angry),
             .preview(visionID: vision.id, title: "体重を記録する", status: .approved)
+        ], role: .manager)
+    }
+}
+
+#Preview("記録のビジョンのタスクの詳細") {
+    let vision = Vision.preview(status: .achieved, deadline: .preview(daysLater: -10))
+    NavigationStack {
+        VisionHistoryView(vision: vision, outcome: .achieved, tasks: [
+            .preview(
+                visionID: vision.id,
+                title: "毎日30分歩く",
+                detail: "通勤で1駅手前で降りる。雨の日は家でステッパー",
+                status: .approved,
+                reaction: .happy
+            ),
+            .preview(visionID: vision.id, title: "体重を記録する", detail: "朝食の前に測る", status: .approved)
         ], role: .manager)
     }
 }

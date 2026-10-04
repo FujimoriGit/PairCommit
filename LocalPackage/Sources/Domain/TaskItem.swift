@@ -27,6 +27,7 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
     public let id: UUID
     public let visionID: Vision.ID
     public let title: String
+    public let detail: String?
     public let status: Status
     public let createdBy: Role
     public let reaction: Reaction?
@@ -38,6 +39,7 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         id: UUID,
         visionID: Vision.ID,
         title: String,
+        detail: String?,
         status: Status,
         createdBy: Role,
         reaction: Reaction?,
@@ -48,6 +50,7 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         self.id = id
         self.visionID = visionID
         self.title = title
+        self.detail = detail
         self.status = status
         self.createdBy = createdBy
         self.reaction = reaction
@@ -73,6 +76,7 @@ private extension TaskItem {
             id: id,
             visionID: visionID,
             title: title,
+            detail: detail,
             status: status,
             createdBy: createdBy,
             reaction: reaction,
