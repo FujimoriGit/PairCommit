@@ -11,6 +11,7 @@ import SwiftUI
 struct InvitationView: View {
     let url: URL?
     let failureMessage: String?
+    let isCancelling: Bool
     let onRetry: () -> Void
     let onCancel: () -> Void
 
@@ -25,9 +26,11 @@ struct InvitationView: View {
                 Text(status)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text(failureMessage ?? String(localized: .invitationInstructions))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                if !isCancelling {
+                    Text(failureMessage ?? String(localized: .invitationInstructions))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             .multilineTextAlignment(.center)
 
@@ -43,6 +46,7 @@ struct InvitationView: View {
                 Button(.commonCancel, action: onCancel)
                     .buttonStyle(.soft)
             }
+            .disabled(isCancelling)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -54,7 +58,10 @@ struct InvitationView: View {
 
 private extension InvitationView {
     var status: String {
-        if failureMessage != nil { return String(localized: .commonPairingFailed) }
+        if isCancelling { return String(localized: .invitationCancelling) }
+        if failureMessage != nil {
+            return url == nil ? String(localized: .invitationFailed) : String(localized: .commonPairingFailed)
+        }
         return url == nil ? String(localized: .invitationPreparing) : String(localized: .invitationWaiting)
     }
 }
@@ -63,11 +70,16 @@ private extension InvitationView {
     InvitationView(
         url: URL(string: "https://www.icloud.com/share/example"),
         failureMessage: nil,
+        isCancelling: false,
         onRetry: {},
         onCancel: {}
     )
 }
 
 #Preview("招待リンクの失敗") {
-    InvitationView(url: nil, failureMessage: PairingFailure.offline.message, onRetry: {}, onCancel: {})
+    InvitationView(url: nil, failureMessage: PairingFailure.offline.message, isCancelling: false, onRetry: {}, onCancel: {})
+}
+
+#Preview("招待をやめている途中") {
+    InvitationView(url: nil, failureMessage: nil, isCancelling: true, onRetry: {}, onCancel: {})
 }

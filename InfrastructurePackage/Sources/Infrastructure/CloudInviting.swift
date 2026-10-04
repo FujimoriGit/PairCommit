@@ -8,6 +8,7 @@
 import CloudKit
 import Domain
 import Foundation
+import OSLog
 
 /// iCloud の共有の URL を招待リンクにして、離れた相手とペアを作る。
 public struct CloudInviting: PartnershipInviting {
@@ -99,10 +100,14 @@ private extension CloudInviting {
         return invitationID
     }
 
-    func translatingErrors<T>(_ body: () async throws -> T) async throws(PairingFailure) -> T {
+    func translatingErrors<T>(
+        _ body: () async throws -> T,
+        function: String = #function
+    ) async throws(PairingFailure) -> T {
         do {
             return try await body()
         } catch {
+            Logger.pairing.error("\(function, privacy: .public): \(error, privacy: .public)")
             throw PairingFailure(error)
         }
     }

@@ -216,6 +216,7 @@ private extension ContentView {
                 InvitationView(
                     url: remote.invitationURL,
                     failureMessage: remote.failure?.message,
+                    isCancelling: remote.isCancelling,
                     onRetry: remote.retry,
                     onCancel: { Task { await cancelRemote() } }
                 )

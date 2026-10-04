@@ -31,6 +31,25 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
+    @Test("やめる後始末が終わるまでは、やめている途中として見える")
+    func cancellingIsVisibleUntilCleanupFinishes() async {
+        // Given
+        let inviting = FakeInviting()
+        let pairing = RemotePairing(inviting: inviting)
+        pairing.invite(ownerRole: .manager)
+        inviting.hold()
+        let cancelling = Task { await pairing.cancel() }
+        #expect(await eventually { inviting.isHeld })
+        #expect(pairing.isCancelling)
+
+        // When
+        inviting.release()
+        await cancelling.value
+
+        // Then
+        #expect(!pairing.isCancelling)
+    }
+
     @Test("後始末に失敗したあとにもう一度試すと、相手待ちに戻らず同じ後始末をやり直す")
     func retryAfterFailedCleanupRepeatsTheSameCleanup() async {
         // Given
@@ -123,7 +142,7 @@ struct RemotePairingTests {
     }
 }
 
-/// 相手の参加を確かめるのを止めておける。待っている間に打ち切った状況を作るために使う。
+/// 相手の参加を確かめるのと、招待を消すのを止めておける。その途中の状況を作るために使う。
 @MainActor
 private final class FakeInviting: PartnershipInviting {
     nonisolated let link = URL(fileURLWithPath: "/invitation")
@@ -176,6 +195,9 @@ private final class FakeInviting: PartnershipInviting {
 
     func withdraw() async throws(PairingFailure) {
         withdrawCalls += 1
+        if held {
+            await withCheckedContinuation { waiting = $0 }
+        }
         if let cleanupFailure {
             throw cleanupFailure
         }

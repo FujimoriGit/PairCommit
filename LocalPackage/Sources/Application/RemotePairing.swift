@@ -21,6 +21,7 @@ public final class RemotePairing {
 
     public private(set) var invitationURL: URL?
     public private(set) var failure: PairingFailure?
+    public private(set) var isCancelling = false
 
     private let inviting: any PartnershipInviting
     private var step: Step?
@@ -73,6 +74,8 @@ public final class RemotePairing {
     /// 招待をやめ、作った共有を消すか、参加した共有から抜ける。止める前にペアができていたら、ペアごと終わらせる。
     /// 失敗したときは `failure` に入れて、招待の途中に留まる。
     public func cancel() async {
+        isCancelling = true
+        defer { isCancelling = false }
         let pending: Withdrawal
         if let withdrawal {
             pending = withdrawal
