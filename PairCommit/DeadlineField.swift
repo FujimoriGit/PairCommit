@@ -18,7 +18,8 @@ struct DeadlineField: View {
                 DatePicker(
                     .commonDeadline,
                     selection: .init(get: { deadline }, set: { self.deadline = $0 }),
-                    displayedComponents: .date
+                    in: Date.now...,
+                    displayedComponents: [.date, .hourAndMinute]
                 )
                 .font(.subheadline)
             }

@@ -34,7 +34,7 @@ struct VisionDetail: View {
 
 private extension VisionDetail {
     var deadline: String {
-        vision.deadline.map { $0.formatted(Date.FormatStyle.yearMonthDay) } ?? String(localized: .commonNoDeadline)
+        vision.deadline.map { $0.formatted(Date.FormatStyle.yearMonthDayTime) } ?? String(localized: .commonNoDeadline)
     }
 
     func field(_ title: String, _ value: String) -> some View {

@@ -38,7 +38,8 @@ struct VisionDraftingTests {
                 deadline: deadline,
                 why: "健康診断で引っかかった"
             ),
-            by: .player
+            by: .player,
+            now: deadline.addingTimeInterval(-24 * 60 * 60)
         )
 
         // Then
@@ -74,6 +75,39 @@ struct VisionDraftingTests {
         // When / Then
         #expect(throws: DomainError.blankText) {
             try state.revisingVision(visionID, to: .init(statement: " ", doneCriteria: "c", deadline: nil, why: nil), by: .player)
+        }
+    }
+
+    @Test("ビジョンの期限は、今より後でなければ起案できない")
+    func visionCannotBeDraftedWithPastDeadline() {
+        // Given
+        let state = PartnershipState()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        // When / Then
+        #expect(throws: DomainError.pastDeadline) {
+            try state.draftingVision(
+                .init(statement: "s", doneCriteria: "c", deadline: now.addingTimeInterval(-60), why: nil), by: .player, now: now
+            )
+        }
+    }
+
+    @Test("書き直しでも、ビジョンの期限を過去にはできない")
+    func visionCannotBeRevisedToPastDeadline() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
+        )
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        // When / Then
+        #expect(throws: DomainError.pastDeadline) {
+            try state.revisingVision(
+                visionID,
+                to: .init(statement: "s", doneCriteria: "c", deadline: now.addingTimeInterval(-60), why: nil),
+                by: .player,
+                now: now
+            )
         }
     }
 

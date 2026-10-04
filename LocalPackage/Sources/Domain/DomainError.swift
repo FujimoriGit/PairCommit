@@ -17,4 +17,5 @@ public enum DomainError: Error, Equatable {
     case noActiveVision
     case alreadyPaired
     case blankText
+    case pastDeadline
 }

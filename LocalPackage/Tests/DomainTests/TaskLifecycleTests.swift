@@ -130,4 +130,16 @@ struct TaskLifecycleTests {
             try state.creatingTask(title: "　", by: .manager)
         }
     }
+
+    @Test("タスクの期限は、今より後でなければ決められない")
+    func taskCannotBeCreatedWithPastDeadline() throws {
+        // Given
+        let (state, _) = try PartnershipState().activeVision()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+        // When / Then
+        #expect(throws: DomainError.pastDeadline) {
+            try state.creatingTask(title: "走る", deadline: now.addingTimeInterval(-60), by: .manager, now: now)
+        }
+    }
 }

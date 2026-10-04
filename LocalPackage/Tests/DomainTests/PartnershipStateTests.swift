@@ -63,13 +63,18 @@ struct PartnershipStateTests {
     func stateSurvivesJSONRoundTrip() throws {
         // Given
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let now = deadline.addingTimeInterval(-24 * 60 * 60)
         let (paired, visionID) = try PartnershipState()
             .establishingPairing(ownerRole: .manager)
-            .draftingVision(.init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: deadline, why: nil), by: .player)
+            .draftingVision(
+                .init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: deadline, why: nil),
+                by: .player,
+                now: now
+            )
         let (active, taskID) = try paired
             .proposingVision(visionID, by: .player)
             .approvingVision(visionID, by: .manager)
-            .creatingTask(title: "毎朝30分歩く", deadline: deadline, by: .manager)
+            .creatingTask(title: "毎朝30分歩く", deadline: deadline, by: .manager, now: now)
         let state = try active.settingReaction(.angry, on: taskID, by: .player)
 
         // When

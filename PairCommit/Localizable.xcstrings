@@ -596,6 +596,23 @@
         }
       }
     },
+    "error.pastDeadline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a deadline later than now."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限は今より後の日時を選んでください。"
+          }
+        }
+      }
+    },
     "error.roleForbidden" : {
       "extractionState" : "manual",
       "localizations" : {
