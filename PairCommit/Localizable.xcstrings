@@ -2245,6 +2245,23 @@
         }
       }
     },
+    "taskForm.detail.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details (optional)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細（任意）"
+          }
+        }
+      }
+    },
     "taskForm.title.placeholder" : {
       "extractionState" : "manual",
       "localizations" : {

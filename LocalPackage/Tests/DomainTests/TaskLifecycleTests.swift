@@ -157,4 +157,28 @@ struct TaskLifecycleTests {
             try state.creatingTask(title: "走る", deadline: now.addingTimeInterval(-60), by: .manager, now: now)
         }
     }
+
+    @Test("タスクの詳細は任意で、空白だけなら書かなかったものとして持つ")
+    func blankTaskDetailIsKeptAsUnwritten() throws {
+        // Given
+        let (state, _) = try PartnershipState().activeVision()
+
+        // When
+        let (created, taskID) = try state.creatingTask(title: "走る", detail: " \n", by: .manager)
+
+        // Then
+        #expect(created.tasks.first { $0.id == taskID }?.detail == nil)
+    }
+
+    @Test("タスクの詳細は、前後の空白や改行を落として持つ")
+    func taskDetailIsTrimmed() throws {
+        // Given
+        let (state, _) = try PartnershipState().activeVision()
+
+        // When
+        let (created, taskID) = try state.creatingTask(title: "走る", detail: "\n朝に5km\n", by: .manager)
+
+        // Then
+        #expect(created.tasks.first { $0.id == taskID }?.detail == "朝に5km")
+    }
 }
