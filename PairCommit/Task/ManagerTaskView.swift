@@ -57,7 +57,12 @@ private extension ManagerTaskView {
     @ViewBuilder
     var content: some View {
         let tasks = store.state.tasks(for: vision.id)
-        VisionCard(vision: vision, role: store.role, now: now)
+        VisionCard(
+            vision: vision,
+            taskProgress: store.state.progress(of: vision.id),
+            role: store.role,
+            now: now
+        )
         NudgeCard(state: store.state, role: store.role, now: now)
         if tasks.isEmpty {
             emptiness

@@ -2386,6 +2386,23 @@
         }
       }
     },
+    "visionCard.taskProgress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasks done: %1$lld/%2$lld (%3$@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスク完了 %1$lld/%2$lld（%3$@）"
+          }
+        }
+      }
+    },
     "visionForm.doneCriteria.placeholder" : {
       "extractionState" : "manual",
       "localizations" : {
