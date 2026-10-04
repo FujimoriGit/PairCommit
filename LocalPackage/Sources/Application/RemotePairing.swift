@@ -34,7 +34,6 @@ public final class RemotePairing {
         withdrawal = inviting.savedWithdrawal()
     }
 
-    /// やめる後始末に入ったあとは false。
     public var isCreatingLink: Bool {
         guard case .sending = step else { return false }
         return withdrawal == nil
