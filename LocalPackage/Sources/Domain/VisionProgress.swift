@@ -25,9 +25,9 @@ extension Vision {
 }
 
 extension PartnershipState {
-    /// 取り消したタスクは数えない。
+    /// 採用前の起案と、取り消したタスクは数えない。
     public func progress(of visionID: Vision.ID) -> Vision.Progress {
-        let counted = tasks(for: visionID).filter { $0.status != .cancelled }
+        let counted = tasks(for: visionID).filter { $0.status != .proposed && $0.status != .cancelled }
         return .init(approved: counted.filter { $0.status == .approved }.count, total: counted.count)
     }
 }

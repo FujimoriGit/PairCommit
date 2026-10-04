@@ -33,6 +33,20 @@ struct VisionProgressTests {
         #expect(progress.total == 3)
     }
 
+    @Test("ビジョンの進捗は、管理者が採用する前の起案を数えない")
+    func progressExcludesProposedTasks() throws {
+        // Given
+        let (active, visionID) = try PartnershipState().activeVision()
+        let (withTodo, _) = try active.creatingTask(title: "管理者のタスク", by: .manager)
+        let (state, _) = try withTodo.creatingTask(title: "プレイヤーの起案", by: .player)
+
+        // When
+        let progress = state.progress(of: visionID)
+
+        // Then
+        #expect(progress.total == 1)
+    }
+
     @Test("タスクの無いビジョンには、進捗率が無い")
     func visionWithoutTasksHasNoProgressFraction() throws {
         // Given
