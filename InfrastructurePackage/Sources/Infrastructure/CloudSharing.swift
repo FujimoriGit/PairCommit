@@ -24,7 +24,6 @@ public struct CloudSharing: PartnershipSharing {
             let made = try await PartnershipShare.makeShare(initialState: initialState, title: shareTitle)
             return (made.url, CloudPairedShare(rootRecordID: made.rootRecordID, isOwner: true))
         } catch {
-            Logger.pairing.error("makeShare: \(error, privacy: .public)")
             throw PairingFailure(error)
         }
     }
@@ -34,7 +33,6 @@ public struct CloudSharing: PartnershipSharing {
             let rootRecordID = try await PartnershipShare.acceptShare(from: url)
             return CloudPairedShare(rootRecordID: rootRecordID, isOwner: false)
         } catch {
-            Logger.pairing.error("acceptShare: \(error, privacy: .public)")
             throw PairingFailure(error)
         }
     }
@@ -70,28 +68,36 @@ struct CloudPairedShare: PairedShare {
 }
 
 extension PairingFailure {
-    init(_ error: any Error) {
+    init(_ error: any Error, during operation: String = #function) {
+        Logger.pairing.error("\(operation, privacy: .public): \(error, privacy: .public)")
+        self = Self.classifying(error)
+    }
+}
+
+// MARK: - Private
+
+private extension PairingFailure {
+    static func classifying(_ error: any Error) -> Self {
         if case .invitationWithdrawn? = error as? PartnershipShareError {
-            self = .invitationWithdrawn
-            return
+            return .invitationWithdrawn
         }
         let cloudError = error as? CKError
         switch cloudError?.code {
         case .partialFailure:
-            let reasons = cloudError?.partialErrorsByItemID?.values.map { Self($0) } ?? []
-            self = reasons.first { $0 != .unexpected } ?? .unexpected
+            let reasons = cloudError?.partialErrorsByItemID?.values.map(classifying) ?? []
+            return reasons.first { $0 != .unexpected } ?? .unexpected
         case .notAuthenticated:
-            self = .signedOut
+            return .signedOut
         case .accountTemporarilyUnavailable:
-            self = .accountUnverified
+            return .accountUnverified
         case .quotaExceeded:
-            self = .storageFull
+            return .storageFull
         case .serviceUnavailable, .requestRateLimited, .zoneBusy:
-            self = .serverBusy
+            return .serverBusy
         case .networkUnavailable, .networkFailure:
-            self = .offline
+            return .offline
         default:
-            self = .unexpected
+            return .unexpected
         }
     }
 }

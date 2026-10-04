@@ -99,11 +99,14 @@ private extension CloudInviting {
         return invitationID
     }
 
-    func translatingErrors<T>(_ body: () async throws -> T) async throws(PairingFailure) -> T {
+    func translatingErrors<T>(
+        _ body: () async throws -> T,
+        operation: String = #function
+    ) async throws(PairingFailure) -> T {
         do {
             return try await body()
         } catch {
-            throw PairingFailure(error)
+            throw PairingFailure(error, during: operation)
         }
     }
 }
