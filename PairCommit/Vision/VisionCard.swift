@@ -27,9 +27,11 @@ struct VisionCard: View {
                 .font(.subheadline)
                 .foregroundStyle(.white)
                 .lineLimit(3)
-            completion
-                .padding(.top, 2)
-            countdown
+            VStack(alignment: .leading, spacing: 10) {
+                completion
+                countdown
+            }
+            .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
