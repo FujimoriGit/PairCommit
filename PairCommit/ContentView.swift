@@ -170,7 +170,7 @@ private extension ContentView {
                         } label: {
                             roleCard(role)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.choice)
                     }
 
                     Text(.rolePickerNote)

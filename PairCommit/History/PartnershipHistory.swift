@@ -15,6 +15,7 @@ extension View {
                 NavigationLink(value: PartnershipHistoryRoute()) {
                     Label(.commonHistory, systemImage: "clock.arrow.circlepath")
                 }
+                .tapFeedback()
             }
         }
     }

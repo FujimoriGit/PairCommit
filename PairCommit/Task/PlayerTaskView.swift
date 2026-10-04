@@ -77,6 +77,7 @@ private extension PlayerTaskView {
             }
             if task.status == .todo {
                 Button {
+                    feedback = feedback.playing(.impact(weight: .light))
                     perform(succeeding: .success) { state, role throws(DomainError) in
                         try state.reportingTask(task.id, by: role)
                     }

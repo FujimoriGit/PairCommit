@@ -43,7 +43,7 @@ private extension PartnershipHistoryView {
                 } label: {
                     row(closed)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.choice)
             }
         }
     }
