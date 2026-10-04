@@ -33,7 +33,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - **置き場所は「差し替えたら何が変わるか」で決める。** 外界の技術を別のもの（iCloud を自前のサーバーなど）に替えたとき、変わってよいのは Infrastructure と App だけ。ほかの層に手が入るなら、境界の位置が間違っている。Infrastructure の外で外界の型名が要るなら、外界の言葉が漏れている。型・protocol・モジュールの依存を足すときは、書く前にこの問いに答える。
   - **道具の都合で層を曲げない。** CI・ビルド・フレームワークの制約で層の形が崩れるなら、直すのは道具の側。
   - **儀式は足さない。** UseCase クラスや Presenter 層は作らない。ドメインロジックは集約ルートのメソッド、アプリケーションロジックは Store に置く。層を増やすのは痛みが出てから。
-- **モジュール構成**: `LocalPackage` に `Domain` / `Application`、`InfrastructurePackage` に `Infrastructure`、画面と App はアプリターゲット。モジュールの境界で、上の「見てよい相手」をコンパイラに強制させる。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。`swift test` はパッケージの中をすべてビルドするので、Apple のフレームワークを使う `Infrastructure` は `LocalPackage` に入れない（ubuntu で回している単体テストが壊れる）。
+- **モジュール構成**: `LocalPackage` に `Domain` / `Application` / `Infrastructure`、画面と App はアプリターゲット。モジュールの境界で、上の「見てよい相手」をコンパイラに強制させる。モジュール境界 = 公開APIの境界として使う（安易に `public` を増やさない）。
 
 ## コーディング規約
 
@@ -81,7 +81,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 ## テスト・検証の実行
 
-- **ユニットテスト**: `swift test --package-path LocalPackage`。シミュレータもアプリのビルドも要らない。ドメインを触っている間はこれだけでよい。
+- **ユニットテスト**: `Scripts/unit-test.sh`。シミュレータもアプリのビルドも要らない。ドメインを触っている間はこれだけでよい。
 - **アプリのビルドと VRT**: `./Scripts/test.sh`（既定は iPhone 17 シミュレータ、なければ利用可能な iPhone にフォールバック）。
 - **`#Preview` を足したら、テストターゲットのビルドまで通す**: `xcodebuild -scheme PairCommit -destination "platform=iOS Simulator,name=iPhone 17" -skipPackagePluginValidation -skip-testing:PairCommitUITests build-for-testing`。基準画像を record せずに、自動生成されたテストがコンパイルできるかだけを確かめられる。アプリターゲットの `build` は生成テストを作らないので、ここは通らない。
 - **UI に関係しないテストはパッケージ側に置く。** アプリのテストターゲットに置くとシミュレータ起動が要る。
@@ -98,7 +98,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
   - 差分が出たときに `.snapshot(precision:)` で許容値を緩めない。退行を見逃す。ずれたら基準画像を record し直す。
   - `#Preview` に付けた名前がそのままテスト関数名になり、View 名は入らない。**リポジトリ全体で一意になる名前を付ける**（`承認待ち` ではなく `管理者の承認待ち`）。
   - 生成されるテストには元ファイルの import が引き継がれない。プレビューがパッケージの型に触れるなら、`.prefire.yml` の `imports` に足す。
-- CI は PR と main push で2つ動く。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。同じテストを2度走らせない。失敗時は xcresult がアーティファクトに上がる。
+- CI は PR と main push で2つ動く。`unit-tests.yml`（ubuntu・`Scripts/unit-test.sh`）と `ci.yml`（macOS・アプリのビルドと VRT）。同じテストを2度走らせない。失敗時は xcresult がアーティファクトに上がる。
 
 ## レビュー指摘への対応
 
@@ -120,7 +120,7 @@ PairCommit ── 2人で使うコミットメントデバイス（アカウン�
 
 ## プロジェクト構成メモ
 
-- モジュール: `LocalPackage`（`Sources/` に Domain / Application、`Tests/` に各層のテスト）と `InfrastructurePackage`（`Sources/Infrastructure`）。アプリターゲットはこの2つのローカルパッケージに依存する。
+- モジュール: `LocalPackage`（`Sources/` に Domain / Application / Infrastructure、`Tests/` に各層のテスト）。アプリターゲットはこのローカルパッケージに依存する。
 - アプリターゲットは Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）。`PairCommit/` 配下にファイルを置けば pbxproj を編集せずターゲットに自動で入る。パッケージ配下も `Sources/<Target>/` に置くだけでよい。
   - 例外は `PairCommit/Info.plist`。同期グループに任せるとリソースとしても複製され、生成される Info.plist と衝突してビルドが落ちるので、`membershipExceptions` で除外してある。
 - Bundle ID: `com.fujimori.PairCommit` / CloudKit コンテナ: `iCloud.com.fujimori.PairCommit`

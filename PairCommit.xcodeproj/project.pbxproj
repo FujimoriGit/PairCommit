@@ -39,7 +39,6 @@
 		D95E5E0C2FE6570900662BA2 /* PairCommitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairCommitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D95E5E162FE6570900662BA2 /* PairCommitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairCommitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB0000000000000000000010 /* LocalPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LocalPackage; sourceTree = "<group>"; };
-		FB0000000000000000000030 /* InfrastructurePackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = InfrastructurePackage; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -110,7 +109,6 @@
 			isa = PBXGroup;
 			children = (
 				FB0000000000000000000010 /* LocalPackage */,
-				FB0000000000000000000030 /* InfrastructurePackage */,
 				D95E5E012FE6570500662BA2 /* PairCommit */,
 				D95E5E0F2FE6570900662BA2 /* PairCommitTests */,
 				D95E5E192FE6570900662BA2 /* PairCommitUITests */,
@@ -248,7 +246,6 @@
 				FA0000000000000000000002 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
 				FC0000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				FB0000000000000000000001 /* XCLocalSwiftPackageReference "LocalPackage" */,
-				FB0000000000000000000031 /* XCLocalSwiftPackageReference "InfrastructurePackage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D95E5E002FE6570500662BA2 /* Products */;
@@ -656,10 +653,6 @@
 		FB0000000000000000000001 /* XCLocalSwiftPackageReference "LocalPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = LocalPackage;
-		};
-		FB0000000000000000000031 /* XCLocalSwiftPackageReference "InfrastructurePackage" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = InfrastructurePackage;
 		};
 /* End XCLocalSwiftPackageReference section */
 

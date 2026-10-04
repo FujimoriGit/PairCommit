@@ -14,15 +14,15 @@
 
 ```
 PairCommit/               アプリ本体（UI）
-LocalPackage/             Domain / Application モジュール（ローカルSPM）
-InfrastructurePackage/    Infrastructure モジュール（外界とのやり取りの実装。ローカルSPM）
+LocalPackage/             Domain / Application / Infrastructure モジュール（ローカルSPM）
 PairCommitTests/          VRT基準画像（__Snapshots__/）。ユニットテストは LocalPackage/Tests/
 Scripts/test.sh           ビルド＆全テスト（CIと同一条件）
+Scripts/unit-test.sh      ユニットテスト（CIと同一条件）
 ```
 
 ## 開発
 
 - 必要環境: Xcode 26.x
-- ユニットテスト: `swift test --package-path LocalPackage`（シミュレータ不要）
+- ユニットテスト: `Scripts/unit-test.sh`（シミュレータ不要）
 - アプリのビルドと VRT: `./Scripts/test.sh`（VRT は `#Preview` から自動生成される）
 - CI: GitHub Actions（PR / main push で `unit-tests.yml` と `ci.yml` の2本）
