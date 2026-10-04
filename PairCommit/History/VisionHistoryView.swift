@@ -70,3 +70,19 @@ private extension VisionHistoryView {
         ], role: .manager)
     }
 }
+
+#Preview("記録のビジョンのタスクの詳細") {
+    let vision = Vision.preview(status: .achieved, deadline: .preview(daysLater: -10))
+    NavigationStack {
+        VisionHistoryView(vision: vision, outcome: .achieved, tasks: [
+            .preview(
+                visionID: vision.id,
+                title: "毎日30分歩く",
+                detail: "通勤で1駅手前で降りる。雨の日は家でステッパー",
+                status: .approved,
+                reaction: .happy
+            ),
+            .preview(visionID: vision.id, title: "体重を記録する", detail: "朝食の前に測る", status: .approved)
+        ], role: .manager)
+    }
+}
