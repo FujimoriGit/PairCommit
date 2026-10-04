@@ -276,8 +276,8 @@ graph LR
 
 - ドメイン層 ── 不変条件・ロールガード・全遷移。状態を変える操作は受け取った値を変更せず新しい値を返す（`mutating` なし）。
 - 同期境界 `PartnershipSyncing` と、CloudKit 実装・インメモリ実装。UI結節点の `PartnershipStore`。インメモリ実装はテスト専用。
-- 実装は `LocalPackage` の `Domain` / `Application` と、`InfrastructurePackage` の `Infrastructure` に分離。テストは `LocalPackage/Tests/` へ層ごとに置き、`swift test` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
-- CI は2本立て。`unit-tests.yml`（ubuntu・`swift test`）と `ci.yml`（macOS・アプリのビルドと VRT）。
+- 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストは `LocalPackage/Tests/` へ層ごとに置き、`Scripts/unit-test.sh` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
+- CI は2本立て。`unit-tests.yml`（ubuntu・`Scripts/unit-test.sh`）と `ci.yml`（macOS・アプリのビルドと VRT）。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 - ロール別UI ── ビジョンの起案から承認・達成判断まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。ビジョンとタスクに期限を設定できる。
 - 閉じたビジョンの記録 ── 達成・取りやめたビジョンと、その配下のタスク・感情を見返せる（`PairCommit/History/`）。
@@ -307,11 +307,11 @@ graph LR
 2. **`PartnershipSyncing` プロトコル定義** -> 済（同上。セマンティクスはdoc comment参照）。
 3. **`InMemorySynchronizer` 実装** -> 済（`Tests/ApplicationTests/`）。UI結節点の `PartnershipStore` は `Sources/Application/`。
 4. **ドメインロジック＋不変条件＋ユニットテスト** -> 済（集約ルート `PartnershipState`。テストは `LocalPackage/Tests/`）。
-5. **ロール別UI** -> 済。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く。SwiftUI をパッケージに入れると ubuntu の `swift test` が壊れる）。
+5. **ロール別UI** -> 済。View はアプリターゲットに置く（`Presentation` モジュールは作らない ── アプリターゲットがすでにパッケージの外側で、公開APIの境界はそれで効く）。
    - Manager: タスク生成・採用・承認・差し戻し・取り消し、ビジョン承認・達成判断、催促の表示、感情ヒートマップ（行の色）。
    - Player: ビジョン起案・タスク起案・完了報告・感情表明（😡😐😊）、催促の表示、感情ヒートマップ（行の色）。
    - ロールはペアリングのときに固定する（未決事項5）。2台がそれぞれ違うロールを選ぶか、片方が選んでもう片方が相手の招待を受け、残りのロールになる。
 6. **ライフサイクルUI** -> 済。Vision（draft→proposed→active→achieved/abandoned）/ Task（proposed→todo→reported→approved / cancelled）の遷移はすべてUIから辿れる。
 7. **催促ロジック（双方向）** -> 判定はドメインの純粋関数として済（`Nudge` / `nudges(for:now:)`）。アプリ内表示と端末の通知も済。アプリを開いていない間も、予約した通知で鳴る。
-8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。実装と配線は済（`InfrastructurePackage/`）。残りは実機2台での実行検証。
+8. **`CloudKitSynchronizer` 差し替え＋#1実行検証** ← **いまここ**。実装と配線は済（`LocalPackage/Sources/Infrastructure/`）。残りは実機2台での実行検証。
 9. **（できれば）** 達成お祝い演出→次ビジョン設定 -> 済。Foundation Models でクライテリアをレビュー -> 済。
