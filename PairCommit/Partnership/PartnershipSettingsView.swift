@@ -14,7 +14,7 @@ struct PartnershipSettingsView: View {
     @Environment(\.resettingPartnership) private var reset
     @State private var confirming = false
     @State private var failureMessage: String?
-    @State private var feedback = FeedbackCue()
+    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Screen(role: role) {
@@ -24,10 +24,9 @@ struct PartnershipSettingsView: View {
             .buttonStyle(.soft(feedback: .impact(weight: .light)))
         }
         .navigationTitle(.commonSettings)
-        .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
         .confirmationDialog(.settingsRepairConfirmationTitle, isPresented: $confirming) {
             Button(.settingsRepair, role: .destructive) {
-                feedback = feedback.playing(.warning)
+                playingFeedback?(.warning)
                 Task { failureMessage = await reset?() }
             }
         } message: {

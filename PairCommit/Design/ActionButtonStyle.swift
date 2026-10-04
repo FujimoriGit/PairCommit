@@ -77,27 +77,25 @@ private struct FeedbackButton: View {
     let configuration: PrimitiveButtonStyleConfiguration
     let feedback: SensoryFeedback
 
-    @State private var actions = 0
+    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Button(role: configuration.role) {
-            actions += 1
+            playingFeedback?(feedback)
             configuration.trigger()
         } label: {
             configuration.label
                 .frame(maxWidth: .infinity)
         }
-        .sensoryFeedback(feedback, trigger: actions)
     }
 }
 
 private struct TapFeedback: ViewModifier {
-    @State private var taps = 0
+    @Environment(\.playingFeedback) private var playingFeedback
 
     func body(content: Content) -> some View {
         content
-            .simultaneousGesture(TapGesture().onEnded { taps += 1 })
-            .sensoryFeedback(.impact(weight: .light), trigger: taps)
+            .simultaneousGesture(TapGesture().onEnded { playingFeedback?(.impact(weight: .light)) })
     }
 }
 

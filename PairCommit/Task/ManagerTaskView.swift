@@ -17,10 +17,10 @@ struct ManagerTaskView: View {
     @State private var input = TaskInput()
     @State private var outcome: Vision.Outcome?
     @State private var failureMessage: String?
-    @State private var feedback = FeedbackCue()
 
     @Environment(\.achievingVision) private var achievingVision
     @Environment(\.presentingFailure) private var presentingFailure
+    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Screen(role: store.role) {
@@ -29,7 +29,6 @@ struct ManagerTaskView: View {
         .animation(.default, value: store.state)
         .animation(.default, value: failureMessage)
         .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
-        .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
         .toolbar {
@@ -43,7 +42,7 @@ struct ManagerTaskView: View {
             presenting: outcome
         ) { outcome in
             Button(outcome.confirmation, role: .destructive) {
-                feedback = feedback.playing(outcome == .achieved ? .impact : .warning)
+                playingFeedback?(outcome == .achieved ? .impact : .warning)
                 close(as: outcome)
             }
         } message: { _ in
