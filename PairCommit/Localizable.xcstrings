@@ -619,13 +619,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The deadline has already passed. It needs a new one."
+            "value" : "The deadline has already passed. The Challenger needs to set a new one."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "期限がすでに過ぎています。期限を決め直す必要があります。"
+            "value" : "期限がすでに過ぎています。挑む人が期限を決め直す必要があります。"
           }
         }
       }
