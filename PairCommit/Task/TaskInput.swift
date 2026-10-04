@@ -9,6 +9,7 @@ import Foundation
 
 struct TaskInput {
     var title = ""
+    var detail = ""
     var deadline: Date?
 
     var isComplete: Bool { !title.isBlank }

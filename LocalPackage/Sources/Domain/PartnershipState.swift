@@ -129,6 +129,7 @@ extension PartnershipState {
 extension PartnershipState {
     public func creatingTask(
         title: String,
+        detail: String? = nil,
         deadline: Date? = nil,
         by role: Role,
         id: UUID = UUID(),
@@ -140,6 +141,7 @@ extension PartnershipState {
             id: id,
             visionID: vision.id,
             title: title,
+            detail: nonBlank(detail),
             status: role == .manager ? .todo : .proposed,
             createdBy: role,
             reaction: nil,

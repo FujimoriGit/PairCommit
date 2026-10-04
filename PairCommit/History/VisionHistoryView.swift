@@ -43,15 +43,18 @@ private extension VisionHistoryView {
     }
 
     func row(_ task: TaskItem) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(task.title)
-                .font(.system(.body, design: .rounded, weight: .semibold))
-            Spacer(minLength: 8)
-            if let reaction = task.reaction {
-                Text(reaction.emoji)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(task.title)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                Spacer(minLength: 8)
+                if let reaction = task.reaction {
+                    Text(reaction.emoji)
+                }
+                Text(task.status.label)
+                    .marker(task.status.tint)
             }
-            Text(task.status.label)
-                .marker(task.status.tint)
+            TaskDetailText(task: task)
         }
         .card(tinted: task.reaction?.tint)
     }
