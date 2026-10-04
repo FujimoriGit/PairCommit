@@ -45,6 +45,7 @@ extension TaskItem {
     static func preview(
         visionID: Vision.ID,
         title: String,
+        detail: String? = nil,
         status: Status,
         createdBy: Role = .player,
         reaction: Reaction? = nil,
@@ -55,6 +56,7 @@ extension TaskItem {
             id: UUID(),
             visionID: visionID,
             title: title,
+            detail: detail,
             status: status,
             createdBy: createdBy,
             reaction: reaction,

@@ -122,6 +122,7 @@ private extension ManagerTaskView {
                 Text(task.status.label)
                     .marker(task.status.tint)
             }
+            TaskDetailText(task: task)
             actions(for: task)
         }
         .card(tinted: task.reaction?.tint)
@@ -170,6 +171,9 @@ private extension ManagerTaskView {
         Panel(title: String(localized: .managerTaskCreationTitle)) {
             TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
                 .fieldBox()
+            TextField(String(localized: .taskFormDetailPlaceholder), text: $input.detail, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
             DeadlineField(deadline: $input.deadline)
             Button(.managerTaskAdd, action: create)
                 .buttonStyle(.filled)
@@ -200,7 +204,12 @@ private extension ManagerTaskView {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: role).state
+                    try state.creatingTask(
+                        title: entered.title,
+                        detail: entered.detail,
+                        deadline: entered.deadline,
+                        by: role
+                    ).state
                 }
                 failureMessage = nil
                 input = .init()
@@ -239,7 +248,12 @@ private extension ManagerTaskView {
             role: .manager,
             visions: [vision],
             tasks: [
-                .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
+                .preview(
+                    visionID: vision.id,
+                    title: "毎朝体重を記録する",
+                    detail: "起きてトイレのあと、朝食の前に測る",
+                    status: .proposed
+                ),
                 .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)
             ]
         ), vision: vision, now: .preview)

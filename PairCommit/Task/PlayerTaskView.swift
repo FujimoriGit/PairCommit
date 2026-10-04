@@ -74,6 +74,7 @@ private extension PlayerTaskView {
                 Text(task.status.label)
                     .marker(task.status.tint)
             }
+            TaskDetailText(task: task)
             if task.status.isOpen {
                 reactions(for: task)
             } else if let reaction = task.reaction {
@@ -139,6 +140,9 @@ private extension PlayerTaskView {
         Panel(title: String(localized: .playerTaskProposalTitle)) {
             TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
                 .fieldBox()
+            TextField(String(localized: .taskFormDetailPlaceholder), text: $input.detail, axis: .vertical)
+                .lineLimit(2...4)
+                .fieldBox()
             DeadlineField(deadline: $input.deadline)
             Button(.commonPropose, action: create)
                 .buttonStyle(.filled)
@@ -152,7 +156,12 @@ private extension PlayerTaskView {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.creatingTask(title: entered.title, deadline: entered.deadline, by: role).state
+                    try state.creatingTask(
+                        title: entered.title,
+                        detail: entered.detail,
+                        deadline: entered.deadline,
+                        by: role
+                    ).state
                 }
                 failureMessage = nil
                 input = .init()
@@ -188,7 +197,14 @@ private extension PlayerTaskView {
             role: .player,
             visions: [vision],
             tasks: [
-                .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager, deadline: .preview(daysLater: 30)),
+                .preview(
+                    visionID: vision.id,
+                    title: "週3でジムに行く",
+                    detail: "筋トレ30分と有酸素20分。行けなかった週は土日に回す",
+                    status: .todo,
+                    createdBy: .manager,
+                    deadline: .preview(daysLater: 30)
+                ),
                 .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, createdBy: .manager, reaction: .angry)
             ]
         ), vision: vision, now: .preview)
