@@ -50,6 +50,38 @@ struct RemotePairingTests {
         #expect(!pairing.isCancelling)
     }
 
+    @Test("招待リンクを作れなかったら、リンクを作っている途中の失敗として見える")
+    func failingToSendIsAFailureWhileCreatingTheLink() async {
+        // Given
+        let inviting = FakeInviting()
+        inviting.sendFailure = .offline
+        let pairing = RemotePairing(inviting: inviting)
+        pairing.invite(ownerRole: .manager)
+
+        // When
+        _ = await pairing.run()
+
+        // Then
+        #expect(pairing.failure == .offline)
+        #expect(pairing.isCreatingLink)
+    }
+
+    @Test("リンクを作っている途中でやめて後始末に失敗したら、リンクを作る失敗とは見なさない")
+    func failingToCleanUpIsNotAFailureWhileCreatingTheLink() async {
+        // Given
+        let inviting = FakeInviting()
+        inviting.cleanupFailure = .offline
+        let pairing = RemotePairing(inviting: inviting)
+        pairing.invite(ownerRole: .manager)
+
+        // When
+        await pairing.cancel()
+
+        // Then
+        #expect(pairing.failure == .offline)
+        #expect(!pairing.isCreatingLink)
+    }
+
     @Test("後始末に失敗したあとにもう一度試すと、相手待ちに戻らず同じ後始末をやり直す")
     func retryAfterFailedCleanupRepeatsTheSameCleanup() async {
         // Given
@@ -148,6 +180,7 @@ private final class FakeInviting: PartnershipInviting {
     nonisolated let link = URL(fileURLWithPath: "/invitation")
     var progress: InvitationProgress
     var joinedShare: (any PairedShare)?
+    var sendFailure: PairingFailure?
     var cleanupFailure: PairingFailure?
     private(set) var sendCalls = 0
     private(set) var advanceCalls = 0
@@ -182,6 +215,9 @@ private final class FakeInviting: PartnershipInviting {
 
     func send() async throws(PairingFailure) -> URL {
         sendCalls += 1
+        if let sendFailure {
+            throw sendFailure
+        }
         return link
     }
 

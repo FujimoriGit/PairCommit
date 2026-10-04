@@ -68,8 +68,8 @@ struct CloudPairedShare: PairedShare {
 }
 
 extension PairingFailure {
-    init(_ error: any Error) {
-        Logger.pairing.error("\(error, privacy: .public)")
+    init(_ error: any Error, during operation: String = #function) {
+        Logger.pairing.error("\(operation, privacy: .public): \(error, privacy: .public)")
         self = Self.classifying(error)
     }
 }
