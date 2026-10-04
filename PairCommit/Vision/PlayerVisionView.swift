@@ -18,6 +18,7 @@ struct PlayerVisionView: View {
     @State private var failureMessage: String?
     @State private var revising: Vision.ID?
     @State private var confirmingDiscard = false
+    @State private var feedback = FeedbackCue()
 
     init(store: PartnershipStore, reviewing: (any CriteriaReviewing)? = nil, revising draft: Vision? = nil) {
         self.store = store
@@ -34,6 +35,7 @@ struct PlayerVisionView: View {
         .animation(.default, value: revising)
         .animation(.default, value: failureMessage)
         .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
+        .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
     }
@@ -171,10 +173,11 @@ private extension PlayerVisionView {
             Button(.playerVisionWithdraw, role: .destructive) {
                 confirmingDiscard = true
             }
-            .buttonStyle(.soft)
+            .buttonStyle(.soft(feedback: .impact(weight: .light)))
         }
         .confirmationDialog(.playerVisionWithdrawConfirmationTitle, isPresented: $confirmingDiscard) {
             Button(.playerVisionWithdraw, role: .destructive) {
+                feedback = feedback.playing(.warning)
                 perform { state, role throws(DomainError) in try state.discardingVision(vision.id, by: role) }
             }
         } message: {
