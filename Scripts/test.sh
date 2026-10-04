@@ -1,6 +1,6 @@
 #!/bin/bash
 # アプリのビルドと VRT を、ローカルと CI で同一条件で実行する。
-# ユニットテストは swift test --package-path LocalPackage（シミュレータ不要）。
+# ユニットテストは Scripts/unit-test.sh（シミュレータ不要）。
 # VRT は required_os / snapshot_devices を固定しているため、
 # シミュレータの選択もここで一元化する。
 set -euo pipefail
