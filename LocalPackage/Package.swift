@@ -1,6 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
+// Data ではなく Infrastructure なのは、モジュール名 `Data` が Foundation.Data と衝突するため。
 let package = Package(
     name: "LocalPackage",
     platforms: [
@@ -10,6 +11,7 @@ let package = Package(
     products: [
         .library(name: "Domain", targets: ["Domain"]),
         .library(name: "Application", targets: ["Application"]),
+        .library(name: "Infrastructure", targets: ["Infrastructure"]),
     ],
     dependencies: [
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.65.0"),
@@ -23,6 +25,13 @@ let package = Package(
         ),
         .target(
             name: "Application",
+            dependencies: ["Domain"],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+            ]
+        ),
+        .target(
+            name: "Infrastructure",
             dependencies: ["Domain"],
             plugins: [
                 .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
