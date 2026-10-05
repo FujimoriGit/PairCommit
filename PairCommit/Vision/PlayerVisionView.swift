@@ -12,6 +12,7 @@ import SwiftUI
 struct PlayerVisionView: View {
     let store: PartnershipStore
     let reviewing: (any CriteriaReviewing)?
+    let now: Date
 
     @State private var input: VisionInput
     @State private var review: CriteriaReview?
@@ -20,9 +21,10 @@ struct PlayerVisionView: View {
     @State private var confirmingDiscard = false
     @Environment(\.playingFeedback) private var playingFeedback
 
-    init(store: PartnershipStore, reviewing: (any CriteriaReviewing)? = nil, revising draft: Vision? = nil) {
+    init(store: PartnershipStore, reviewing: (any CriteriaReviewing)? = nil, revising draft: Vision? = nil, now: Date) {
         self.store = store
         self.reviewing = reviewing
+        self.now = now
         _input = State(initialValue: draft.map { VisionInput($0) } ?? .init())
         _revising = State(initialValue: draft?.id)
     }
@@ -121,7 +123,7 @@ private extension PlayerVisionView {
                 .fieldBox()
         }
         Panel {
-            DeadlineField(deadline: $input.deadline)
+            DeadlineField(deadline: $input.deadline, now: now)
         }
         reviewSection
     }
@@ -241,37 +243,55 @@ private extension PlayerVisionView {
 
 #Preview("プレイヤーの起案前") {
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: []))
+        PlayerVisionView(store: .preview(role: .player, visions: []), now: .preview)
     }
 }
 
 #Preview("プレイヤーの提出待ち") {
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]))
+        PlayerVisionView(
+            store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]),
+            now: .preview
+        )
     }
 }
 
 #Preview("プレイヤーの書き直し") {
-    let draft = Vision.preview(status: .draft, deadline: .preview, why: "次の健康診断で再検査を言い渡されたくない")
+    let draft = Vision.preview(
+        status: .draft,
+        deadline: .preview(daysLater: 30),
+        why: "次の健康診断で再検査を言い渡されたくない"
+    )
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft)
+        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft, now: .preview)
+    }
+}
+
+#Preview("プレイヤーの期限が過ぎた起案の書き直し") {
+    let draft = Vision.preview(status: .draft, deadline: .preview(daysLater: -3))
+    NavigationStack {
+        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft, now: .preview)
     }
 }
 
 #Preview("プレイヤーの承認待ち") {
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]))
+        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .proposed)]), now: .preview)
     }
 }
 
 #Preview("プレイヤーの達成直後") {
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]))
+        PlayerVisionView(store: .preview(role: .player, visions: [.preview(status: .achieved)]), now: .preview)
     }
 }
 
 #Preview("プレイヤーの下読みつき起案") {
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: []), reviewing: PreviewCriteriaReview())
+        PlayerVisionView(
+            store: .preview(role: .player, visions: []),
+            reviewing: PreviewCriteriaReview(),
+            now: .preview
+        )
     }
 }

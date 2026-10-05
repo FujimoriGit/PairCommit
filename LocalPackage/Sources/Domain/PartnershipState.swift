@@ -66,7 +66,7 @@ extension PartnershipState {
             id: id,
             statement: try requiringText(content.statement),
             doneCriteria: try requiringText(content.doneCriteria),
-            deadline: content.deadline,
+            deadline: try requiringUpcoming(content.deadline, at: now),
             why: nonBlank(content.why),
             status: .draft,
             createdAt: now
@@ -77,13 +77,15 @@ extension PartnershipState {
     public func revisingVision(
         _ id: Vision.ID,
         to content: Vision.Content,
-        by role: Role
+        by role: Role,
+        now: Date = Date()
     ) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         let statement = try requiringText(content.statement)
         let doneCriteria = try requiringText(content.doneCriteria)
+        let deadline = try requiringUpcoming(content.deadline, at: now)
         let revised = try requiringDraft(id)
-            .with(statement: statement, doneCriteria: doneCriteria, deadline: content.deadline, why: nonBlank(content.why))
+            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: nonBlank(content.why))
         return updating(visions: visions.map { $0.id == id ? revised : $0 })
     }
 
@@ -93,15 +95,19 @@ extension PartnershipState {
         return updating(visions: visions.filter { $0.id != id })
     }
 
-    public func proposingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
+    public func proposingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .player)
-        return updating(visions: try transitioningVision(id, from: [.draft], to: .proposed))
+        let proposed = try transitioningVision(id, from: [.draft], to: .proposed)
+        _ = try requiringUpcoming(visions.first { $0.id == id }?.deadline, at: now)
+        return updating(visions: proposed)
     }
 
-    public func approvingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
+    public func approvingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         guard activeVision == nil else { throw DomainError.activeVisionAlreadyExists }
-        return updating(visions: try transitioningVision(id, from: [.proposed], to: .active))
+        let approved = try transitioningVision(id, from: [.proposed], to: .active)
+        _ = try requiringUpcoming(visions.first { $0.id == id }?.deadline, at: now)
+        return updating(visions: approved)
     }
 
     public func rejectingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
@@ -137,6 +143,7 @@ extension PartnershipState {
     ) throws(DomainError) -> (state: Self, taskID: TaskItem.ID) {
         guard let vision = activeVision else { throw DomainError.noActiveVision }
         let title = try requiringText(title)
+        let deadline = try requiringUpcoming(deadline, at: now)
         let task = TaskItem(
             id: id,
             visionID: vision.id,
@@ -154,7 +161,9 @@ extension PartnershipState {
 
     public func adoptingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.proposed], to: .todo, at: now))
+        let adopted = try transitioningTask(id, from: [.proposed], to: .todo, at: now)
+        _ = try requiringUpcoming(tasks.first { $0.id == id }?.deadline, at: now)
+        return updating(tasks: adopted)
     }
 
     public func reportingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
@@ -283,6 +292,11 @@ private extension PartnershipState {
             return nil
         }
         return trimmed
+    }
+
+    func requiringUpcoming(_ deadline: Date?, at now: Date) throws(DomainError) -> Date? {
+        if let deadline, deadline <= now { throw DomainError.pastDeadline }
+        return deadline
     }
 
     func requiringDraft(_ id: Vision.ID) throws(DomainError) -> Vision {

@@ -30,6 +30,7 @@ extension DomainError {
         case .noActiveVision: String(localized: .errorNoActiveVision)
         case .alreadyPaired: String(localized: .errorAlreadyPaired)
         case .blankText: String(localized: .errorBlankText)
+        case .pastDeadline: String(localized: .errorPastDeadline)
         }
     }
 }

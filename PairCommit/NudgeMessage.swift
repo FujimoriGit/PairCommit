@@ -30,7 +30,7 @@ private extension Nudge {
         guard let deadline = task(of: id, in: state)?.deadline else {
             return String(localized: .nudgeTaskDeadlineUnknown(title(of: id, in: state)))
         }
-        return String(localized: .nudgeTaskDueSoon(title(of: id, in: state), deadline.formatted(Date.FormatStyle.monthDay)))
+        return String(localized: .nudgeTaskDueSoon(title(of: id, in: state), deadline.formatted(Date.FormatStyle.monthDayTime)))
     }
 
     func task(of id: TaskItem.ID, in state: PartnershipState) -> TaskItem? {
