@@ -14,7 +14,7 @@ import Testing
 struct NudgePostingTests {
 
     @Test("始まっている催促はすぐ、これから始まる催促は始まる時刻に通知する")
-    func postsCurrentNudgesNowAndUpcomingOnesWhenTheyStart() async throws {
+    func nudgesInEffectAreNotifiedNowAndUpcomingOnesWhenTheyStart() async throws {
         // Given
         let active = try Self.activeVision()
         let overdue = try active.creatingTask(title: "o", deadline: Self.day(1), by: .manager, now: Self.day(0))

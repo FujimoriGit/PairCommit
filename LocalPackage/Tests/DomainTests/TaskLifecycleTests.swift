@@ -11,8 +11,8 @@ import Testing
 
 struct TaskLifecycleTests {
 
-    @Test("管理者が作るタスクは todo から、プレイヤー起案は proposed（採用待ち）から始まる")
-    func taskStartsAsTodoForManagerAndProposedForPlayer() throws {
+    @Test("管理者が作ったタスクはすぐ未完了として並び、プレイヤーが起案したタスクは採用待ちになる")
+    func managersTaskIsReadyAtOnceWhilePlayersProposalAwaitsAdoption() throws {
         // Given
         let (active, _) = try PartnershipState().activeVision()
 
@@ -25,8 +25,8 @@ struct TaskLifecycleTests {
         #expect(state.status(of: byPlayer) == .proposed)
     }
 
-    @Test("タスクは active なビジョンの下にしか作れない（孤立タスクは存在しない）")
-    func taskCannotBeCreatedWithoutActiveVision() {
+    @Test("タスクは進行中のビジョンの下にしか作れない")
+    func taskCannotBeCreatedWithoutAVisionInProgress() {
         // Given
         let state = PartnershipState()
 
@@ -64,7 +64,7 @@ struct TaskLifecycleTests {
         }
     }
 
-    @Test("管理者はプレイヤー起案のタスクを採用して todo にできる")
+    @Test("管理者はプレイヤーが起案したタスクを採用して、未完了のタスクに加えられる")
     func managerCanAdoptPlayerProposedTask() throws {
         // Given
         let (active, _) = try PartnershipState().activeVision()
@@ -92,8 +92,8 @@ struct TaskLifecycleTests {
         }
     }
 
-    @Test("管理者は完了報告を差し戻して todo に戻せる（やり直しの指示）")
-    func managerCanReturnReportedTaskToTodo() throws {
+    @Test("管理者は完了報告を差し戻して、未完了に戻せる（やり直しの指示）")
+    func managerCanSendACompletionReportBack() throws {
         // Given
         let (created, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try created.reportingTask(taskID, by: .player)
@@ -124,8 +124,8 @@ struct TaskLifecycleTests {
         }
     }
 
-    @Test("完了報告を経ないタスクは承認できない（todo からの直接承認は不可）")
-    func todoTaskCannotBeApprovedWithoutReport() throws {
+    @Test("完了報告されていないタスクは承認できない")
+    func taskCannotBeApprovedBeforeItIsReported() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 

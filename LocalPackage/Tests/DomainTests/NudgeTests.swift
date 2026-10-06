@@ -145,10 +145,10 @@ struct NudgeTests {
 
         // Then
         #expect(!upcoming.isEmpty)
-        for (nudge, startsAt) in upcoming {
-            #expect(!state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge))
-            #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
-        }
+        #expect(upcoming.allSatisfy { nudge, startsAt in
+            !state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge)
+                && state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge)
+        })
     }
 
     @Test("すでに始まった催促は予定に入らない")

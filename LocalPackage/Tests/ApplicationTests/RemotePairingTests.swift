@@ -14,7 +14,7 @@ import Testing
 struct RemotePairingTests {
 
     @Test("やめる前にペアができていたら、招待を消すのではなくペアごと終わらせる")
-    func cancelAfterPairingEndsThePair() async {
+    func cancellingAfterThePairFormedEndsThePair() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -32,7 +32,7 @@ struct RemotePairingTests {
     }
 
     @Test("やめる後始末が終わるまでは、やめている途中として見える")
-    func cancellingIsVisibleUntilCleanupFinishes() async {
+    func cancellationStaysVisibleUntilCleanupFinishes() async {
         // Given
         let inviting = FakeInviting()
         let pairing = RemotePairing(inviting: inviting)
@@ -83,7 +83,7 @@ struct RemotePairingTests {
     }
 
     @Test("後始末に失敗したあとにもう一度試すと、相手待ちに戻らず同じ後始末をやり直す")
-    func retryAfterFailedCleanupRepeatsTheSameCleanup() async {
+    func tryingAgainAfterAFailedCleanupRepeatsTheSameCleanup() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -105,7 +105,7 @@ struct RemotePairingTests {
     }
 
     @Test("後始末の途中で開き直したら、相手を待たずに後始末を続ける")
-    func restoringDuringCleanupContinuesTheCleanup() async {
+    func reopeningDuringCleanupContinuesTheCleanup() async {
         // Given
         let inviting = FakeInviting(savedWithdrawal: .invitation)
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -122,7 +122,7 @@ struct RemotePairingTests {
     }
 
     @Test("招待リンクを送ったあとで開き直したら、リンクを作り直さずに相手を待つ")
-    func restoringAfterSendingWaitsForTheGuest() async {
+    func reopeningAfterSendingTheLinkWaitsForThePartner() async {
         // Given
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -139,7 +139,7 @@ struct RemotePairingTests {
     }
 
     @Test("招待リンクで参加したあとで開き直したら、参加し直さずに招待した側を待つ")
-    func restoringAfterJoiningWaitsForTheHost() async {
+    func reopeningAfterJoiningWaitsForTheInviter() async {
         // Given
         let inviting = FakeInviting(savedStage: .joined)
         inviting.joinedShare = StubShare(isOwner: false)
@@ -154,8 +154,8 @@ struct RemotePairingTests {
         #expect(inviting.joinCalls == 0)
     }
 
-    @Test("相手を待っている間に打ち切ったら、そのあとペアができても返さない")
-    func cancelledRunDoesNotReturnThePair() async {
+    @Test("相手を待っている間に打ち切ったら、そのあとペアができても、そのペアでは始まらない")
+    func stoppingTheWaitStartsNoPair() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))

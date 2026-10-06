@@ -23,7 +23,7 @@ struct VisionDraftingTests {
     }
 
     @Test("差し戻された起案は、プレイヤーが中身を書き直して出し直せる（起案の主導権はプレイヤー）")
-    func playerCanReviseVisionSentBackToDraft() throws {
+    func playerCanRewriteAVisionThatWasSentBack() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
         let returned = try proposed.rejectingVision(visionID, by: .manager)
@@ -178,7 +178,7 @@ struct VisionDraftingTests {
     }
 
     @Test("提出したあとのビジョンは書き直せない（管理者が見ている中身が変わらない）")
-    func proposedVisionCannotBeRevised() throws {
+    func submittedVisionCannotBeRewritten() throws {
         // Given
         let (state, visionID) = try PartnershipState().proposedVision()
 
@@ -189,7 +189,7 @@ struct VisionDraftingTests {
     }
 
     @Test("起案中のビジョンはプレイヤーが取り下げられ、記録にも残らない")
-    func playerCanDiscardDraftVision() throws {
+    func playerCanWithdrawAVisionNotYetSubmitted() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -203,7 +203,7 @@ struct VisionDraftingTests {
     }
 
     @Test("ビジョンを取り下げられるのはプレイヤーだけ（管理者は起案を消せない）")
-    func onlyPlayerCanDiscardVision() throws {
+    func onlyPlayerCanWithdrawVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -216,7 +216,7 @@ struct VisionDraftingTests {
     }
 
     @Test("提出したあとのビジョンは取り下げられない（承認するかを決めるのは管理者の番）")
-    func proposedVisionCannotBeDiscarded() throws {
+    func submittedVisionCannotBeWithdrawn() throws {
         // Given
         let (state, visionID) = try PartnershipState().proposedVision()
 
@@ -227,7 +227,7 @@ struct VisionDraftingTests {
     }
 
     @Test("進行中のビジョンは取り下げられない（閉じるのは管理者の達成判断）")
-    func activeVisionCannotBeDiscarded() throws {
+    func visionInProgressCannotBeWithdrawn() throws {
         // Given
         let (state, visionID) = try PartnershipState().activeVision()
 

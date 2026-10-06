@@ -11,17 +11,13 @@ import Testing
 
 struct VisionLifecycleTests {
 
-    @Test("プレイヤーが起案し、管理者が承認するとビジョンは active になる")
-    func visionBecomesActiveWhenManagerApprovesPlayersProposal() throws {
+    @Test("プレイヤーが出したビジョンを管理者が承認すると、進行中のビジョンになる")
+    func visionIsInProgressOnceManagerApprovesIt() throws {
         // Given
-        let (drafted, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: nil, why: nil), by: .player
-        )
+        let (proposed, visionID) = try PartnershipState().proposedVision()
 
         // When
-        let state = try drafted
-            .proposingVision(visionID, by: .player)
-            .approvingVision(visionID, by: .manager)
+        let state = try proposed.approvingVision(visionID, by: .manager)
 
         // Then
         #expect(state.activeVision?.id == visionID)
@@ -54,8 +50,8 @@ struct VisionLifecycleTests {
         }
     }
 
-    @Test("active なビジョンは高々1個 ── 既に active があるとき2つ目の承認は失敗する")
-    func approvingSecondVisionWhileOneIsActiveFails() throws {
+    @Test("進行中のビジョンは1つだけ ── 進行中のビジョンがあるうちは、次のビジョンを承認できない")
+    func secondVisionCannotBeApprovedWhileOneIsInProgress() throws {
         // Given
         let (active, _) = try PartnershipState().activeVision()
         let (state, second) = try active.proposedVision()
@@ -66,8 +62,8 @@ struct VisionLifecycleTests {
         }
     }
 
-    @Test("管理者は承認待ちビジョンを draft に差し戻せる（却下は削除ではない）")
-    func managerCanSendProposedVisionBackToDraft() throws {
+    @Test("管理者は承認待ちのビジョンを差し戻して、プレイヤーの書きかけに戻せる（却下は削除ではない）")
+    func managerCanSendASubmittedVisionBack() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
 
@@ -78,8 +74,8 @@ struct VisionLifecycleTests {
         #expect(state.visions.first?.status == .draft)
     }
 
-    @Test("起案中（draft）のビジョンをいきなり承認はできない（提出を経る）")
-    func draftVisionCannotBeApprovedDirectly() throws {
+    @Test("提出されていないビジョンは承認できない")
+    func visionNotYetSubmittedCannotBeApproved() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -91,7 +87,7 @@ struct VisionLifecycleTests {
         }
     }
 
-    @Test("ビジョンを閉じると、配下の未完了タスクは巻き込みで cancelled になり、完了済みは残る")
+    @Test("ビジョンを閉じると、配下の終わっていないタスクは取り消しになり、完了したタスクは完了のまま残る")
     func closingVisionCancelsItsOpenTasksButKeepsApprovedOnes() throws {
         // Given
         let (active, visionID) = try PartnershipState().activeVision()

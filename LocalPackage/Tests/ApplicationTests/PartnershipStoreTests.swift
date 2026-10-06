@@ -13,8 +13,8 @@ import Testing
 @MainActor
 struct PartnershipStoreTests {
 
-    @Test("操作はローカル状態へ即時反映され、同期層にも保存される（楽観適用）")
-    func performAppliesChangeLocallyAndPersistsIt() async throws {
+    @Test("操作は保存を待たずに手元に反映され、相手が読む保存先にも残る")
+    func anActionShowsUpRightAwayAndIsSavedForThePartner() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
@@ -30,8 +30,8 @@ struct PartnershipStoreTests {
         #expect(saved == store.state)
     }
 
-    @Test("ドメインルール違反は状態を一切変えずに呼び出し元へ投げ直される")
-    func domainErrorLeavesStateUntouched() async throws {
+    @Test("ルールで許されない操作は、何も変えずに失敗として返る")
+    func aForbiddenActionChangesNothing() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: .init())
@@ -45,8 +45,8 @@ struct PartnershipStoreTests {
         #expect(store.state == PartnershipState())
     }
 
-    @Test("相手側の変更は、取り直したときに状態へ反映される")
-    func remoteChangeAppearsAfterRefresh() async throws {
+    @Test("相手の変更は、取り直すと手元に現れる")
+    func partnersChangeAppearsAfterReloading() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
@@ -61,7 +61,7 @@ struct PartnershipStoreTests {
     }
 
     @Test("保存を待つ間に相手の変更を取り直しても、保存できた自分の操作は消えない")
-    func refreshDuringSaveKeepsTheSavedChange() async throws {
+    func reloadingWhileSavingKeepsTheSavedAction() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
@@ -85,7 +85,7 @@ struct PartnershipStoreTests {
     }
 
     @Test("保存が重なっても、あとから始めた操作は消えない")
-    func overlappingPerformsKeepBothChanges() async throws {
+    func overlappingActionsAreBothKept() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
@@ -113,8 +113,8 @@ struct PartnershipStoreTests {
         #expect(synchronizer.stored == store.state)
     }
 
-    @Test("保存に失敗した操作は、状態を元へ戻して呼び出し元へ投げ直される")
-    func failedSaveRollsBackTheChange() async throws {
+    @Test("保存に失敗した操作は、手元からも取り消されて失敗として返る")
+    func anActionThatFailsToSaveIsUndone() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         synchronizer.failure = .unavailable
@@ -130,7 +130,7 @@ struct PartnershipStoreTests {
     }
 
     @Test("相手の保存を取り直す前に操作しても、相手の変更は消えずに自分の操作と両方残る")
-    func performOnOutdatedStateKeepsThePartnersChange() async throws {
+    func actingBeforeReloadingKeepsThePartnersChange() async throws {
         // Given
         let (shared, taskID) = try Self.reportedTask()
         let synchronizer = InMemorySynchronizer(initialState: shared)
@@ -153,8 +153,8 @@ struct PartnershipStoreTests {
         #expect(manager.state == saved)
     }
 
-    @Test("相手が先に済ませて操作が成り立たなくなったら、相手の変更を反映したうえで拒否される")
-    func performRejectedAfterPartnersChangeShowsThePartnersState() async throws {
+    @Test("相手が先に済ませて操作が成り立たなくなったら、相手の変更を手元に反映したうえで失敗として返る")
+    func actionMadeImpossibleByThePartnerFailsAndShowsTheirChange() async throws {
         // Given
         let (shared, taskID) = try Self.reportedTask()
         let synchronizer = InMemorySynchronizer(initialState: shared)
@@ -173,8 +173,8 @@ struct PartnershipStoreTests {
         #expect(second.state == first.state)
     }
 
-    @Test("相手の保存と重なり続けたら、当て直しをやめて相手の状態を見せたうえで失敗を返す")
-    func performGivesUpWhenPartnerKeepsSavingFirst() async throws {
+    @Test("相手の保存と重なり続けたら、やり直しをあきらめ、相手の状態を手元に反映したうえで失敗として返る")
+    func actionGivesUpWhenThePartnerKeepsSavingFirst() async throws {
         // Given
         let latest = try PartnershipState().establishingPairing(ownerRole: .manager)
         let synchronizer = InterruptibleSynchronizer()
@@ -190,8 +190,8 @@ struct PartnershipStoreTests {
         #expect(store.state == latest)
     }
 
-    @Test("共有から始めた Store は、共有から読んだ状態で始まる")
-    func startingFromShareBeginsWithTheSharedState() async throws {
+    @Test("共有から始めると、共有に保存されたペアの状態で始まる")
+    func sessionFromAShareOpensWithTheSharedState() async throws {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
@@ -203,8 +203,8 @@ struct PartnershipStoreTests {
         #expect(store?.state == paired)
     }
 
-    @Test("共有にペアが入っていなければ、始めずに nil を返す")
-    func startingWithoutPairingReturnsNil() async throws {
+    @Test("共有にペアが入っていなければ、何も始まらない")
+    func shareWithoutAPairOpensNothing() async throws {
         // Given
         let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer())
 

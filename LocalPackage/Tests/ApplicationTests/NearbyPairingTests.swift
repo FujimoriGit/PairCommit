@@ -13,8 +13,8 @@ import Testing
 @MainActor
 struct NearbyPairingTests {
 
-    @Test("話し合いの結果が止まるなら、共有を作らずに失敗で終わる")
-    func stopPlanFailsWithoutSharing() async {
+    @Test("2台とも同じ役割を選ぶと、ペアにならず、共有も作られない")
+    func bothDevicesChoosingTheSameRoleDoNotPair() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
 
@@ -26,8 +26,8 @@ struct NearbyPairingTests {
         #expect(sharing.makeShareCalls == 0)
     }
 
-    @Test("共有を作る側の iCloud がいっぱいなら、相手に作る役を引き渡す")
-    func fullStorageHandsSharingOverToThePartner() async {
+    @Test("共有を作る端末の iCloud がいっぱいなら、相手の端末に代わりに作ってもらう")
+    func fullICloudOnTheSharingDeviceAsksThePartnerToShareInstead() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         sharing.failure = .storageFull
@@ -40,8 +40,8 @@ struct NearbyPairingTests {
         #expect(channel.sent.contains(Partner.handingOver(.manager)))
     }
 
-    @Test("共有を作った側は、相手から受け取った知らせが届いたら完了する")
-    func ownerCompletesWhenThePartnerAcknowledges() async {
+    @Test("共有を作った端末は、相手から参加したと知らせが届いたらペアリングを終える")
+    func sharingDeviceFinishesPairingWhenThePartnerConfirmsJoining() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         channel.receive(.received(Partner.choosing(.invitation)))
@@ -55,8 +55,8 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == true)
     }
 
-    @Test("共有を作っている間にやめたら、できた共有を結果にしない")
-    func resetWhileSharingDiscardsTheShare() async {
+    @Test("共有を作っている間にやめたら、ペアは残らず、相手にも共有を送らない")
+    func cancellingWhileTheShareIsBeingMadeLeavesNoPair() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         sharing.hold()

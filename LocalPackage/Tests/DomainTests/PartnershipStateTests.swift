@@ -13,8 +13,8 @@ struct PartnershipStateTests {
 
     // MARK: - ペアリング
 
-    @Test("ペアは一度しか確立できない（ロール固定・スワップなしの前提）")
-    func pairingCanBeEstablishedOnlyOnce() throws {
+    @Test("ペアは一度しか組めない（役割は固定で入れ替えない）")
+    func aPairCanBeFormedOnlyOnce() throws {
         // Given
         let state = PartnershipState()
 
@@ -30,7 +30,7 @@ struct PartnershipStateTests {
 
     // MARK: - 感情リアクション
 
-    @Test("プレイヤーは感情を上書きで表明でき、取り下げもできる（ステートでありストリームではない）")
+    @Test("プレイヤーはタスクへの感情を付け直すことも、外すこともできる（残るのは最後に付けた感情だけ）")
     func playerCanOverwriteAndClearReaction() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
@@ -59,8 +59,8 @@ struct PartnershipStateTests {
 
     // MARK: - 同期での往復
 
-    @Test("状態は JSON に載せて往復しても失われない（同期はこの形で運ぶ）")
-    func stateSurvivesJSONRoundTrip() throws {
+    @Test("保存して読み直しても、ペアの状態は何も失われない")
+    func stateSurvivesBeingSavedAndReadBack() throws {
         // Given
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
         let now = deadline.addingTimeInterval(-24 * 60 * 60)
