@@ -223,7 +223,7 @@ private extension ManagerTaskView {
         }
     }
 
-    // 失敗を行の近くに出すと、一覧が長いときに見えないところに出る。ビジョンを閉じたときは、この画面ごと消える
+    // ビジョンを閉じると、保存を待たずにこの画面ごと消える
     func perform(
         then succeeded: (@MainActor () -> Void)? = nil,
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState

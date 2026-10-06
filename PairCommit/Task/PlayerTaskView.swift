@@ -156,7 +156,6 @@ private extension PlayerTaskView {
         }
     }
 
-    // 失敗を行の近くに出すと、一覧が長いときに見えないところに出る
     func perform(
         succeeding success: SensoryFeedback? = nil,
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
