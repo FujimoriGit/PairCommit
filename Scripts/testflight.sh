@@ -12,11 +12,6 @@ ARCHIVE=build/PairCommit.xcarchive
 EXPORT_OPTIONS=build/ExportOptions.plist
 SOURCE_PACKAGES=build/SourcePackages
 
-# App Store Connect は、同じバージョンでは前より大きいビルド番号しか受け付けない。
-# 各部分は 32 ビットの整数に収める必要があるので、日付と時刻を分ける（例: 20261006.930）
-NOW=$(date -u +%Y%m%d%H%M)
-BUILD_NUMBER="${NOW:0:8}.$((10#${NOW:8:4}))"
-
 AUTH=(
   -allowProvisioningUpdates
   -authenticationKeyPath "$ASC_KEY_PATH"
@@ -36,9 +31,9 @@ xcodebuild \
   -skipPackagePluginValidation \
   -skipMacroValidation \
   "${AUTH[@]}" \
-  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   archive
 
+# manageAppVersionAndBuildNumber: ビルド番号は、App Store Connect に上がっている最大の番号の次を Xcode がつける
 cat > "$EXPORT_OPTIONS" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -51,7 +46,7 @@ cat > "$EXPORT_OPTIONS" <<'PLIST'
 	<key>signingStyle</key>
 	<string>automatic</string>
 	<key>manageAppVersionAndBuildNumber</key>
-	<false/>
+	<true/>
 	<key>uploadSymbols</key>
 	<true/>
 </dict>
@@ -65,4 +60,3 @@ xcodebuild \
   -exportPath build/Export \
   "${AUTH[@]}"
 
-echo "ビルド ${BUILD_NUMBER} を App Store Connect に上げた。"
