@@ -30,6 +30,15 @@ enum SavedPairing {
         defaults.set(outcome.rootRecordID.zoneID.zoneName, forKey: zoneNameKey)
         defaults.set(outcome.rootRecordID.zoneID.ownerName, forKey: ownerNameKey)
         defaults.set(outcome.isOwner, forKey: isOwnerKey)
+        defaults.removeObject(forKey: declinedKey)
+    }
+
+    static var isDeclined: Bool {
+        UserDefaults.standard.bool(forKey: declinedKey)
+    }
+
+    static func decline() {
+        UserDefaults.standard.set(true, forKey: declinedKey)
     }
 
     static func clear() {
@@ -46,4 +55,5 @@ private extension SavedPairing {
     static let zoneNameKey = "pairing.zoneName"
     static let ownerNameKey = "pairing.ownerName"
     static let isOwnerKey = "pairing.isOwner"
+    static let declinedKey = "pairing.declined"
 }

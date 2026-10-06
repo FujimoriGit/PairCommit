@@ -114,6 +114,12 @@ struct PreviewSharing: PartnershipSharing {
         nil
     }
 
+    func remainingShare() async throws(PairingFailure) -> (any PairedShare)? {
+        nil
+    }
+
+    func declineRemainingShare() {}
+
     func clearSavedShare() {}
 }
 

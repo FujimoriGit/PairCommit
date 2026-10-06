@@ -39,7 +39,7 @@ enum PartnershipInvitation {
         let rootRecordID = PartnershipShare.ownedRootRecordID
         if let root = try await PartnershipShare.fetchRoot(rootRecordID, from: database),
            let pairingShare = try await PartnershipShare.share(of: root, in: database) {
-            if acceptedGuest(of: pairingShare) != nil {
+            if PartnershipShare.acceptedGuest(of: pairingShare) != nil {
                 try await deleteInvitation(from: database)
                 return .paired(rootRecordID)
             }
@@ -54,7 +54,7 @@ enum PartnershipInvitation {
               let invitationURL = invitationShare.url else {
             throw PartnershipShareError.shareURLUnavailable
         }
-        guard let guest = acceptedGuest(of: invitationShare) else { return .waiting(invitationURL) }
+        guard let guest = PartnershipShare.acceptedGuest(of: invitationShare) else { return .waiting(invitationURL) }
         guard let userRecordID = guest.userIdentity.userRecordID else {
             throw PartnershipShareError.guestUnidentified
         }
@@ -140,10 +140,6 @@ private extension PartnershipInvitation {
 
     enum Key {
         static let pairingURL = "pairingURL"
-    }
-
-    static func acceptedGuest(of share: CKShare) -> CKShare.Participant? {
-        share.participants.first { $0.role != .owner && $0.acceptanceStatus == .accepted }
     }
 
     static func fetchInvitation(from database: CKDatabase) async throws -> CKRecord {

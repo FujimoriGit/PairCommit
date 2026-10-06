@@ -175,5 +175,11 @@ private final class FakeSharing: PartnershipSharing {
         nil
     }
 
+    func remainingShare() async throws(PairingFailure) -> (any PairedShare)? {
+        nil
+    }
+
+    nonisolated func declineRemainingShare() {}
+
     nonisolated func clearSavedShare() {}
 }

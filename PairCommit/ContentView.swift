@@ -67,6 +67,7 @@ struct ContentView: View {
                     receive(link)
                 }
             }
+            .task { await resumeRemainingPairing() }
             .alert(linkRefusal?.title ?? "", isPresented: Binding(presenting: $linkRefusal)) {
                 Button(.commonOk) {}
             } message: {
@@ -123,7 +124,10 @@ private extension ContentView {
             ReconnectingView(
                 failureMessage: failureMessage,
                 onRetry: { failureMessage = nil },
-                onStartOver: { Task { await returnToPicker(with: nil) } }
+                onStartOver: {
+                    sharing.declineRemainingShare()
+                    Task { await returnToPicker(with: nil) }
+                }
             )
             .task(id: failureMessage == nil) {
                 guard failureMessage == nil else { return }
@@ -274,6 +278,18 @@ private extension ContentView {
             methodRole = nil
             remote.receive(link)
         }
+    }
+
+    var isChoosingRole: Bool {
+        session.store == nil && savedPairing == nil && pairing.phase == .idle && remote.phase == .idle && methodRole == nil
+    }
+
+    func resumeRemainingPairing() async {
+        guard isChoosingRole, let remaining = try? await sharing.remainingShare(), isChoosingRole else { return }
+        remaining.save()
+        failureMessage = nil
+        isResuming = true
+        savedPairing = remaining
     }
 
     func cancelRemote() async {
