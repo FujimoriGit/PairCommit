@@ -127,13 +127,10 @@ private extension NearbyPairing {
         guard let role, phase == .searching || phase == .connected else { return }
         phase = .connected
         // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
-        switch PairingPlan(role: role, partnerRole: partnerRole) {
-        case .makeShare(let ownerRole):
-            makeShare(ownerRole: ownerRole, handsOverOnRefusal: true)
-        case .awaitShare:
-            break
-        case .sameRole(let role):
+        if role == partnerRole {
             phase = .failed(.sameRole(role))
+        } else if role == .manager {
+            makeShare(ownerRole: role, handsOverOnRefusal: true)
         }
     }
 

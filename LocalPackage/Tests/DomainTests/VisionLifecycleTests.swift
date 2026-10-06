@@ -27,33 +27,37 @@ struct VisionLifecycleTests {
         #expect(state.activeVision?.id == visionID)
     }
 
-    @Test("プレイヤーが書いて提出したビジョンは、プレイヤーがほかに何もしなくても管理者が承認できる")
-    func managerCanApproveVisionAsSoonAsPlayerSubmitsIt() throws {
+    @Test("プレイヤーが書いたビジョンを提出すると、書いた中身のまま管理者の承認待ちになる")
+    func submittedVisionAwaitsManagersApprovalAsWritten() throws {
         // Given
         let content = Vision.Content(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: nil, why: nil)
 
         // When
-        let (submitted, visionID) = try PartnershipState().submittingVision(content, by: .player)
+        let (state, visionID) = try PartnershipState().submittingVision(content, by: .player)
 
         // Then
-        #expect(try submitted.approvingVision(visionID, by: .manager).activeVision?.id == visionID)
+        let vision = try #require(state.visions.first(where: { $0.id == visionID }))
+        #expect(vision.statement == "半年で10kg痩せる")
+        #expect(vision.status == .proposed)
     }
 
-    @Test("差し戻されたビジョンをプレイヤーが書き直して出し直すと、管理者は書き直した中身を承認できる")
-    func managerCanApproveRevisedContentOnceResubmitted() throws {
+    @Test("差し戻されたビジョンをプレイヤーが書き直して出し直すと、書き直した中身で管理者の承認待ちに戻る")
+    func resubmittedVisionAwaitsManagersApprovalAsRevised() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
         let returned = try proposed.rejectingVision(visionID, by: .manager)
 
         // When
-        let resubmitted = try returned.resubmittingVision(
+        let state = try returned.resubmittingVision(
             visionID,
             as: .init(statement: "半年で5kg痩せる", doneCriteria: "体重計で65kgを切る", deadline: nil, why: nil),
             by: .player
         )
 
         // Then
-        #expect(try resubmitted.approvingVision(visionID, by: .manager).activeVision?.statement == "半年で5kg痩せる")
+        let vision = try #require(state.visions.first(where: { $0.id == visionID }))
+        #expect(vision.statement == "半年で5kg痩せる")
+        #expect(vision.status == .proposed)
     }
 
     @Test("ビジョンの承認は管理者だけができる（執行権限は管理者）")

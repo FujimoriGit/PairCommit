@@ -55,6 +55,19 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == true)
     }
 
+    @Test("挑む人を選んだ端末は、見届ける人を選んだ相手から届いた共有に参加して、ペアリングを終える")
+    func playerFinishesPairingByJoiningTheManagersShare() async {
+        // Given
+        let (pairing, channel, sharing) = Self.started(as: .player)
+        channel.receive(.received(Partner.choosing(.manager)))
+
+        // When
+        channel.receive(.received(sharing.url.absoluteString))
+
+        // Then
+        #expect(await eventually { pairing.phase == .done })
+    }
+
     @Test("共有を作っている間にやめたら、できた共有を結果にしない")
     func resetWhileSharingDiscardsTheShare() async {
         // Given
