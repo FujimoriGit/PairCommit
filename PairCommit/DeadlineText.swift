@@ -15,7 +15,7 @@ struct DeadlineText: View {
     @ViewBuilder
     var body: some View {
         if let deadline = task.deadline {
-            Text(deadline.formatted(Date.FormatStyle.monthDay))
+            Text(deadline.formatted(Date.FormatStyle.monthDayTime))
                 .marker(isLate(deadline) ? .red : .secondary)
         }
     }

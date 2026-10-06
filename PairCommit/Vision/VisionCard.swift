@@ -108,10 +108,10 @@ private extension VisionCard {
     var remaining: String {
         switch vision.countdown(at: now, in: .current) {
         case .unbounded: String(localized: .commonNoDeadline)
-        case .overdue(let deadline): String(localized: .visionCardOverdue(deadline.formatted(Date.FormatStyle.yearMonthDay)))
+        case .overdue(let deadline): String(localized: .visionCardOverdue(deadline.formatted(Date.FormatStyle.yearMonthDayTime)))
         case .days(0, _): String(localized: .visionCardDueToday)
         case .days(let days, let deadline):
-            String(localized: .visionCardDaysLeft(days: days, deadline.formatted(Date.FormatStyle.yearMonthDay)))
+            String(localized: .visionCardDaysLeft(days: days, deadline.formatted(Date.FormatStyle.yearMonthDayTime)))
         }
     }
 

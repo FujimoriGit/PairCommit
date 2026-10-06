@@ -358,6 +358,23 @@
         }
       }
     },
+    "deadlineField.passed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deadline has passed. Choose a time later than now."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この期限は過ぎています。今より後の日時を選び直してください。"
+          }
+        }
+      }
+    },
     "deadlineField.toggle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -592,6 +609,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "相手の端末でペアリングできませんでした。相手の画面の案内を確かめてから、もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "error.pastDeadline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The deadline has already passed. The Challenger needs to set a new one."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限がすでに過ぎています。挑む人が期限を決め直す必要があります。"
           }
         }
       }

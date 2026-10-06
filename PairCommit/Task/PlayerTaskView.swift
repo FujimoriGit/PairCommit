@@ -143,7 +143,7 @@ private extension PlayerTaskView {
             TextField(String(localized: .taskFormDetailPlaceholder), text: $input.detail, axis: .vertical)
                 .lineLimit(2...4)
                 .fieldBox()
-            DeadlineField(deadline: $input.deadline)
+            DeadlineField(deadline: $input.deadline, now: now)
             Button(.commonPropose, action: create)
                 .buttonStyle(.filled)
                 .disabled(!input.isComplete)
