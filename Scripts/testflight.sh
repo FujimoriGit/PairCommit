@@ -1,6 +1,5 @@
 #!/bin/bash
 # アーカイブして TestFlight に上げる。ローカルでも CI でも同じ手順で動く。
-# 署名は自動署名のまま、App Store Connect の API キーで Xcode に証明書とプロファイルを用意させる。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
