@@ -127,6 +127,16 @@ enum PartnershipShare {
         }
     }
 
+    /// - Returns: 相手が参加済みのペアのうち、最後に書き換えられたもの。
+    static func findRemainingRoot() async throws -> (rootRecordID: CKRecord.ID, isOwner: Bool)? {
+        typealias Candidate = (root: CKRecord, isOwner: Bool)
+        let owned: [Candidate] = try await fetchOwnedRootWithGuest().map { [(root: $0, isOwner: true)] } ?? []
+        let joined: [Candidate] = try await fetchJoinedRoots().map { (root: $0, isOwner: false) }
+        return (owned + joined)
+            .max { ($0.root.modificationDate ?? .distantPast) < ($1.root.modificationDate ?? .distantPast) }
+            .map { (rootRecordID: $0.root.recordID, isOwner: $0.isOwner) }
+    }
+
     // MARK: Participant 側
 
     static func acceptShare(from url: URL) async throws -> CKRecord.ID {
@@ -158,6 +168,31 @@ extension PartnershipShare {
         } catch let error as CKError where absent.contains(error.code) {
             return nil
         }
+    }
+
+    static func acceptedGuest(of share: CKShare) -> CKShare.Participant? {
+        share.participants.first { $0.role != .owner && $0.acceptanceStatus == .accepted }
+    }
+
+    static func fetchOwnedRootWithGuest() async throws -> CKRecord? {
+        let database = container.privateCloudDatabase
+        guard let root = try await fetchRoot(ownedRootRecordID, from: database),
+              let pairingShare = try await share(of: root, in: database),
+              acceptedGuest(of: pairingShare) != nil else { return nil }
+        return root
+    }
+
+    // 共有ゾーンは共有を作った人ごとに別になる。前の相手がペアを終えていなければ、そのゾーンも残っている。
+    static func fetchJoinedRoots() async throws -> [CKRecord] {
+        let database = container.sharedCloudDatabase
+        var roots: [CKRecord] = []
+        for zone in try await database.allRecordZones() {
+            let rootRecordID = CKRecord.ID(recordName: ownedRootRecordID.recordName, zoneID: zone.zoneID)
+            if let root = try await fetchRoot(rootRecordID, from: database) {
+                roots.append(root)
+            }
+        }
+        return roots
     }
 
     static func shareURL(of root: CKRecord, in database: CKDatabase) async throws -> URL? {

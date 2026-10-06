@@ -13,6 +13,8 @@ public protocol PartnershipSharing: Sendable {
     func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare)
     func acceptShare(from url: URL) async throws(PairingFailure) -> any PairedShare
     func savedShare() -> (any PairedShare)?
+    /// 端末に残っていないときに、iCloud に残っている前のペアを探す。相手が参加済みのものだけを返す。
+    func remainingShare() async throws(PairingFailure) -> (any PairedShare)?
     func clearSavedShare()
 }
 

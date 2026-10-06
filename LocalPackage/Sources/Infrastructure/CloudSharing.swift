@@ -41,6 +41,16 @@ public struct CloudSharing: PartnershipSharing {
         SavedPairing.load()
     }
 
+    public func remainingShare() async throws(PairingFailure) -> (any PairedShare)? {
+        do {
+            return try await PartnershipShare.findRemainingRoot().map {
+                CloudPairedShare(rootRecordID: $0.rootRecordID, isOwner: $0.isOwner)
+            }
+        } catch {
+            throw PairingFailure(error)
+        }
+    }
+
     public func clearSavedShare() {
         SavedPairing.clear()
     }
