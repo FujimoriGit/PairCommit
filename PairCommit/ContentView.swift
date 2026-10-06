@@ -217,7 +217,7 @@ private extension ContentView {
             case .inviting:
                 InvitationView(
                     url: remote.invitationURL,
-                    ownerRole: remote.ownerRole,
+                    partnerRole: remote.partnerRole,
                     failureMessage: remote.failure?.message,
                     isCreatingLink: remote.isCreatingLink,
                     isCancelling: remote.isCancelling,

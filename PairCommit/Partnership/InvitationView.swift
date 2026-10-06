@@ -10,7 +10,7 @@ import SwiftUI
 
 struct InvitationView: View {
     let url: URL?
-    let ownerRole: Role?
+    let partnerRole: Role?
     let failureMessage: String?
     let isCreatingLink: Bool
     let isCancelling: Bool
@@ -41,11 +41,11 @@ struct InvitationView: View {
                 if failureMessage != nil {
                     Button(.commonRetry, action: onRetry)
                         .buttonStyle(.filled)
-                } else if let url, let ownerRole {
+                } else if let url, let partnerRole {
                     ShareLink(
                         item: url,
                         subject: Text(.invitationPreviewTitle),
-                        message: Text(.invitationMessage(ownerRole.counterpart.label)),
+                        message: Text(.invitationMessage(partnerRole.label)),
                         preview: SharePreview(String(localized: .invitationPreviewTitle))
                     ) {
                         Text(.invitationShare)
@@ -78,7 +78,7 @@ private extension InvitationView {
 #Preview("招待リンクの相手待ち") {
     InvitationView(
         url: URL(string: "https://www.icloud.com/share/example"),
-        ownerRole: .manager,
+        partnerRole: .player,
         failureMessage: nil,
         isCreatingLink: false,
         isCancelling: false,
@@ -90,7 +90,7 @@ private extension InvitationView {
 #Preview("招待リンクの失敗") {
     InvitationView(
         url: nil,
-        ownerRole: .manager,
+        partnerRole: .player,
         failureMessage: PairingFailure.offline.message,
         isCreatingLink: true,
         isCancelling: false,
@@ -102,7 +102,7 @@ private extension InvitationView {
 #Preview("招待をやめている途中") {
     InvitationView(
         url: nil,
-        ownerRole: .manager,
+        partnerRole: .player,
         failureMessage: nil,
         isCreatingLink: false,
         isCancelling: true,

@@ -39,10 +39,10 @@ public final class RemotePairing {
         return withdrawal == nil
     }
 
-    /// 招待している側が選んだ役割。招待リンクに添える文で、相手の役割を伝えるのに使う。
-    public var ownerRole: Role? {
+    /// 招待した相手が、参加するとなる役割。招待リンクに添える文で伝える。
+    public var partnerRole: Role? {
         switch step {
-        case .sending(let ownerRole), .sent(let ownerRole): ownerRole
+        case .sending(let ownerRole), .sent(let ownerRole): ownerRole.counterpart
         case .accepting, .joined, nil: nil
         }
     }

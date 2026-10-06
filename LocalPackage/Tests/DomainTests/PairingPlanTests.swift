@@ -25,15 +25,16 @@ struct PairingPlanTests {
         #expect(playerPlan == .awaitShare)
     }
 
-    @Test("2台とも同じ役割を選ぶと、どちらも共有を作らずに止まる", arguments: Role.allCases)
-    func sameRoleStopsBothSides(role: Role) {
+    @Test("2台とも同じ役割を選ぶと、どちらの端末も共有を作らずに、選んだ役割が重なったことを伝えて止まる", arguments: Role.allCases)
+    func sameRoleStopsBothSides(chosen: Role) {
         // Given
-        let partnerRole = role
+        let myRole = chosen
+        let partnerRole = chosen
 
         // When
-        let plan = PairingPlan(role: role, partnerRole: partnerRole)
+        let plan = PairingPlan(role: myRole, partnerRole: partnerRole)
 
         // Then
-        #expect(plan == .sameRole(role))
+        #expect(plan == .sameRole(chosen))
     }
 }
