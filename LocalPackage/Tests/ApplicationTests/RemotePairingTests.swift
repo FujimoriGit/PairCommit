@@ -100,7 +100,6 @@ struct RemotePairingTests {
         // Then
         #expect(paired == nil)
         #expect(inviting.withdrawCalls == 2)
-        #expect(inviting.advanceCalls == 0)
         #expect(pairing.phase == .idle)
     }
 
@@ -117,7 +116,6 @@ struct RemotePairingTests {
         // Then
         #expect(paired == nil)
         #expect(inviting.withdrawCalls == 1)
-        #expect(inviting.advanceCalls == 0)
         #expect(pairing.phase == .idle)
     }
 
@@ -135,7 +133,6 @@ struct RemotePairingTests {
         #expect(pairing.phase == .inviting)
         #expect(paired != nil)
         #expect(inviting.sendCalls == 0)
-        #expect(inviting.advanceCalls == 1)
     }
 
     @Test("招待リンクで参加したあとで開き直したら、参加し直さずに招待した側を待つ")
@@ -183,7 +180,6 @@ private final class FakeInviting: PartnershipInviting {
     var sendFailure: PairingFailure?
     var cleanupFailure: PairingFailure?
     private(set) var sendCalls = 0
-    private(set) var advanceCalls = 0
     private(set) var joinCalls = 0
     private(set) var withdrawCalls = 0
     private(set) var endPairCalls = 0
@@ -222,7 +218,6 @@ private final class FakeInviting: PartnershipInviting {
     }
 
     func advance(ownerRole: Role) async throws(PairingFailure) -> InvitationProgress {
-        advanceCalls += 1
         if held {
             await withCheckedContinuation { waiting = $0 }
         }

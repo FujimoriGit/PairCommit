@@ -203,6 +203,32 @@ struct PartnershipStoreTests {
         #expect(store?.state == paired)
     }
 
+    @Test("共有を作った側は、自分が選んだ役割で使い始める")
+    func sharingSideStartsWithTheRoleItChose() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired))
+
+        // When
+        let store = try await PartnershipStore(starting: share)
+
+        // Then
+        #expect(store?.role == .manager)
+    }
+
+    @Test("共有に参加した側は、作った側が選ばなかった役割で使い始める")
+    func joiningSideStartsWithTheRoleTheOtherDidNotChoose() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
+
+        // When
+        let store = try await PartnershipStore(starting: share)
+
+        // Then
+        #expect(store?.role == .player)
+    }
+
     @Test("共有にペアが入っていなければ、何も始まらない")
     func shareWithoutAPairOpensNothing() async throws {
         // Given
