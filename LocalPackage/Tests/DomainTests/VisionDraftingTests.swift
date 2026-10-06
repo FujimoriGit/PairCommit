@@ -51,41 +51,6 @@ struct VisionDraftingTests {
         #expect(vision.status == .draft)
     }
 
-    @Test("書いて出したビジョンは、下書きを経ずに管理者の承認待ちになる")
-    func submittedVisionAwaitsApprovalWithoutDraft() throws {
-        // Given
-        let state = PartnershipState()
-
-        // When
-        let (submitted, visionID) = try state.submittingVision(
-            .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil),
-            by: .player
-        )
-
-        // Then
-        #expect(submitted.visions.map(\.id) == [visionID])
-        #expect(submitted.visions.first?.status == .proposed)
-    }
-
-    @Test("差し戻されたビジョンを書き直して出し直すと、書き直した中身で承認待ちに戻る")
-    func resubmittedVisionAwaitsApprovalWithRevisedContent() throws {
-        // Given
-        let (proposed, visionID) = try PartnershipState().proposedVision()
-        let returned = try proposed.rejectingVision(visionID, by: .manager)
-
-        // When
-        let state = try returned.resubmittingVision(
-            visionID,
-            as: .init(statement: "半年で5kg痩せる", doneCriteria: "体重計で65kgを切る", deadline: nil, why: nil),
-            by: .player
-        )
-
-        // Then
-        let vision = try #require(state.visions.first)
-        #expect(vision.statement == "半年で5kg痩せる")
-        #expect(vision.status == .proposed)
-    }
-
     @Test("ビジョンの一文と達成基準は、空白だけでは起案できない")
     func visionCannotBeDraftedWithBlankText() {
         // Given

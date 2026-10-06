@@ -138,8 +138,8 @@ struct RemotePairingTests {
         #expect(inviting.advanceCalls == 1)
     }
 
-    @Test("招待リンクを送ったあとで開き直しても、招待した側が選んだ役割が分かる")
-    func restoringAfterSendingKeepsTheOwnerRole() {
+    @Test("招待リンクを送ったあとで開き直しても、リンクに添える文で相手の役割を伝えられる")
+    func restoringAfterSendingStillTellsThePartnersRole() {
         // Given
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .player))
 

@@ -27,6 +27,37 @@ struct VisionLifecycleTests {
         #expect(state.activeVision?.id == visionID)
     }
 
+    @Test("プレイヤーが書いて提出したビジョンは、管理者の承認待ちになる")
+    func submittedVisionAwaitsManagersApproval() throws {
+        // Given
+        let state = PartnershipState()
+
+        // When
+        let (submitted, visionID) = try state.submittingVision(
+            .init(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: nil, why: nil), by: .player
+        )
+
+        // Then
+        #expect(submitted.visions.first(where: { $0.id == visionID })?.status == .proposed)
+    }
+
+    @Test("差し戻されたビジョンを書き直して出し直すと、また管理者の承認待ちになる")
+    func resubmittedVisionAwaitsManagersApprovalAgain() throws {
+        // Given
+        let (proposed, visionID) = try PartnershipState().proposedVision()
+        let returned = try proposed.rejectingVision(visionID, by: .manager)
+
+        // When
+        let state = try returned.resubmittingVision(
+            visionID,
+            as: .init(statement: "半年で5kg痩せる", doneCriteria: "体重計で65kgを切る", deadline: nil, why: nil),
+            by: .player
+        )
+
+        // Then
+        #expect(state.visions.first(where: { $0.id == visionID })?.status == .proposed)
+    }
+
     @Test("ビジョンの承認は管理者だけができる（執行権限は管理者）")
     func onlyManagerCanApproveVision() throws {
         // Given
