@@ -10,6 +10,7 @@ import SwiftUI
 
 struct VisionCard: View {
     let vision: Vision
+    let taskProgress: Vision.Progress
     let role: Role
     let now: Date
 
@@ -26,8 +27,11 @@ struct VisionCard: View {
                 .font(.subheadline)
                 .foregroundStyle(.white)
                 .lineLimit(3)
-            countdown
-                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 10) {
+                completion
+                countdown
+            }
+            .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -63,6 +67,22 @@ private struct Surface: ViewModifier {
 }
 
 private extension VisionCard {
+    @ViewBuilder
+    var completion: some View {
+        if let fraction = taskProgress.fraction {
+            Label(
+                String(localized: .visionCardTaskProgress(
+                    taskProgress.approved,
+                    taskProgress.total,
+                    fraction.formatted(.percent.precision(.fractionLength(0)))
+                )),
+                systemImage: "checklist.checked"
+            )
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.white)
+        }
+    }
+
     var countdown: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(remaining, systemImage: symbol)
@@ -119,18 +139,28 @@ private extension VisionCard {
 }
 
 #Preview("ビジョンカードの期限あり") {
-    VisionCard(vision: .preview(status: .active, deadline: .preview(daysLater: 30)), role: .player, now: .preview)
-        .padding()
+    VisionCard(
+        vision: .preview(status: .active, deadline: .preview(daysLater: 30)),
+        taskProgress: .init(approved: 3, total: 5),
+        role: .player,
+        now: .preview
+    )
+    .padding()
 }
 
 #Preview("ビジョンカードの期限なし") {
-    VisionCard(vision: .preview(status: .active), role: .player, now: .preview)
+    VisionCard(vision: .preview(status: .active), taskProgress: .init(approved: 0, total: 0), role: .player, now: .preview)
         .padding()
 }
 
 #Preview("ビジョンカードの期限当日") {
-    VisionCard(vision: .preview(status: .active, deadline: .preview), role: .manager, now: .preview)
-        .padding()
+    VisionCard(
+        vision: .preview(status: .active, deadline: .preview),
+        taskProgress: .init(approved: 4, total: 5),
+        role: .manager,
+        now: .preview
+    )
+    .padding()
 }
 
 #Preview("ビジョンカードの長文") {
@@ -141,6 +171,7 @@ private extension VisionCard {
             status: .active,
             deadline: .preview(daysLater: 30)
         ),
+        taskProgress: .init(approved: 1, total: 8),
         role: .player,
         now: .preview
     )
@@ -148,6 +179,11 @@ private extension VisionCard {
 }
 
 #Preview("ビジョンカードの期限切れ") {
-    VisionCard(vision: .preview(status: .active, deadline: .preview(daysLater: -3)), role: .manager, now: .preview)
-        .padding()
+    VisionCard(
+        vision: .preview(status: .active, deadline: .preview(daysLater: -3)),
+        taskProgress: .init(approved: 2, total: 6),
+        role: .manager,
+        now: .preview
+    )
+    .padding()
 }

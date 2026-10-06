@@ -36,7 +36,12 @@ struct PlayerTaskView: View {
 private extension PlayerTaskView {
     @ViewBuilder
     var content: some View {
-        VisionCard(vision: vision, role: store.role, now: now)
+        VisionCard(
+            vision: vision,
+            taskProgress: store.state.progress(of: vision.id),
+            role: store.role,
+            now: now
+        )
         NudgeCard(state: store.state, role: store.role, now: now)
         taskList(store.state.tasks(for: vision.id))
         proposal
