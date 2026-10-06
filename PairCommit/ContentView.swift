@@ -124,7 +124,10 @@ private extension ContentView {
             ReconnectingView(
                 failureMessage: failureMessage,
                 onRetry: { failureMessage = nil },
-                onStartOver: { Task { await returnToPicker(with: nil) } }
+                onStartOver: {
+                    sharing.declineRemainingShare()
+                    Task { await returnToPicker(with: nil) }
+                }
             )
             .task(id: failureMessage == nil) {
                 guard failureMessage == nil else { return }

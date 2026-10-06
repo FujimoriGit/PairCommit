@@ -42,6 +42,7 @@ public struct CloudSharing: PartnershipSharing {
     }
 
     public func remainingShare() async throws(PairingFailure) -> (any PairedShare)? {
+        guard !SavedPairing.isDeclined else { return nil }
         do {
             return try await PartnershipShare.findRemainingRoot().map {
                 CloudPairedShare(rootRecordID: $0.rootRecordID, isOwner: $0.isOwner)
@@ -49,6 +50,10 @@ public struct CloudSharing: PartnershipSharing {
         } catch {
             throw PairingFailure(error)
         }
+    }
+
+    public func declineRemainingShare() {
+        SavedPairing.decline()
     }
 
     public func clearSavedShare() {

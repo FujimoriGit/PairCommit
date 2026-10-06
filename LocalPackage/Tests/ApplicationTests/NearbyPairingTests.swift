@@ -179,5 +179,7 @@ private final class FakeSharing: PartnershipSharing {
         nil
     }
 
+    nonisolated func declineRemainingShare() {}
+
     nonisolated func clearSavedShare() {}
 }

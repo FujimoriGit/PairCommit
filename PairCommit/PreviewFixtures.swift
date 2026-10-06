@@ -118,6 +118,8 @@ struct PreviewSharing: PartnershipSharing {
         nil
     }
 
+    func declineRemainingShare() {}
+
     func clearSavedShare() {}
 }
 

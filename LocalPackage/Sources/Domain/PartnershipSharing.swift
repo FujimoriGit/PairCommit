@@ -15,6 +15,8 @@ public protocol PartnershipSharing: Sendable {
     func savedShare() -> (any PairedShare)?
     /// 端末に残っていないときに、iCloud に残っている前のペアを探す。相手が参加済みのものだけを返す。
     func remainingShare() async throws(PairingFailure) -> (any PairedShare)?
+    /// 前のペアへのつなぎ直しをやめたことを端末に残す。次にペアを組むまで、残っているペアを返さなくなる。
+    func declineRemainingShare()
     func clearSavedShare()
 }
 
