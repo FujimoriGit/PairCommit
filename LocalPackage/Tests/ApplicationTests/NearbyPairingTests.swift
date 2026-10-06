@@ -16,10 +16,10 @@ struct NearbyPairingTests {
     @Test("話し合いの結果が止まるなら、共有を作らずに失敗で終わる")
     func stopPlanFailsWithoutSharing() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
 
         // When
-        channel.receive(.received(Partner.choosing(.role(.manager))))
+        channel.receive(.received(Partner.choosing(.manager)))
 
         // Then
         #expect(await eventually { pairing.phase == .failed(.sameRole(.manager)) })
@@ -29,11 +29,11 @@ struct NearbyPairingTests {
     @Test("共有を作る側の iCloud がいっぱいなら、相手に作る役を引き渡す")
     func fullStorageHandsSharingOverToThePartner() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
         sharing.failure = .storageFull
 
         // When
-        channel.receive(.received(Partner.choosing(.invitation)))
+        channel.receive(.received(Partner.choosing(.player)))
 
         // Then
         #expect(await eventually { pairing.phase == .handedOver })
@@ -43,8 +43,8 @@ struct NearbyPairingTests {
     @Test("共有を作った側は、相手から受け取った知らせが届いたら完了する")
     func ownerCompletesWhenThePartnerAcknowledges() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
-        channel.receive(.received(Partner.choosing(.invitation)))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
+        channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
 
         // When
@@ -58,9 +58,9 @@ struct NearbyPairingTests {
     @Test("共有を作っている間にやめたら、できた共有を結果にしない")
     func resetWhileSharingDiscardsTheShare() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
         sharing.hold()
-        channel.receive(.received(Partner.choosing(.invitation)))
+        channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { sharing.isHeld })
 
         // When
@@ -79,11 +79,11 @@ struct NearbyPairingTests {
 // MARK: - Private
 
 private extension NearbyPairingTests {
-    static func started(with choice: PairingChoice) -> (NearbyPairing, FakeChannel, FakeSharing) {
+    static func started(as role: Role) -> (NearbyPairing, FakeChannel, FakeSharing) {
         let channel = FakeChannel()
         let sharing = FakeSharing()
         let pairing = NearbyPairing(sharing: sharing, makeChannel: { channel })
-        pairing.start(with: choice)
+        pairing.start(as: role)
         channel.receive(.connected)
         return (pairing, channel, sharing)
     }
@@ -93,11 +93,8 @@ private extension NearbyPairingTests {
 private enum Partner {
     static let acknowledgement = "paircommit://ack"
 
-    static func choosing(_ choice: PairingChoice) -> String {
-        switch choice {
-        case .role(let role): "paircommit://choice/\(role.rawValue)"
-        case .invitation: "paircommit://choice/invitation"
-        }
+    static func choosing(_ role: Role) -> String {
+        "paircommit://role/\(role.rawValue)"
     }
 
     static func handingOver(_ role: Role) -> String {

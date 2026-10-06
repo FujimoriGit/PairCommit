@@ -138,6 +138,18 @@ struct RemotePairingTests {
         #expect(inviting.advanceCalls == 1)
     }
 
+    @Test("招待リンクを送ったあとで開き直しても、招待した側が選んだ役割が分かる")
+    func restoringAfterSendingKeepsTheOwnerRole() {
+        // Given
+        let inviting = FakeInviting(savedStage: .sent(ownerRole: .player))
+
+        // When
+        let pairing = RemotePairing(inviting: inviting)
+
+        // Then
+        #expect(pairing.ownerRole == .player)
+    }
+
     @Test("招待リンクで参加したあとで開き直したら、参加し直さずに招待した側を待つ")
     func restoringAfterJoiningWaitsForTheHost() async {
         // Given
