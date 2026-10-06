@@ -228,8 +228,7 @@ private extension PlayerVisionView {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    let drafted = try state.draftingVision(content, by: role)
-                    return try drafted.state.proposingVision(drafted.visionID, by: role)
+                    try state.submittingVision(content, by: role).state
                 }
                 failureMessage = nil
                 input = .init()
@@ -246,7 +245,7 @@ private extension PlayerVisionView {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.revisingVision(vision.id, to: content, by: role).proposingVision(vision.id, by: role)
+                    try state.resubmittingVision(vision.id, as: content, by: role)
                 }
                 failureMessage = nil
                 input = .init()
