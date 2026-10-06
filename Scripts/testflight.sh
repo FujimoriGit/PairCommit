@@ -65,4 +65,4 @@ xcodebuild \
   -exportPath build/Export \
   "${AUTH[@]}"
 
-echo "ビルド ${BUILD_NUMBER} を App Store Connect に上げた。処理が終わると TestFlight に出る。"
+echo "ビルド ${BUILD_NUMBER} を App Store Connect に上げた。"
