@@ -14,7 +14,7 @@ import Testing
 struct PartnershipStoreTests {
 
     @Test("操作は iCloud への保存の完了を待たずに手元の状態に反映され、iCloud にも保存される")
-    func anActionShowsUpRightAwayAndIsSavedForThePartner() async throws {
+    func anActionAppliesLocallyRightAwayAndIsSavedToICloud() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
@@ -191,7 +191,7 @@ struct PartnershipStoreTests {
     }
 
     @Test("ペアリングが完了したら、iCloud に保存されたペアの状態から使い始める")
-    func usageStartsWithThePairRegisteredInICloud() async throws {
+    func usageStartsWithThePairSavedInICloud() async throws {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))

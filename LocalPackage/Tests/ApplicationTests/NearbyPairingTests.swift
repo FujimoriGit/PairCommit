@@ -14,7 +14,7 @@ import Testing
 struct NearbyPairingTests {
 
     @Test("2台とも同じ役割を選ぶと、ペアは保存されず、役割の重複でペアリングが失敗する", arguments: Role.allCases)
-    func choosingTheSameRoleOnBothDevicesRegistersNoPair(chosen: Role) async {
+    func choosingTheSameRoleOnBothDevicesSavesNoPair(chosen: Role) async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(chosen))
 
@@ -58,7 +58,7 @@ struct NearbyPairingTests {
     }
 
     @Test("ペアを保存している途中でやめたら、ペアは残らず、相手にも送られない")
-    func cancellingWhileRegisteringThePairLeavesNoPair() async {
+    func cancellingWhileSavingThePairLeavesNoPair() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         sharing.hold()
