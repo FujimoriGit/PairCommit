@@ -70,9 +70,16 @@ private extension TaskDetailView {
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-                Slider(value: .init(get: { current }, set: { editingProgress = $0 }), in: 0...100, step: 10) { isEditing in
+                Slider(value: .init(get: { current }, set: { editingProgress = $0 }), in: 0...100, step: 10) {
+                    Text(.taskDetailProgress)
+                } onEditingChanged: { isEditing in
                     guard !isEditing, let value = editingProgress else { return }
                     setProgress(Int(value), on: task)
+                }
+                // VoiceOver の調整では、触って離すことがないので編集の終わりが届かない
+                .accessibilityAdjustableAction { direction in
+                    let step = direction == .increment ? 10 : -10
+                    setProgress(min(max((task.progress ?? 0) + step, 0), 100), on: task)
                 }
             }
         } else if let percent = task.progress {
