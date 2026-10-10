@@ -44,7 +44,7 @@ struct PartnershipTabs: View {
         // 保存の結果を待たずに名前の入った状態へ切り替わるので、それで閉じると、
         // 保存に失敗して元に戻ったときに入力し直しの画面が開き直し、失敗を伝えられない
         .fullScreenCover(isPresented: $isNaming) {
-            NamingSheet(store: store)
+            NamingScreen(store: store)
         }
         .onChange(of: isNamingRequired, initial: true) { _, isRequired in
             if isRequired {
