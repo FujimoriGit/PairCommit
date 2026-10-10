@@ -23,6 +23,7 @@ struct TaskDetailView: View {
             if let task {
                 summary(of: task)
                 progress(of: task)
+                NoteSection(store: store, subject: .task(task.id))
             }
         }
         .navigationTitle(.taskDetailTitle)
@@ -119,8 +120,16 @@ private extension TaskDetailView {
         deadline: .preview(daysLater: 30),
         progress: 40
     )
+    let notes = [
+        Note.preview(on: .task(task.id), kind: .report, author: .player, number: 1, body: "今週は2回行けた。金曜に残りの1回を入れる"),
+        Note.preview(on: .task(task.id), kind: .feedback, author: .manager, number: 2, body: "いいペース。金曜に行けたら教えて")
+    ]
     NavigationStack {
-        TaskDetailView(store: .preview(role: .manager, visions: [vision], tasks: [task]), taskID: task.id, now: .preview)
+        TaskDetailView(
+            store: .preview(role: .manager, visions: [vision], tasks: [task], notes: notes),
+            taskID: task.id,
+            now: .preview
+        )
     }
 }
 
@@ -133,7 +142,14 @@ private extension TaskDetailView {
         createdBy: .manager,
         progress: 80
     )
+    let notes = [
+        Note.preview(on: .task(task.id), kind: .reminder, author: .manager, number: 1, body: "そろそろ承認するから、どこまでやったか教えて")
+    ]
     NavigationStack {
-        TaskDetailView(store: .preview(role: .player, visions: [vision], tasks: [task]), taskID: task.id, now: .preview)
+        TaskDetailView(
+            store: .preview(role: .player, visions: [vision], tasks: [task], notes: notes),
+            taskID: task.id,
+            now: .preview
+        )
     }
 }

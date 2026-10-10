@@ -20,4 +20,5 @@ public enum DomainError: Error, Equatable {
     case blankText
     case pastDeadline
     case progressOutOfRange
+    case noteSubjectClosed
 }
