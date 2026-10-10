@@ -10,14 +10,48 @@ import SwiftUI
 
 struct ClosedTaskList: View {
     let tasks: [TaskItem]
+    let onShowCancelled: () -> Void
 
     @ViewBuilder
     var body: some View {
-        if !tasks.isEmpty {
+        if !approved.isEmpty || !cancelled.isEmpty {
             SectionHeader(text: String(localized: .taskListClosed))
-            ForEach(tasks) { task in
+            ForEach(approved) { task in
                 TaskSummaryRow(task: task)
             }
+            if !cancelled.isEmpty {
+                Button(action: onShowCancelled) {
+                    cancelledLink
+                }
+                .buttonStyle(.choice)
+            }
         }
+    }
+}
+
+// MARK: - Private
+
+private extension ClosedTaskList {
+    var approved: [TaskItem] {
+        tasks.filter { $0.status == .approved }
+    }
+
+    var cancelled: [TaskItem] {
+        tasks.filter { $0.status == .cancelled }
+    }
+
+    var cancelledLink: some View {
+        HStack(spacing: 12) {
+            Text(.cancelledTasksTitle)
+                .font(.system(.body, design: .rounded, weight: .semibold))
+            Spacer(minLength: 8)
+            Text(cancelled.count, format: .number)
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+        }
+        .card()
     }
 }
