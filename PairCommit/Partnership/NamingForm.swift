@@ -34,24 +34,6 @@ struct NamingForm: View {
     }
 }
 
-extension PartnershipStore {
-    var ownName: String? {
-        state.pairing?.name(of: role)
-    }
-
-    /// 失敗したときは、画面に出す文を返す。
-    func saveName(_ name: String) async -> String? {
-        do throws(PartnershipFailure) {
-            try await perform { state, role throws(DomainError) in
-                try state.naming(name, by: role)
-            }
-            return nil
-        } catch {
-            return error.message
-        }
-    }
-}
-
 // MARK: - Private
 
 private extension NamingForm {
