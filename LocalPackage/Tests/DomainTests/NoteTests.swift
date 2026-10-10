@@ -71,6 +71,18 @@ struct NoteTests {
         }
     }
 
+    @Test("閉じたビジョンには書き込めない")
+    func closedVisionCannotBeWrittenOn() throws {
+        // Given
+        let (active, visionID) = try PartnershipState().activeVision()
+        let closed = try active.closingVision(visionID, as: .achieved, by: .manager)
+
+        // When / Then
+        #expect(throws: DomainError.noteSubjectClosed) {
+            try closed.writingNote("おつかれさま", kind: .feedback, on: .vision(visionID), by: .manager)
+        }
+    }
+
     @Test("取り下げた起案に書いた書き込みは、起案と一緒に消える")
     func notesOnADiscardedDraftAreRemoved() throws {
         // Given

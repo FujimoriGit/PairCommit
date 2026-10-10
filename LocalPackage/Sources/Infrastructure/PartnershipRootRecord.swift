@@ -14,7 +14,7 @@ enum PartnershipRootRecord {
 
     static func decoding(_ record: CKRecord, notes: [Note] = []) throws -> PartnershipState {
         guard let data = record[Key.state] as? Data else { throw Failure.stateMissing }
-        let state = try JSONDecoder().decode(PartnershipState.self, from: data)
+        let state = try JSONDecoder().decode(StoredState.self, from: data)
         return .init(
             pairing: state.pairing.map {
                 naming($0, manager: record[Key.managerName] as? String, player: record[Key.playerName] as? String)
@@ -31,7 +31,7 @@ enum PartnershipRootRecord {
     }
 
     static func encoding(_ state: PartnershipState, into record: CKRecord) throws -> CKRecord {
-        let unnamed = PartnershipState(
+        let unnamed = StoredState(
             pairing: state.pairing.map { naming($0, manager: nil, player: nil) },
             visions: state.visions,
             tasks: state.tasks
@@ -47,6 +47,12 @@ enum PartnershipRootRecord {
 // MARK: - Private
 
 private extension PartnershipRootRecord {
+    struct StoredState: Codable {
+        let pairing: Pairing?
+        let visions: [Vision]
+        let tasks: [TaskItem]
+    }
+
     enum Key {
         static let state = "state"
         static let managerName = "managerName"
