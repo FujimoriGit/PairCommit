@@ -257,6 +257,22 @@ extension PartnershipState {
     }
 }
 
+// MARK: - 相手の操作
+
+extension PartnershipState {
+    /// `previous` からこの状態までに、相手が `role` に向けて行った操作。別のペアの状態と比べたときは空。
+    public func partnerActions(since previous: Self, for role: Role) -> [PartnerAction] {
+        guard pairing?.id == previous.pairing?.id else { return [] }
+        let visionActions = visions.compactMap { vision in
+            action(on: vision, from: previous.visions.first { $0.id == vision.id }?.status)
+        }
+        let taskActions = tasks.flatMap { task in
+            actions(on: task, from: previous.tasks.first { $0.id == task.id })
+        }
+        return (visionActions + taskActions).filter { $0.recipient == role }
+    }
+}
+
 // MARK: - Private
 
 private extension PartnershipState {
@@ -299,6 +315,39 @@ private extension PartnershipState {
             }
         }
         return found.filter { $0.nudge.recipient == role }
+    }
+
+    func action(on vision: Vision, from before: Vision.Status?) -> PartnerAction? {
+        guard vision.status != before else { return nil }
+        switch vision.status {
+        case .proposed: return .visionProposed(vision.id)
+        case .active: return .visionApproved(vision.id)
+        case .draft: return before == .proposed ? .visionReturned(vision.id) : nil
+        case .achieved, .abandoned: return vision.outcome.map { .visionClosed(vision.id, $0) }
+        }
+    }
+
+    func actions(on task: TaskItem, from previous: TaskItem?) -> [PartnerAction] {
+        let creation: PartnerAction? = switch (previous, task.createdBy) {
+        case (nil, .manager): .taskAdded(task.id)
+        case (nil, .player): .taskProposed(task.id)
+        case (.some, _): nil
+        }
+        let reaction = task.reaction.flatMap { $0 == previous?.reaction ? nil : PartnerAction.reactionChanged(task.id, $0) }
+        let before = previous?.status ?? (task.createdBy == .manager ? .todo : .proposed)
+        return [creation, statusAction(on: task, from: before), reaction].compactMap { $0 }
+    }
+
+    func statusAction(on task: TaskItem, from before: TaskItem.Status) -> PartnerAction? {
+        guard task.status != before else { return nil }
+        switch (before, task.status) {
+        case (.proposed, .todo): return .taskAdopted(task.id)
+        case (.reported, .todo): return .taskReturned(task.id)
+        case (_, .reported): return .taskReported(task.id)
+        case (_, .approved): return .taskApproved(task.id)
+        case (_, .cancelled): return task.visionID == activeVision?.id ? .taskCancelled(task.id) : nil
+        case (_, .proposed), (_, .todo): return nil
+        }
     }
 
     func updating(visions: [Vision]? = nil, tasks: [TaskItem]? = nil) -> Self {

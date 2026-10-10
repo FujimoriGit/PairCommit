@@ -20,10 +20,12 @@ struct PairCommitApp: App {
         WindowGroup {
             ContentView(
                 session: delegate.session,
-                sharing: CloudSharing(shareTitle: Self.shareTitle),
+                sharing: delegate.sharing,
                 inviting: CloudInviting(shareTitle: Self.shareTitle),
                 invitationLinks: InvitationSceneDelegate.links,
                 notifications: delegate.notifications,
+                partnerNotifications: delegate.partnerNotifications,
+                knownState: delegate.knownState,
                 makeCriteriaReviewing: {
                     OnDeviceCriteriaReview(instructions: CriteriaReviewPrompt.instructions, prompt: CriteriaReviewPrompt.prompt)
                 },
@@ -42,7 +44,10 @@ private extension PairCommitApp {
 @MainActor
 final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     let session = PartnershipSession()
+    let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
     let notifications = NudgeNotifications()
+    let partnerNotifications = PartnerActionNotifications()
+    let knownState = SavedKnownState()
 
     func application(
         _ application: UIApplication,
@@ -68,17 +73,30 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable: Any]
     ) async -> UIBackgroundFetchResult {
-        guard let store = session.store else { return .noData }
-        do {
-            try await store.refresh()
+        // 取り直すと画面の側が新しい状態を残すので、その前に読む。
+        let known = knownState.lastKnown()
+        let store: PartnershipStore
+        do throws(SyncFailure) {
+            if let current = session.store {
+                try await current.refresh()
+                store = current
+            } else if let share = sharing.savedShare(), let started = try await PartnershipStore(starting: share) {
+                store = started
+            } else {
+                return .noData
+            }
         } catch {
             return .failed
         }
+        let state = store.state
         // 前面では取り直しで画面が更新され、そちらからも掲示が走る。二重に出すと鳴り直す。
         if application.applicationState != .active {
-            let state = store.state
             await notifications.post(for: store.role, in: state) { $0.message(in: state) }
+            if let known {
+                await partnerNotifications.post(for: store.role, in: state, since: known) { $0.message(in: state) }
+            }
         }
+        knownState.keep(state)
         return .newData
     }
 }
