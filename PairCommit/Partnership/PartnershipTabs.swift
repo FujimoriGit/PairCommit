@@ -8,6 +8,7 @@
 import Application
 import Domain
 import SwiftUI
+import UIKit
 
 struct PartnershipTabs: View {
     let store: PartnershipStore
