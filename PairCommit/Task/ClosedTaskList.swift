@@ -5,15 +5,12 @@
 //  Created by Daiki Fujimori on 2026/10/06
 //
 
-import Application
 import Domain
 import SwiftUI
 
 struct ClosedTaskList: View {
-    let store: PartnershipStore
-    let vision: Vision
-
-    @State private var isShowingCancelled = false
+    let tasks: [TaskItem]
+    let onShowCancelled: () -> Void
 
     @ViewBuilder
     var body: some View {
@@ -23,15 +20,10 @@ struct ClosedTaskList: View {
                 TaskSummaryRow(task: task)
             }
             if !cancelled.isEmpty {
-                Button {
-                    isShowingCancelled = true
-                } label: {
+                Button(action: onShowCancelled) {
                     cancelledLink
                 }
                 .buttonStyle(.choice)
-                .sheet(isPresented: $isShowingCancelled) {
-                    CancelledTaskSheet(store: store, vision: vision)
-                }
             }
         }
     }
@@ -40,10 +32,6 @@ struct ClosedTaskList: View {
 // MARK: - Private
 
 private extension ClosedTaskList {
-    var tasks: [TaskItem] {
-        store.state.tasks(for: vision.id)
-    }
-
     var approved: [TaskItem] {
         tasks.filter { $0.status == .approved }
     }

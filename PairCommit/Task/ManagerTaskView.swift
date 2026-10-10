@@ -17,6 +17,7 @@ struct ManagerTaskView: View {
     @State private var outcome: Vision.Outcome?
     @State private var cancelling: TaskItem?
     @State private var isAddingTask = false
+    @State private var isShowingCancelledTasks = false
 
     @Environment(\.achievingVision) private var achievingVision
     @Environment(\.presentingFailure) private var presentingFailure
@@ -61,6 +62,9 @@ struct ManagerTaskView: View {
                 onSubmit: { await create($0) }
             )
         }
+        .sheet(isPresented: $isShowingCancelledTasks) {
+            CancelledTaskSheet(store: store, vision: vision)
+        }
     }
 }
 
@@ -89,7 +93,7 @@ private extension ManagerTaskView {
             Label(.managerTaskCreationTitle, systemImage: "plus")
         }
         .buttonStyle(.soft)
-        ClosedTaskList(store: store, vision: vision)
+        ClosedTaskList(tasks: tasks) { isShowingCancelledTasks = true }
         judgement
     }
 

@@ -15,6 +15,7 @@ struct PlayerTaskView: View {
     let now: Date
 
     @State private var isProposingTask = false
+    @State private var isShowingCancelledTasks = false
     @State private var feedback = FeedbackCue()
 
     @Environment(\.presentingFailure) private var presentingFailure
@@ -34,6 +35,9 @@ struct PlayerTaskView: View {
                 now: now,
                 onSubmit: { await create($0) }
             )
+        }
+        .sheet(isPresented: $isShowingCancelledTasks) {
+            CancelledTaskSheet(store: store, vision: vision)
         }
     }
 }
@@ -58,7 +62,7 @@ private extension PlayerTaskView {
             Label(.playerTaskProposalTitle, systemImage: "plus")
         }
         .buttonStyle(.soft)
-        ClosedTaskList(store: store, vision: vision)
+        ClosedTaskList(tasks: tasks) { isShowingCancelledTasks = true }
     }
 
     @ViewBuilder
