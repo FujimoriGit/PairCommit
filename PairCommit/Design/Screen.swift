@@ -22,6 +22,7 @@ struct Screen<Content: View>: View {
             .padding(.bottom, 36)
         }
         .scrollDismissesKeyboard(.interactively)
+        .scrollIndicators(.hidden)
         .background(Backdrop(colors: [role.accent]))
         .tint(role.accent)
     }
