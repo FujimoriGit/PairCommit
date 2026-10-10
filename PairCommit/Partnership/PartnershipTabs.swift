@@ -15,6 +15,7 @@ struct PartnershipTabs: View {
 
     @State private var destination = Destination.home
     @State private var refreshFailure: String?
+    @State private var isNaming = false
 
     var body: some View {
         TabView(selection: $destination) {
@@ -40,9 +41,15 @@ struct PartnershipTabs: View {
         } message: {
             Text(refreshFailure ?? "")
         }
-        .sheet(isPresented: Binding(get: { isNamingRequired }, set: { _ in })) {
+        // 保存の結果を待たずに名前の入った状態へ切り替わるので、それで閉じると、
+        // 保存に失敗して元に戻ったときに入力し直しの画面が開き直し、失敗を伝えられない
+        .fullScreenCover(isPresented: $isNaming) {
             NamingSheet(store: store)
-                .interactiveDismissDisabled()
+        }
+        .onChange(of: isNamingRequired, initial: true) { _, isRequired in
+            if isRequired {
+                isNaming = true
+            }
         }
     }
 }

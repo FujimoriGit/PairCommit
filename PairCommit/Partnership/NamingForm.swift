@@ -11,12 +11,14 @@ import SwiftUI
 
 struct NamingForm: View {
     let store: PartnershipStore
+    let onSaved: @MainActor () -> Void
 
     @State private var name: String
     @State private var failureMessage: String?
 
-    init(store: PartnershipStore) {
+    init(store: PartnershipStore, onSaved: @escaping @MainActor () -> Void = {}) {
         self.store = store
+        self.onSaved = onSaved
         _name = State(initialValue: store.state.pairing?.name(of: store.role) ?? "")
     }
 
@@ -50,6 +52,7 @@ private extension NamingForm {
                     try state.naming(entered, by: role)
                 }
                 name = store.state.pairing?.name(of: store.role) ?? entered
+                onSaved()
             } catch {
                 failureMessage = error.message
             }
@@ -60,15 +63,37 @@ private extension NamingForm {
 struct NamingSheet: View {
     let store: PartnershipStore
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        Screen(role: store.role) {
-            Text(.namingTitle)
-                .font(.system(.title2, design: .rounded, weight: .bold))
-            Text(.namingMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            NamingForm(store: store)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 24) {
+                    Spacer()
+                    SymbolBadge(symbol: "person.crop.circle")
+
+                    VStack(spacing: 10) {
+                        Text(.namingTitle)
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                        Text(.namingMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .multilineTextAlignment(.center)
+
+                    VStack(spacing: 12) {
+                        NamingForm(store: store) { dismiss() }
+                    }
+                    Spacer()
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
         }
+        .background(Backdrop(colors: [store.role.accent]))
+        .tint(store.role.accent)
     }
 }
 
