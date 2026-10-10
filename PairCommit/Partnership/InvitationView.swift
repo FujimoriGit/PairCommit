@@ -21,6 +21,7 @@ struct InvitationView: View {
         VStack(spacing: 24) {
             Spacer()
             SymbolBadge(symbol: "link")
+                .symbolEffect(.pulse, isActive: failureMessage == nil && !isCancelling)
 
             VStack(spacing: 10) {
                 Text(.invitationTitle)
@@ -85,6 +86,8 @@ private extension InvitationView {
         onRetry: {},
         onCancel: {}
     )
+    // 動いている途中を撮ると、撮るたびに画像が変わる
+    .symbolEffectsRemoved()
 }
 
 #Preview("招待リンクの失敗") {

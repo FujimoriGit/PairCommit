@@ -17,6 +17,7 @@ struct PairingView: View {
         VStack(spacing: 24) {
             Spacer()
             SymbolBadge(symbol: "dot.radiowaves.left.and.right")
+                .symbolEffect(.variableColor.iterative, isActive: isConnecting)
 
             VStack(spacing: 10) {
                 Text(.nearbyPairingTitle)
@@ -65,6 +66,13 @@ private extension NearbyPairing.Phase {
 }
 
 private extension PairingView {
+    var isConnecting: Bool {
+        switch phase {
+        case .searching, .connected, .sharing, .handedOver: true
+        case .idle, .done, .failed: false
+        }
+    }
+
     var failure: NearbyPairing.Failure? {
         guard case .failed(let reason) = phase else { return nil }
         return reason
@@ -77,6 +85,8 @@ private extension PairingView {
 
 #Preview("ペアリングの相手待ち") {
     PairingView(phase: .searching, onCancel: {})
+        // 動いている途中を撮ると、撮るたびに画像が変わる
+        .symbolEffectsRemoved()
 }
 
 #Preview("ペアリングの失敗") {
