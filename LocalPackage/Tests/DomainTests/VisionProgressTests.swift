@@ -11,7 +11,7 @@ import Testing
 
 struct VisionProgressTests {
 
-    @Test("ビジョンの進み具合は、取り消したものを除いたタスクのうち、完了したものの数で測る")
+    @Test("ビジョンの進捗は、取り消しを除いたタスクのうち、完了したタスクの数で測る")
     func progressCountsCompletedTasksAmongThoseNotCancelled() throws {
         // Given
         let (active, visionID) = try PartnershipState().activeVision()
@@ -33,7 +33,7 @@ struct VisionProgressTests {
         #expect(progress.total == 3)
     }
 
-    @Test("ビジョンの進み具合は、採用待ちのタスクを数えない")
+    @Test("ビジョンの進捗は、採用待ちのタスクを数えない")
     func progressIgnoresTasksAwaitingAdoption() throws {
         // Given
         let (active, visionID) = try PartnershipState().activeVision()
@@ -47,7 +47,7 @@ struct VisionProgressTests {
         #expect(progress.total == 1)
     }
 
-    @Test("タスクの無いビジョンには、進み具合の割合が無い")
+    @Test("タスクの無いビジョンには、進捗率がない")
     func visionWithoutTasksHasNoProgressFraction() throws {
         // Given
         let (state, visionID) = try PartnershipState().activeVision()

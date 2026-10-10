@@ -30,7 +30,7 @@ struct NudgeTests {
         #expect(nudges.first == .taskOverdue(state.tasks[0].id))
     }
 
-    @Test("期限が近づいた未完了のタスクは、期限の前でも挑む人に催促される")
+    @Test("期限まで3日を切った未完了のタスクは、期限の前でも挑む人に催促される")
     func taskNearingItsDeadlineNudgesThePlayer() throws {
         // Given
         let ready = try activeVision()
@@ -61,7 +61,7 @@ struct NudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("完了の報告が承認されないまま日が経つと、見届ける人に催促される")
+    @Test("完了報告が承認されないまま2日を過ぎると、見届ける人に催促される")
     func stalledApprovalNudgesTheManager() throws {
         // Given
         let ready = try activeVision()
@@ -75,7 +75,7 @@ struct NudgeTests {
         #expect(nudges == [.approvalStalled(created.taskID)])
     }
 
-    @Test("完了を報告した直後は、見届ける人に催促されない")
+    @Test("完了報告の直後は、見届ける人に催促されない")
     func freshReportDoesNotNudgeTheManager() throws {
         // Given
         let ready = try activeVision()
@@ -89,7 +89,7 @@ struct NudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("進行中のビジョンが期限を過ぎると、達成したかの判断を見届ける人に催促される")
+    @Test("進行中のビジョンが期限を過ぎると、達成判断を見届ける人に催促される")
     func overdueVisionNudgesTheManager() throws {
         // Given
         let ready = try activeVision(deadline: day(1))
@@ -131,7 +131,7 @@ struct NudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("期限が近づいた催促は、予約された時刻の前には出ず、過ぎると出る")
+    @Test("期限が近いことの催促は、開始時刻より前には発生せず、開始時刻を過ぎると発生する")
     func dueSoonNudgeAppearsOnceItsScheduledTimePasses() throws {
         // Given
         let ready = try activeVision()
@@ -151,7 +151,7 @@ struct NudgeTests {
         #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
     }
 
-    @Test("期限を過ぎた催促は、予約された時刻の前には出ず、過ぎると出る")
+    @Test("期限切れの催促は、開始時刻より前には発生せず、開始時刻を過ぎると発生する")
     func overdueNudgeAppearsOnceItsScheduledTimePasses() throws {
         // Given
         let ready = try activeVision()
@@ -171,7 +171,7 @@ struct NudgeTests {
         #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
     }
 
-    @Test("すでに出ている催促は、あとから届く催促に入らない")
+    @Test("開始済みの催促は、これから開始する催促に含まれない")
     func aNudgeAlreadyInEffectIsNotUpcoming() throws {
         // Given
         let ready = try activeVision()
@@ -190,7 +190,7 @@ struct NudgeTests {
         #expect(Set(upcoming.keys) == [.taskOverdue(taskID)])
     }
 
-    @Test("催促が始まるちょうどその瞬間でも、催促は抜け落ちず、二重にも出ない")
+    @Test("催促の開始時刻ちょうどでも、催促は抜け落ちず、重複もしない")
     func theStartingInstantIsNeitherLostNorDoubled() throws {
         // Given
         let ready = try activeVision(deadline: day(1))

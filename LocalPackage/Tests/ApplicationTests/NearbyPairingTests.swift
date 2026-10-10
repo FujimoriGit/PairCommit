@@ -13,7 +13,7 @@ import Testing
 @MainActor
 struct NearbyPairingTests {
 
-    @Test("2台とも同じ役割を選ぶと、ペアは登録されず、役割が重なったと出る", arguments: Role.allCases)
+    @Test("2台とも同じ役割を選ぶと、ペアは保存されず、役割の重複でペアリングが失敗する", arguments: Role.allCases)
     func choosingTheSameRoleOnBothDevicesRegistersNoPair(chosen: Role) async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(chosen))
@@ -26,8 +26,8 @@ struct NearbyPairingTests {
         #expect(sharing.makeShareCalls == 0)
     }
 
-    @Test("自分の iCloud がいっぱいでも、相手の iCloud にペアを登録して、ペアリングを終えられる")
-    func pairingFinishesInThePartnersICloudWhenYoursIsFull() async {
+    @Test("自分の iCloud の空き容量が足りなくても、相手の iCloud にペアを保存して、ペアリングが完了する")
+    func pairingCompletesInThePartnersICloudWhenYoursLacksSpace() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         sharing.failure = .storageFull
@@ -42,8 +42,8 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == false)
     }
 
-    @Test("自分の iCloud にペアを登録したら、相手が参加し終えたところで、ペアリングできたと出る")
-    func pairingFinishesOnceThePartnerHasJoined() async {
+    @Test("自分の iCloud にペアを保存した側は、相手がそのペアに参加した時点でペアリングが完了する")
+    func pairingCompletesOnceThePartnerJoins() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         channel.receive(.received(Partner.choosing(.invitation)))
@@ -57,7 +57,7 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == true)
     }
 
-    @Test("ペアを登録している途中でやめたら、ペアは残らず、相手にも届かない")
+    @Test("ペアを保存している途中でやめたら、ペアは残らず、相手にも送られない")
     func cancellingWhileRegisteringThePairLeavesNoPair() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))

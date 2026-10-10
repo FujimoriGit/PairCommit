@@ -13,7 +13,7 @@ import Testing
 @MainActor
 struct PartnershipStoreTests {
 
-    @Test("操作すると、iCloud への保存を待たずに画面に反映され、相手にも届く")
+    @Test("操作は iCloud への保存の完了を待たずに手元の状態に反映され、iCloud にも保存される")
     func anActionShowsUpRightAwayAndIsSavedForThePartner() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
@@ -30,7 +30,7 @@ struct PartnershipStoreTests {
         #expect(saved == store.state)
     }
 
-    @Test("許されていない操作をすると、何も変わらずに、できなかったと出る")
+    @Test("役割やルールで許されない操作は、状態を変えずにエラーになる")
     func aForbiddenActionChangesNothing() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
@@ -45,7 +45,7 @@ struct PartnershipStoreTests {
         #expect(store.state == PartnershipState())
     }
 
-    @Test("相手が操作した結果は、最新の状態を取り直すと画面に出る")
+    @Test("相手の操作は、最新の状態を取得すると手元の状態に反映される")
     func partnersChangeAppearsAfterReloading() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
@@ -60,7 +60,7 @@ struct PartnershipStoreTests {
         #expect(store.state == remote)
     }
 
-    @Test("自分の操作を保存している間に最新の状態を取り直しても、自分の操作は消えない")
+    @Test("自分の操作の保存中に最新の状態を取得しても、自分の操作は消えない")
     func reloadingWhileSavingKeepsTheSavedAction() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
@@ -113,7 +113,7 @@ struct PartnershipStoreTests {
         #expect(synchronizer.stored == store.state)
     }
 
-    @Test("iCloud に保存できなかった操作は、画面からも消えて、できなかったと出る")
+    @Test("iCloud への保存に失敗した操作は、手元の状態からも取り消され、エラーになる")
     func anActionThatFailsToSaveIsUndone() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
@@ -129,7 +129,7 @@ struct PartnershipStoreTests {
         #expect(store.state == PartnershipState())
     }
 
-    @Test("相手の操作を取り直す前に自分が操作しても、相手の操作は消えずに両方残る")
+    @Test("相手の操作を取得する前に自分が操作しても、相手の操作は消えずに両方残る")
     func actingBeforeReloadingKeepsThePartnersChange() async throws {
         // Given
         let (shared, taskID) = try Self.reportedTask()
@@ -153,7 +153,7 @@ struct PartnershipStoreTests {
         #expect(manager.state == saved)
     }
 
-    @Test("相手が先に済ませて自分の操作が成り立たなくなったら、相手の操作を画面に出したうえで、できなかったと出る")
+    @Test("相手の操作が先に保存されて自分の操作が成り立たなくなったら、相手の操作を手元の状態に反映し、エラーになる")
     func actionMadeImpossibleByThePartnerFailsAndShowsTheirChange() async throws {
         // Given
         let (shared, taskID) = try Self.reportedTask()
@@ -173,7 +173,7 @@ struct PartnershipStoreTests {
         #expect(second.state == first.state)
     }
 
-    @Test("相手の操作と重なり続けたら、やり直すのをあきらめて、相手の操作を画面に出したうえで、重なったと出る")
+    @Test("相手の保存と競合し続けたら、再試行をやめ、相手の操作を手元の状態に反映し、競合のエラーになる")
     func actionGivesUpWhenThePartnerKeepsSavingFirst() async throws {
         // Given
         let latest = try PartnershipState().establishingPairing(ownerRole: .manager)
@@ -190,7 +190,7 @@ struct PartnershipStoreTests {
         #expect(store.state == latest)
     }
 
-    @Test("ペアリングできたら、iCloud に登録されたペアの状態で使い始める")
+    @Test("ペアリングが完了したら、iCloud に保存されたペアの状態から使い始める")
     func usageStartsWithThePairRegisteredInICloud() async throws {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
@@ -203,8 +203,8 @@ struct PartnershipStoreTests {
         #expect(store?.state == paired)
     }
 
-    @Test("ペアを登録した側は、自分が選んだ役割で使い始める", arguments: Role.allCases)
-    func registeringSideStartsWithTheRoleItChose(chosen: Role) async throws {
+    @Test("ペアを保存した側は、自分が選んだ役割で使い始める", arguments: Role.allCases)
+    func savingSideStartsWithTheRoleItChose(chosen: Role) async throws {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: chosen)
         let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired))
@@ -216,7 +216,7 @@ struct PartnershipStoreTests {
         #expect(store?.role == chosen)
     }
 
-    @Test("ペアに参加した側は、登録した側が選ばなかった役割で使い始める", arguments: Role.allCases)
+    @Test("ペアに参加した側は、保存した側が選ばなかった役割で使い始める", arguments: Role.allCases)
     func joiningSideStartsWithTheRoleTheOtherDidNotChoose(chosen: Role) async throws {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: chosen)
@@ -230,7 +230,7 @@ struct PartnershipStoreTests {
         #expect(role != chosen)
     }
 
-    @Test("受け取ったものにペアが入っていなければ、使い始めない")
+    @Test("iCloud から受け取ったデータにペアがなければ、使い始めない")
     func nothingStartsWithoutAPair() async throws {
         // Given
         let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer())

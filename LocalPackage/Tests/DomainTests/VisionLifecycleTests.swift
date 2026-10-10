@@ -87,7 +87,7 @@ struct VisionLifecycleTests {
         }
     }
 
-    @Test("ビジョンを閉じると、その下の終わっていないタスクは取り消しになり、完了したタスクは完了のまま残る")
+    @Test("ビジョンを閉じると、そのビジョンの未完了・採用待ち・承認待ちのタスクは取り消しになり、完了したタスクは完了のまま残る")
     func closingAVisionCancelsUnfinishedTasksButKeepsCompletedOnes() throws {
         // Given
         let (active, visionID) = try PartnershipState().activeVision()

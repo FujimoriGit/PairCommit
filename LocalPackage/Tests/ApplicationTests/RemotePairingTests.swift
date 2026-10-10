@@ -13,7 +13,7 @@ import Testing
 @MainActor
 struct RemotePairingTests {
 
-    @Test("招待をやめたときにもう相手が参加していたら、招待だけでなく、できたペアも終わらせる")
+    @Test("招待を取りやめた時点で相手が参加済みなら、招待ではなくペアを解消する")
     func cancellingAfterThePairFormedEndsThePair() async {
         // Given
         let inviting = FakeInviting()
@@ -31,7 +31,7 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("招待をやめ終わるまでは、やめている途中だと出る")
+    @Test("招待の取りやめが完了するまでは、取りやめ中の状態が続く")
     func cancellationStaysVisibleUntilItFinishes() async {
         // Given
         let inviting = FakeInviting()
@@ -50,7 +50,7 @@ struct RemotePairingTests {
         #expect(!pairing.isCancelling)
     }
 
-    @Test("招待リンクを用意できなかったら、招待リンクを作れなかったと出る")
+    @Test("招待リンクの作成に失敗したら、招待リンクの作成段階のエラーになる")
     func failingToSendIsAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
@@ -66,7 +66,7 @@ struct RemotePairingTests {
         #expect(pairing.isCreatingLink)
     }
 
-    @Test("招待リンクを用意している途中でやめて、やめるのに失敗したら、招待リンクを作れなかったとは出ない")
+    @Test("招待リンクの作成中に取りやめて、その取りやめに失敗したら、招待リンクの作成段階のエラーにはならない")
     func failingToCancelIsNotAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
@@ -82,7 +82,7 @@ struct RemotePairingTests {
         #expect(!pairing.isCreatingLink)
     }
 
-    @Test("招待をやめるのに失敗してもう一度試すと、相手の参加を待つところへは戻らず、やめるのをやり直す")
+    @Test("招待の取りやめに失敗して再試行すると、相手の参加待ちには戻らず、取りやめをやり直す")
     func tryingAgainAfterFailingToCancelCancelsAgain() async {
         // Given
         let inviting = FakeInviting()
@@ -104,7 +104,7 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("招待をやめている途中でアプリを開き直したら、相手の参加を待たずに、やめるのを続ける")
+    @Test("招待の取りやめ中にアプリを開き直したら、相手の参加を待たずに取りやめを続ける")
     func reopeningWhileCancellingKeepsCancelling() async {
         // Given
         let inviting = FakeInviting(savedWithdrawal: .invitation)
@@ -153,7 +153,7 @@ struct RemotePairingTests {
         #expect(inviting.joinCalls == 0)
     }
 
-    @Test("相手の参加を待つのを途中で打ち切ったら、そのあと相手が参加しても、そのペアでは使い始めない")
+    @Test("相手の参加待ちを中断したら、そのあと相手が参加しても、そのペアでは使い始めない")
     func stoppingTheWaitStartsNoPair() async {
         // Given
         let inviting = FakeInviting()
