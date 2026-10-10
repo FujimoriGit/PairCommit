@@ -36,8 +36,8 @@ struct PlayerTaskView: View {
                 onSubmit: { await create($0) }
             )
         }
-        .sheet(isPresented: $isShowingCancelledTasks) {
-            CancelledTaskSheet(store: store, vision: vision)
+        .navigationDestination(isPresented: $isShowingCancelledTasks) {
+            CancelledTaskView(store: store, vision: vision)
         }
     }
 }

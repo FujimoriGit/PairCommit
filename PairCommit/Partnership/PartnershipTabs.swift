@@ -86,9 +86,12 @@ private extension PartnershipTabs {
         let mask: GestureMask = isTyping ? .subviews : .all
         switch tab {
         case .home:
-            home
-                .refreshable { await refresh() }
-                .simultaneousGesture(tabSwipe, including: mask)
+            NavigationStack {
+                home
+                    .refreshable { await refresh() }
+                    .toolbar(.hidden, for: .navigationBar)
+                    .simultaneousGesture(tabSwipe, including: mask)
+            }
         case .history:
             NavigationStack {
                 PartnershipHistoryView(state: store.state, role: store.role)
