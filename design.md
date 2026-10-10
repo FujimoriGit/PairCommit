@@ -280,6 +280,7 @@ graph LR
 - 同期境界 `PartnershipSyncing` と、CloudKit 実装・インメモリ実装。UI結節点の `PartnershipStore`。インメモリ実装はテスト専用。
 - 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストは `LocalPackage/Tests/` へ層ごとに置き、`Scripts/unit-test.sh` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
 - CI は2本立て。`unit-tests.yml`（ubuntu・`Scripts/unit-test.sh`）と `ci.yml`（macOS・アプリのビルドと VRT）。
+- TestFlight への配信は `testflight.yml`（手動実行・main のみ・`Scripts/testflight.sh`）。署名は自動署名のまま、App Store Connect の API キーで Xcode に証明書とプロファイルを用意させる。証明書とプロファイルを Secrets に置かないので、期限が切れるたびに差し替える手間がない。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 - ロール別UI ── ビジョンの起案から承認・達成判断まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。ビジョンとタスクに期限を設定できる。
 - 閉じたビジョンの記録 ── 達成・取りやめたビジョンと、その配下のタスク・感情を見返せる（`PairCommit/History/`）。
