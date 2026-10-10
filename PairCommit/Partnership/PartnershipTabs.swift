@@ -20,8 +20,11 @@ struct PartnershipTabs: View {
     var body: some View {
         TabView(selection: $destination) {
             Tab(String(localized: .tabHome), systemImage: "house", value: .home) {
-                home
-                    .refreshable { await refresh() }
+                NavigationStack {
+                    home
+                        .refreshable { await refresh() }
+                        .toolbar(.hidden, for: .navigationBar)
+                }
             }
             Tab(String(localized: .commonHistory), systemImage: "clock.arrow.circlepath", value: .history) {
                 NavigationStack {
