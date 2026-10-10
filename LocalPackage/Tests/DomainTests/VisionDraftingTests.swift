@@ -11,7 +11,7 @@ import Testing
 
 struct VisionDraftingTests {
 
-    @Test("ビジョンの起案はプレイヤーだけができる（目的の発生源はプレイヤー）")
+    @Test("ビジョンの起案は挑む人だけができる（目的の発生源は挑む人）")
     func onlyPlayerCanDraftVision() {
         // Given
         let state = PartnershipState()
@@ -22,8 +22,8 @@ struct VisionDraftingTests {
         }
     }
 
-    @Test("差し戻された起案は、プレイヤーが中身を書き直して出し直せる（起案の主導権はプレイヤー）")
-    func playerCanReviseVisionSentBackToDraft() throws {
+    @Test("差し戻された起案は、挑む人が中身を書き直して出し直せる（起案の主導権は挑む人）")
+    func playerCanRewriteAVisionThatWasSentBack() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
         let returned = try proposed.rejectingVision(visionID, by: .manager)
@@ -51,22 +51,25 @@ struct VisionDraftingTests {
         #expect(vision.status == .draft)
     }
 
-    @Test("ビジョンの一文と達成基準は、空白だけでは起案できない")
-    func visionCannotBeDraftedWithBlankText() {
+    @Test(
+        "ビジョンの一文と達成基準は、空白だけでは起案できない",
+        arguments: [
+            Vision.Content(statement: "  ", doneCriteria: "c", deadline: nil, why: nil),
+            Vision.Content(statement: "s", doneCriteria: "\n", deadline: nil, why: nil),
+        ]
+    )
+    func visionCannotBeDraftedWithBlankText(content: Vision.Content) {
         // Given
         let state = PartnershipState()
 
         // When / Then
         #expect(throws: DomainError.blankText) {
-            try state.draftingVision(.init(statement: "  ", doneCriteria: "c", deadline: nil, why: nil), by: .player)
-        }
-        #expect(throws: DomainError.blankText) {
-            try state.draftingVision(.init(statement: "s", doneCriteria: "\n", deadline: nil, why: nil), by: .player)
+            try state.draftingVision(content, by: .player)
         }
     }
 
     @Test("書き直しでも、ビジョンの一文と達成基準を空白だけにはできない")
-    func visionCannotBeRevisedToBlankText() throws {
+    func visionCannotBeRewrittenWithBlankText() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -109,7 +112,7 @@ struct VisionDraftingTests {
     }
 
     @Test("書き直しでも、ビジョンの期限を過去にはできない")
-    func visionCannotBeRevisedToPastDeadline() throws {
+    func visionCannotBeRewrittenWithPastDeadline() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -127,45 +130,53 @@ struct VisionDraftingTests {
         }
     }
 
-    @Test("前後の空白や改行は落として持つ")
+    @Test("ビジョンの一文・達成基準・動機は、前後の空白や改行を落として持つ")
     func surroundingWhitespaceIsTrimmed() throws {
         // Given
-        let (drafted, visionID) = try PartnershipState().draftingVision(
-            .init(statement: "\n\nやる\n", doneCriteria: " c ", deadline: nil, why: "　w\n"), by: .player
-        )
-        let active = try drafted
-            .proposingVision(visionID, by: .player)
-            .approvingVision(visionID, by: .manager)
+        let state = PartnershipState()
 
         // When
-        let (state, taskID) = try active.creatingTask(title: " t\n", by: .manager)
+        let (drafted, _) = try state.draftingVision(
+            .init(statement: "\n\nやる\n", doneCriteria: " c ", deadline: nil, why: "　w\n"), by: .player
+        )
 
         // Then
-        let vision = try #require(state.visions.first)
+        let vision = try #require(drafted.visions.first)
         #expect(vision.statement == "やる")
         #expect(vision.doneCriteria == "c")
         #expect(vision.why == "w")
-        #expect(state.tasks.first { $0.id == taskID }?.title == "t")
     }
 
-    @Test("空白だけの動機は、書かなかったものとして扱う（動機は推奨で必須ではない）")
+    @Test("空白だけの動機で起案すると、動機は書かなかったものとして扱う（動機は推奨で必須ではない）")
     func blankWhyIsTreatedAsUnwritten() throws {
         // Given
         let state = PartnershipState()
 
         // When
-        let (drafted, visionID) = try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: " \n"), by: .player)
-        let revised = try drafted.revisingVision(
+        let (drafted, _) = try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: " \n"), by: .player)
+
+        // Then
+        #expect(drafted.visions.first?.why == nil)
+    }
+
+    @Test("書き直して動機を空白だけにすると、動機は書かなかったものとして扱う")
+    func rewritingTheWhyToBlankLeavesItUnwritten() throws {
+        // Given
+        let (state, visionID) = try PartnershipState().draftingVision(
+            .init(statement: "s", doneCriteria: "c", deadline: nil, why: "w"), by: .player
+        )
+
+        // When
+        let rewritten = try state.revisingVision(
             visionID, to: .init(statement: "s", doneCriteria: "c", deadline: nil, why: "　"), by: .player
         )
 
         // Then
-        #expect(drafted.visions.first?.why == nil)
-        #expect(revised.visions.first?.why == nil)
+        #expect(rewritten.visions.first?.why == nil)
     }
 
-    @Test("ビジョンを書き直せるのはプレイヤーだけ（目的は管理者が握らない）")
-    func onlyPlayerCanReviseVision() throws {
+    @Test("ビジョンを書き直せるのは挑む人だけ（目的は見届ける人が握らない）")
+    func onlyPlayerCanRewriteVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -177,8 +188,8 @@ struct VisionDraftingTests {
         }
     }
 
-    @Test("提出したあとのビジョンは書き直せない（管理者が見ている中身が変わらない）")
-    func proposedVisionCannotBeRevised() throws {
+    @Test("提出したあとのビジョンは書き直せない（見届ける人が見ている中身が変わらない）")
+    func submittedVisionCannotBeRewritten() throws {
         // Given
         let (state, visionID) = try PartnershipState().proposedVision()
 
@@ -188,8 +199,8 @@ struct VisionDraftingTests {
         }
     }
 
-    @Test("起案中のビジョンはプレイヤーが取り下げられ、記録にも残らない")
-    func playerCanDiscardDraftVision() throws {
+    @Test("起案中のビジョンは挑む人が取り下げられ、記録にも残らない")
+    func playerCanWithdrawAVisionNotYetSubmitted() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -202,8 +213,8 @@ struct VisionDraftingTests {
         #expect(discarded.visions.isEmpty)
     }
 
-    @Test("ビジョンを取り下げられるのはプレイヤーだけ（管理者は起案を消せない）")
-    func onlyPlayerCanDiscardVision() throws {
+    @Test("ビジョンを取り下げられるのは挑む人だけ（見届ける人は起案を消せない）")
+    func onlyPlayerCanWithdrawVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().draftingVision(
             .init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player
@@ -215,8 +226,8 @@ struct VisionDraftingTests {
         }
     }
 
-    @Test("提出したあとのビジョンは取り下げられない（承認するかを決めるのは管理者の番）")
-    func proposedVisionCannotBeDiscarded() throws {
+    @Test("提出したあとのビジョンは取り下げられない（承認するかを決めるのは見届ける人の番）")
+    func submittedVisionCannotBeWithdrawn() throws {
         // Given
         let (state, visionID) = try PartnershipState().proposedVision()
 
@@ -226,8 +237,8 @@ struct VisionDraftingTests {
         }
     }
 
-    @Test("進行中のビジョンは取り下げられない（閉じるのは管理者の達成判断）")
-    func activeVisionCannotBeDiscarded() throws {
+    @Test("進行中のビジョンは取り下げられない（閉じるのは見届ける人の達成判断）")
+    func visionInProgressCannotBeWithdrawn() throws {
         // Given
         let (state, visionID) = try PartnershipState().activeVision()
 

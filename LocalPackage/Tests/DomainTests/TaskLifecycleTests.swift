@@ -11,22 +11,32 @@ import Testing
 
 struct TaskLifecycleTests {
 
-    @Test("管理者が作るタスクは todo から、プレイヤー起案は proposed（採用待ち）から始まる")
-    func taskStartsAsTodoForManagerAndProposedForPlayer() throws {
+    @Test("見届ける人が追加したタスクは、すぐ未完了として並ぶ")
+    func taskAddedByTheManagerIsIncompleteAtOnce() throws {
         // Given
         let (active, _) = try PartnershipState().activeVision()
 
         // When
-        let (withManagerTask, byManager) = try active.creatingTask(title: "管理者生成", by: .manager)
-        let (state, byPlayer) = try withManagerTask.creatingTask(title: "プレイヤー起案", by: .player)
+        let (state, taskID) = try active.creatingTask(title: "見届ける人が追加", by: .manager)
 
         // Then
-        #expect(state.status(of: byManager) == .todo)
-        #expect(state.status(of: byPlayer) == .proposed)
+        #expect(state.status(of: taskID) == .todo)
     }
 
-    @Test("タスクは active なビジョンの下にしか作れない（孤立タスクは存在しない）")
-    func taskCannotBeCreatedWithoutActiveVision() {
+    @Test("挑む人が起案したタスクは、見届ける人が採用するまで採用待ちになる")
+    func taskSuggestedByThePlayerAwaitsAdoption() throws {
+        // Given
+        let (active, _) = try PartnershipState().activeVision()
+
+        // When
+        let (state, taskID) = try active.creatingTask(title: "挑む人が起案", by: .player)
+
+        // Then
+        #expect(state.status(of: taskID) == .proposed)
+    }
+
+    @Test("タスクは進行中のビジョンの下にしか作れない")
+    func taskCannotBeCreatedWithoutAVisionInProgress() {
         // Given
         let state = PartnershipState()
 
@@ -36,21 +46,33 @@ struct TaskLifecycleTests {
         }
     }
 
-    @Test("プレイヤーが完了報告し、管理者が承認して初めてタスクは完了になる")
-    func taskCompletesOnlyThroughReportThenApproval() throws {
+    @Test("挑む人が完了を報告しただけでは、タスクは完了にならず承認待ちになる")
+    func reportedTaskAwaitsApprovalInsteadOfCompleting() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
-        // When / Then
+        // When
         let reported = try state.reportingTask(taskID, by: .player)
-        #expect(reported.status(of: taskID) == .reported)
 
-        let approved = try reported.approvingTask(taskID, by: .manager)
-        #expect(approved.status(of: taskID) == .approved)
+        // Then
+        #expect(reported.status(of: taskID) == .reported)
     }
 
-    @Test("完了報告はプレイヤーだけ、完了承認は管理者だけができる（役割の非対称性）")
-    func reportingIsPlayersJobAndApprovalIsManagersJob() throws {
+    @Test("完了の報告を見届ける人が承認すると、タスクは完了になる")
+    func taskCompletesOnceTheManagerApprovesTheReport() throws {
+        // Given
+        let (created, taskID) = try PartnershipState().activeVisionWithTask()
+        let reported = try created.reportingTask(taskID, by: .player)
+
+        // When
+        let state = try reported.approvingTask(taskID, by: .manager)
+
+        // Then
+        #expect(state.status(of: taskID) == .approved)
+    }
+
+    @Test("完了を報告できるのは挑む人だけ")
+    func onlyPlayerCanReportCompletion() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
@@ -58,20 +80,28 @@ struct TaskLifecycleTests {
         #expect(throws: DomainError.roleForbidden(required: .player)) {
             try state.reportingTask(taskID, by: .manager)
         }
-        let reported = try state.reportingTask(taskID, by: .player)
+    }
+
+    @Test("完了の報告を承認できるのは見届ける人だけ")
+    func onlyManagerCanApproveCompletion() throws {
+        // Given
+        let (created, taskID) = try PartnershipState().activeVisionWithTask()
+        let state = try created.reportingTask(taskID, by: .player)
+
+        // When / Then
         #expect(throws: DomainError.roleForbidden(required: .manager)) {
-            try reported.approvingTask(taskID, by: .player)
+            try state.approvingTask(taskID, by: .player)
         }
     }
 
-    @Test("管理者はプレイヤー起案のタスクを採用して todo にできる")
-    func managerCanAdoptPlayerProposedTask() throws {
+    @Test("見届ける人は、挑む人が起案したタスクを採用して、未完了のタスクにできる")
+    func managerCanAdoptATaskThePlayerSuggested() throws {
         // Given
         let (active, _) = try PartnershipState().activeVision()
-        let (proposed, taskID) = try active.creatingTask(title: "起案", by: .player)
+        let (suggested, taskID) = try active.creatingTask(title: "起案", by: .player)
 
         // When
-        let state = try proposed.adoptingTask(taskID, by: .manager)
+        let state = try suggested.adoptingTask(taskID, by: .manager)
 
         // Then
         #expect(state.status(of: taskID) == .todo)
@@ -92,8 +122,8 @@ struct TaskLifecycleTests {
         }
     }
 
-    @Test("管理者は完了報告を差し戻して todo に戻せる（やり直しの指示）")
-    func managerCanReturnReportedTaskToTodo() throws {
+    @Test("見届ける人は完了の報告を差し戻して、タスクを未完了に戻せる（やり直しの指示）")
+    func managerCanSendACompletionReportBack() throws {
         // Given
         let (created, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try created.reportingTask(taskID, by: .player)
@@ -105,27 +135,34 @@ struct TaskLifecycleTests {
         #expect(state.status(of: taskID) == .todo)
     }
 
-    @Test("管理者は未完了タスクを取り下げられるが、承認済み（完了）は取り消せない")
-    func managerCanCancelOpenTasksButNotApprovedOnes() throws {
+    @Test("見届ける人は、未完了のタスクを取り消せる")
+    func managerCanCancelAnIncompleteTask() throws {
         // Given
-        let (withOpen, openTask) = try PartnershipState().activeVisionWithTask(title: "未完了")
-        let (withDone, doneTask) = try withOpen.creatingTask(title: "完了", by: .manager)
-        let ready = try withDone
-            .reportingTask(doneTask, by: .player)
-            .approvingTask(doneTask, by: .manager)
+        let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When
-        let state = try ready.cancellingTask(openTask, by: .manager)
+        let cancelled = try state.cancellingTask(taskID, by: .manager)
 
         // Then
-        #expect(state.status(of: openTask) == .cancelled)
+        #expect(cancelled.status(of: taskID) == .cancelled)
+    }
+
+    @Test("完了したタスクは、見届ける人でも取り消せない")
+    func completedTaskCannotBeCancelled() throws {
+        // Given
+        let (created, taskID) = try PartnershipState().activeVisionWithTask()
+        let state = try created
+            .reportingTask(taskID, by: .player)
+            .approvingTask(taskID, by: .manager)
+
+        // When / Then
         #expect(throws: DomainError.invalidTaskTransition(from: .approved)) {
-            try state.cancellingTask(doneTask, by: .manager)
+            try state.cancellingTask(taskID, by: .manager)
         }
     }
 
-    @Test("完了報告を経ないタスクは承認できない（todo からの直接承認は不可）")
-    func todoTaskCannotBeApprovedWithoutReport() throws {
+    @Test("完了を報告されていないタスクは承認できない")
+    func taskCannotBeApprovedBeforeItIsReported() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
@@ -170,15 +207,17 @@ struct TaskLifecycleTests {
         #expect(created.tasks.first { $0.id == taskID }?.detail == nil)
     }
 
-    @Test("タスクの詳細は、前後の空白や改行を落として持つ")
-    func taskDetailIsTrimmed() throws {
+    @Test("タスクの名前と詳細は、前後の空白や改行を落として持つ")
+    func taskTitleAndDetailAreTrimmed() throws {
         // Given
         let (state, _) = try PartnershipState().activeVision()
 
         // When
-        let (created, taskID) = try state.creatingTask(title: "走る", detail: "\n朝に5km\n", by: .manager)
+        let (created, taskID) = try state.creatingTask(title: " 走る\n", detail: "\n朝に5km\n", by: .manager)
 
         // Then
-        #expect(created.tasks.first { $0.id == taskID }?.detail == "朝に5km")
+        let task = try #require(created.tasks.first { $0.id == taskID })
+        #expect(task.title == "走る")
+        #expect(task.detail == "朝に5km")
     }
 }

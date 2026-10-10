@@ -11,7 +11,7 @@ import Testing
 
 struct NudgeTests {
 
-    @Test("期限を過ぎた未完了タスクは、実行する側が催促される")
+    @Test("期限を過ぎた未完了のタスクは、挑む人に催促される")
     func overdueTaskNudgesThePlayer() throws {
         // Given
         let ready = try activeVision()
@@ -30,7 +30,7 @@ struct NudgeTests {
         #expect(nudges.first == .taskOverdue(state.tasks[0].id))
     }
 
-    @Test("期限が近づいた未完了タスクは、期限前でも実行する側が催促される")
+    @Test("期限まで3日を切った未完了のタスクは、期限の前でも挑む人に催促される")
     func taskNearingItsDeadlineNudgesThePlayer() throws {
         // Given
         let ready = try activeVision()
@@ -61,7 +61,7 @@ struct NudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("完了報告が承認されないまま滞留すると、承認する側が催促される")
+    @Test("完了報告が承認されないまま2日を過ぎると、見届ける人に催促される")
     func stalledApprovalNudgesTheManager() throws {
         // Given
         let ready = try activeVision()
@@ -75,7 +75,7 @@ struct NudgeTests {
         #expect(nudges == [.approvalStalled(created.taskID)])
     }
 
-    @Test("完了報告した直後は、承認する側は催促されない")
+    @Test("完了報告の直後は、見届ける人に催促されない")
     func freshReportDoesNotNudgeTheManager() throws {
         // Given
         let ready = try activeVision()
@@ -89,7 +89,7 @@ struct NudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("期限を過ぎた進行中のビジョンは、達成を判断する側が催促される")
+    @Test("進行中のビジョンが期限を過ぎると、達成判断を見届ける人に催促される")
     func overdueVisionNudgesTheManager() throws {
         // Given
         let ready = try activeVision(deadline: day(1))
@@ -101,18 +101,20 @@ struct NudgeTests {
         #expect(nudges == [.visionOverdue(ready.visionID)])
     }
 
-    @Test("進行中のビジョンがなければ何も催促されない")
-    func nothingIsNudgedWithoutAnActiveVision() {
+    @Test("進行中のビジョンがなければ、だれにも何も催促されない", arguments: Role.allCases)
+    func nothingIsNudgedWithoutAVisionInProgress(role: Role) {
         // Given
         let state = PartnershipState()
 
-        // When / Then
-        #expect(state.nudges(for: .player, now: day(365)).isEmpty)
-        #expect(state.nudges(for: .manager, now: day(365)).isEmpty)
+        // When
+        let nudges = state.nudges(for: role, now: day(365))
+
+        // Then
+        #expect(nudges.isEmpty)
     }
 
-    @Test("催促は相手側には渡らない")
-    func aNudgeReachesOnlyItsRecipient() throws {
+    @Test("挑む人への催促は、見届ける人には届かない")
+    func playersNudgeDoesNotReachTheManager() throws {
         // Given
         let ready = try activeVision()
         let state = try ready.state.creatingTask(
@@ -129,8 +131,8 @@ struct NudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("予定された催促は、その時刻を過ぎると催促として現れる")
-    func anUpcomingNudgeAppearsOnceItsTimeHasPassed() throws {
+    @Test("期限が近いことの催促は、開始時刻より前には発生せず、開始時刻を過ぎると発生する")
+    func dueSoonNudgeAppearsOnceItsScheduledTimePasses() throws {
         // Given
         let ready = try activeVision()
         let state = try ready.state.creatingTask(
@@ -139,19 +141,37 @@ struct NudgeTests {
             by: .manager,
             now: day(0)
         ).state
+        let nudge = Nudge.taskDueSoon(state.tasks[0].id)
 
         // When
-        let upcoming = state.upcomingNudges(for: .player, now: day(0))
+        let startsAt = try #require(state.upcomingNudges(for: .player, now: day(0))[nudge])
 
         // Then
-        #expect(!upcoming.isEmpty)
-        for (nudge, startsAt) in upcoming {
-            #expect(!state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge))
-            #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
-        }
+        #expect(!state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge))
+        #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
     }
 
-    @Test("すでに始まった催促は予定に入らない")
+    @Test("期限切れの催促は、開始時刻より前には発生せず、開始時刻を過ぎると発生する")
+    func overdueNudgeAppearsOnceItsScheduledTimePasses() throws {
+        // Given
+        let ready = try activeVision()
+        let state = try ready.state.creatingTask(
+            title: "走る",
+            deadline: day(5),
+            by: .manager,
+            now: day(0)
+        ).state
+        let nudge = Nudge.taskOverdue(state.tasks[0].id)
+
+        // When
+        let startsAt = try #require(state.upcomingNudges(for: .player, now: day(0))[nudge])
+
+        // Then
+        #expect(!state.nudges(for: .player, now: startsAt.addingTimeInterval(-1)).contains(nudge))
+        #expect(state.nudges(for: .player, now: startsAt.addingTimeInterval(1)).contains(nudge))
+    }
+
+    @Test("開始済みの催促は、これから開始する催促に含まれない")
     func aNudgeAlreadyInEffectIsNotUpcoming() throws {
         // Given
         let ready = try activeVision()
@@ -170,7 +190,7 @@ struct NudgeTests {
         #expect(Set(upcoming.keys) == [.taskOverdue(taskID)])
     }
 
-    @Test("催促が始まるちょうどその瞬間も、予定か今の催促のどちらかに入る")
+    @Test("催促の開始時刻ちょうどでも、催促は抜け落ちず、重複もしない")
     func theStartingInstantIsNeitherLostNorDoubled() throws {
         // Given
         let ready = try activeVision(deadline: day(1))

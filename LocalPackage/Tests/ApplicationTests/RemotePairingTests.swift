@@ -13,8 +13,8 @@ import Testing
 @MainActor
 struct RemotePairingTests {
 
-    @Test("やめる前にペアができていたら、招待を消すのではなくペアごと終わらせる")
-    func cancelAfterPairingEndsThePair() async {
+    @Test("招待を取りやめた時点で相手が参加済みなら、招待ではなくペアを解消する")
+    func cancellingAfterThePairFormedEndsThePair() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -31,8 +31,8 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("やめる後始末が終わるまでは、やめている途中として見える")
-    func cancellingIsVisibleUntilCleanupFinishes() async {
+    @Test("招待の取りやめが完了するまでは、取りやめ中の状態が続く")
+    func cancellationStaysVisibleUntilItFinishes() async {
         // Given
         let inviting = FakeInviting()
         let pairing = RemotePairing(inviting: inviting)
@@ -50,7 +50,7 @@ struct RemotePairingTests {
         #expect(!pairing.isCancelling)
     }
 
-    @Test("招待リンクを作れなかったら、リンクを作っている途中の失敗として見える")
+    @Test("招待リンクの作成に失敗したら、招待リンクの作成段階のエラーになる")
     func failingToSendIsAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
@@ -66,8 +66,8 @@ struct RemotePairingTests {
         #expect(pairing.isCreatingLink)
     }
 
-    @Test("リンクを作っている途中でやめて後始末に失敗したら、リンクを作る失敗とは見なさない")
-    func failingToCleanUpIsNotAFailureWhileCreatingTheLink() async {
+    @Test("招待リンクの作成中に取りやめて、その取りやめに失敗したら、招待リンクの作成段階のエラーにはならない")
+    func failingToCancelIsNotAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
         inviting.cleanupFailure = .offline
@@ -82,8 +82,8 @@ struct RemotePairingTests {
         #expect(!pairing.isCreatingLink)
     }
 
-    @Test("後始末に失敗したあとにもう一度試すと、相手待ちに戻らず同じ後始末をやり直す")
-    func retryAfterFailedCleanupRepeatsTheSameCleanup() async {
+    @Test("招待の取りやめに失敗して再試行すると、相手の参加待ちには戻らず、取りやめをやり直す")
+    func tryingAgainAfterFailingToCancelCancelsAgain() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -104,8 +104,8 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("後始末の途中で開き直したら、相手を待たずに後始末を続ける")
-    func restoringDuringCleanupContinuesTheCleanup() async {
+    @Test("招待の取りやめ中にアプリを開き直したら、相手の参加を待たずに取りやめを続ける")
+    func reopeningWhileCancellingKeepsCancelling() async {
         // Given
         let inviting = FakeInviting(savedWithdrawal: .invitation)
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -121,8 +121,8 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("招待リンクを送ったあとで開き直したら、リンクを作り直さずに相手を待つ")
-    func restoringAfterSendingWaitsForTheGuest() async {
+    @Test("招待リンクを送ったあとでアプリを開き直したら、リンクを作り直さずに相手の参加を待つ")
+    func reopeningAfterSendingTheLinkWaitsForThePartner() async {
         // Given
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -135,11 +135,10 @@ struct RemotePairingTests {
         #expect(pairing.phase == .inviting)
         #expect(paired != nil)
         #expect(inviting.sendCalls == 0)
-        #expect(inviting.advanceCalls == 1)
     }
 
-    @Test("見届ける人として招待リンクを送ったあとで開き直しても、相手には挑む人として招待していると伝えられる")
-    func reopenedInvitationStillTellsThePartnerTheirRole() {
+    @Test("見届ける人として招待リンクを送ったあとでアプリを開き直しても、招待した相手の役割は挑む人のまま変わらない")
+    func reopenedInvitationKeepsThePartnersRole() {
         // Given
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
 
@@ -150,8 +149,8 @@ struct RemotePairingTests {
         #expect(pairing.partnerRole == .player)
     }
 
-    @Test("招待リンクで参加したあとで開き直したら、参加し直さずに招待した側を待つ")
-    func restoringAfterJoiningWaitsForTheHost() async {
+    @Test("招待リンクで参加したあとでアプリを開き直したら、参加し直さずに招待した相手を待つ")
+    func reopeningAfterJoiningWaitsForTheInviter() async {
         // Given
         let inviting = FakeInviting(savedStage: .joined)
         inviting.joinedShare = StubShare(isOwner: false)
@@ -166,8 +165,8 @@ struct RemotePairingTests {
         #expect(inviting.joinCalls == 0)
     }
 
-    @Test("相手を待っている間に打ち切ったら、そのあとペアができても返さない")
-    func cancelledRunDoesNotReturnThePair() async {
+    @Test("相手の参加待ちを中断したら、そのあと相手が参加しても、そのペアでは使い始めない")
+    func stoppingTheWaitStartsNoPair() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))

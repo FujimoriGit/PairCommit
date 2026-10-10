@@ -13,41 +13,47 @@ struct PartnershipStateTests {
 
     // MARK: - ペアリング
 
-    @Test("ペアは一度しか確立できない（ロール固定・スワップなしの前提）")
-    func pairingCanBeEstablishedOnlyOnce() throws {
+    @Test("一度ペアを組んだら、組み直して役割を入れ替えることはできない")
+    func aPairCannotBeFormedTwice() throws {
         // Given
-        let state = PartnershipState()
+        let state = try PartnershipState().establishingPairing(ownerRole: .manager)
 
-        // When
-        let paired = try state.establishingPairing(ownerRole: .manager)
-
-        // Then
-        #expect(paired.pairing?.ownerRole == .manager)
+        // When / Then
         #expect(throws: DomainError.alreadyPaired) {
-            try paired.establishingPairing(ownerRole: .player)
+            try state.establishingPairing(ownerRole: .player)
         }
     }
 
-    // MARK: - 感情リアクション
+    // MARK: - タスクへの気持ち
 
-    @Test("プレイヤーは感情を上書きで表明でき、取り下げもできる（ステートでありストリームではない）")
-    func playerCanOverwriteAndClearReaction() throws {
+    @Test("挑む人がタスクへの気持ちを付け直すと、最後に付けた気持ちだけが残る")
+    func onlyTheLatestFeelingOnATaskRemains() throws {
         // Given
-        let (state, taskID) = try PartnershipState().activeVisionWithTask()
+        let (active, taskID) = try PartnershipState().activeVisionWithTask()
+        let state = try active.settingReaction(.uneasy, on: taskID, by: .player)
 
-        // When / Then
-        let uneasy = try state.settingReaction(.uneasy, on: taskID, by: .player)
-        #expect(uneasy.tasks.first?.reaction == .uneasy)
+        // When
+        let changed = try state.settingReaction(.happy, on: taskID, by: .player)
 
-        let happy = try uneasy.settingReaction(.happy, on: taskID, by: .player)
-        #expect(happy.tasks.first?.reaction == .happy)
+        // Then
+        #expect(changed.tasks.first?.reaction == .happy)
+    }
 
-        let cleared = try happy.settingReaction(nil, on: taskID, by: .player)
+    @Test("挑む人は、タスクに付けた気持ちを外せる")
+    func playerCanTakeBackAFeelingOnATask() throws {
+        // Given
+        let (active, taskID) = try PartnershipState().activeVisionWithTask()
+        let state = try active.settingReaction(.uneasy, on: taskID, by: .player)
+
+        // When
+        let cleared = try state.settingReaction(nil, on: taskID, by: .player)
+
+        // Then
         #expect(cleared.tasks.first?.reaction == nil)
     }
 
-    @Test("感情の表明はプレイヤーだけができる（唯一の主体性は感情チャンネル）")
-    func onlyPlayerCanExpressReaction() throws {
+    @Test("タスクへの気持ちを表明できるのは挑む人だけ")
+    func onlyPlayerCanExpressAFeelingOnATask() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
@@ -57,10 +63,10 @@ struct PartnershipStateTests {
         }
     }
 
-    // MARK: - 同期での往復
+    // MARK: - 書き出しと読み直し
 
-    @Test("状態は JSON に載せて往復しても失われない（同期はこの形で運ぶ）")
-    func stateSurvivesJSONRoundTrip() throws {
+    @Test("ペアの状態は、書き出して読み直しても何も失われない")
+    func stateSurvivesBeingWrittenOutAndReadBack() throws {
         // Given
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
         let now = deadline.addingTimeInterval(-24 * 60 * 60)

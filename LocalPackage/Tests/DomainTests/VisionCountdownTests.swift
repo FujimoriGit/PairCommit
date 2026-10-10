@@ -11,7 +11,7 @@ import Testing
 
 struct VisionCountdownTests {
 
-    @Test("期限の時刻を過ぎたら、期限当日でも期限切れになり、催促と食い違わない")
+    @Test("期限の時刻を過ぎたら、期限の当日でも期限切れになり、催促と食い違わない")
     func passingTheDeadlineTimeOnTheDayIsOverdueLikeTheNudge() throws {
         // Given
         let deadline = day(0, hoursLater: 10)
@@ -27,7 +27,7 @@ struct VisionCountdownTests {
         #expect(state.nudges(for: .manager, now: now) == [.visionOverdue(vision.id)])
     }
 
-    @Test("期限の時刻より前なら、期限当日は残り0日になる")
+    @Test("期限の時刻より前なら、期限の当日の残り日数は0日になる")
     func beforeTheDeadlineTimeOnTheDayLeavesZeroDays() {
         // Given
         let deadline = day(0, hoursLater: 10)
@@ -53,7 +53,7 @@ struct VisionCountdownTests {
         #expect(countdown == .days(2, until: deadline))
     }
 
-    @Test("期限の無いビジョンは数えない")
+    @Test("期限の無いビジョンには、残り日数がない")
     func visionWithoutDeadlineIsUnbounded() {
         // Given
         let vision = vision(deadline: nil)
