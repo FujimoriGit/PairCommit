@@ -14,6 +14,7 @@ struct NamingForm: View {
 
     @State private var name: String
     @State private var failureMessage: String?
+    @State private var isSaving = false
 
     init(store: PartnershipStore) {
         self.store = store
@@ -55,18 +56,20 @@ extension PartnershipStore {
 
 private extension NamingForm {
     var canSave: Bool {
-        !name.isBlank && name != store.ownName
+        !isSaving && !name.isBlank && name != store.ownName
     }
 
     func save() {
         guard canSave else { return }
         let entered = name
         failureMessage = nil
+        isSaving = true
         Task {
             failureMessage = await store.saveName(entered)
             if failureMessage == nil {
                 name = store.ownName ?? entered
             }
+            isSaving = false
         }
     }
 }
