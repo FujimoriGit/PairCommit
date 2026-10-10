@@ -19,7 +19,7 @@ struct DeadlineField: View {
                 .font(.subheadline)
             if let deadline {
                 LabeledContent(.commonDeadline) {
-                    Button(deadline.formatted(.yearMonthDayTime)) {
+                    Button(deadline.formatted(Date.FormatStyle.yearMonthDayTime)) {
                         isPicking = true
                     }
                     .buttonStyle(.bordered)

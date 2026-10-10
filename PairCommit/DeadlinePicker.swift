@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct DeadlinePicker: View {
-    let now: Date
+    let earliest: Date
     let onDecide: (Date) -> Void
 
     @State private var selection: Date
     @Environment(\.dismiss) private var dismiss
 
     init(selection: Date, now: Date, onDecide: @escaping (Date) -> Void) {
-        self.now = now
+        earliest = min(selection, now)
         self.onDecide = onDecide
         _selection = .init(initialValue: selection)
     }
@@ -25,7 +25,7 @@ struct DeadlinePicker: View {
             DatePicker(
                 .commonDeadline,
                 selection: $selection,
-                in: min(selection, now)...,
+                in: earliest...,
                 displayedComponents: [.date, .hourAndMinute]
             )
             .datePickerStyle(.graphical)
