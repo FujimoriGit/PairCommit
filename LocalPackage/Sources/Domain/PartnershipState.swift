@@ -11,11 +11,35 @@ public struct PartnershipState: Sendable, Codable, Equatable {
     public let pairing: Pairing?
     public let visions: [Vision]
     public let tasks: [TaskItem]
+    /// 書いた順に並ぶ。
+    public let notes: [Note]
+    /// 最後に書かれた書き込みの番号。まだ無ければ 0。
+    public let lastNoteNumber: Int
 
-    public init(pairing: Pairing? = nil, visions: [Vision] = [], tasks: [TaskItem] = []) {
+    public init(
+        pairing: Pairing? = nil,
+        visions: [Vision] = [],
+        tasks: [TaskItem] = [],
+        notes: [Note] = [],
+        lastNoteNumber: Int = 0
+    ) {
         self.pairing = pairing
         self.visions = visions
         self.tasks = tasks
+        self.notes = notes
+        self.lastNoteNumber = lastNoteNumber
+    }
+
+    // 書き込みを持つ前の版が残した状態も読めるよう、無い項目は空として読む
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            pairing: try container.decodeIfPresent(Pairing.self, forKey: .pairing),
+            visions: try container.decode([Vision].self, forKey: .visions),
+            tasks: try container.decode([TaskItem].self, forKey: .tasks),
+            notes: try container.decodeIfPresent([Note].self, forKey: .notes) ?? [],
+            lastNoteNumber: try container.decodeIfPresent(Int.self, forKey: .lastNoteNumber) ?? 0
+        )
     }
 
     public var activeVision: Vision? {
@@ -33,6 +57,10 @@ public struct PartnershipState: Sendable, Codable, Equatable {
     public var closedVisions: [ClosedVision] {
         visions.compactMap(ClosedVision.init).sorted { $0.vision.createdAt > $1.vision.createdAt }
     }
+
+    public func notes(on subject: Note.Subject) -> [Note] {
+        notes.filter { $0.subject == subject }
+    }
 }
 
 // MARK: - ペアリング
@@ -47,7 +75,9 @@ extension PartnershipState {
         return .init(
             pairing: Pairing(id: id, ownerRole: ownerRole, createdAt: now),
             visions: visions,
-            tasks: tasks
+            tasks: tasks,
+            notes: notes,
+            lastNoteNumber: lastNoteNumber
         )
     }
 
@@ -57,7 +87,9 @@ extension PartnershipState {
         return .init(
             pairing: pairing.naming(role, as: try requiringText(name)),
             visions: visions,
-            tasks: tasks
+            tasks: tasks,
+            notes: notes,
+            lastNoteNumber: lastNoteNumber
         )
     }
 }
@@ -123,7 +155,10 @@ extension PartnershipState {
     public func discardingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         _ = try requiringDraft(id)
-        return updating(visions: visions.filter { $0.id != id })
+        return updating(
+            visions: visions.filter { $0.id != id },
+            notes: notes.filter { $0.subject != .vision(id) }
+        )
     }
 
     public func proposingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
@@ -249,6 +284,34 @@ extension PartnershipState {
     }
 }
 
+// MARK: - 書き込み
+
+extension PartnershipState {
+    /// 閉じていないビジョンか、進行中のビジョンのタスクに書き込む。
+    public func writingNote(
+        _ body: String,
+        kind: Note.Kind,
+        on subject: Note.Subject,
+        by role: Role,
+        id: UUID = UUID(),
+        now: Date = Date()
+    ) throws(DomainError) -> Self {
+        guard kind.isWritable(by: role) else { throw DomainError.roleForbidden(required: .player) }
+        let body = try requiringText(body)
+        try requiringOpen(subject)
+        let note = Note(
+            id: id,
+            subject: subject,
+            kind: kind,
+            author: role,
+            number: lastNoteNumber + 1,
+            body: body,
+            writtenAt: now
+        )
+        return updating(notes: notes + [note], lastNoteNumber: note.number)
+    }
+}
+
 // MARK: - 催促
 
 extension PartnershipState {
@@ -290,7 +353,10 @@ extension PartnershipState {
         let taskActions = tasks.flatMap { task in
             actions(on: task, from: previous.tasks.first { $0.id == task.id })
         }
-        return (visionActions + taskActions).filter { $0.recipient == role }
+        let noteActions = notes
+            .filter { note in !previous.notes.contains { $0.id == note.id } }
+            .map { PartnerAction.noteWritten($0.id, author: $0.author) }
+        return (visionActions + taskActions + noteActions).filter { $0.recipient == role }
     }
 }
 
@@ -372,12 +438,30 @@ private extension PartnershipState {
         }
     }
 
-    func updating(visions: [Vision]? = nil, tasks: [TaskItem]? = nil) -> Self {
+    func updating(
+        visions: [Vision]? = nil,
+        tasks: [TaskItem]? = nil,
+        notes: [Note]? = nil,
+        lastNoteNumber: Int? = nil
+    ) -> Self {
         .init(
             pairing: pairing,
             visions: visions ?? self.visions,
-            tasks: tasks ?? self.tasks
+            tasks: tasks ?? self.tasks,
+            notes: notes ?? self.notes,
+            lastNoteNumber: lastNoteNumber ?? self.lastNoteNumber
         )
+    }
+
+    func requiringOpen(_ subject: Note.Subject) throws(DomainError) {
+        switch subject {
+        case .vision(let id):
+            guard let vision = visions.first(where: { $0.id == id }) else { throw DomainError.visionNotFound(id) }
+            guard vision.outcome == nil else { throw DomainError.noteSubjectClosed }
+        case .task(let id):
+            guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
+            guard task.visionID == activeVision?.id else { throw DomainError.noteSubjectClosed }
+        }
     }
 
     func requiring(_ role: Role, is required: Role) throws(DomainError) {

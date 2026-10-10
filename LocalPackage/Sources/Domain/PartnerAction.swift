@@ -22,9 +22,12 @@ public enum PartnerAction: Hashable, Sendable {
     case taskCancelled(TaskItem.ID)
     case reactionChanged(TaskItem.ID, Reaction)
     case progressChanged(TaskItem.ID, Int)
+    case noteWritten(Note.ID, author: Role)
 
     public var recipient: Role {
         switch self {
+        case .noteWritten(_, let author):
+            author.counterpart
         case .visionProposed, .taskProposed, .taskReported, .reactionChanged:
             .manager
         case .visionApproved, .visionReturned, .visionClosed, .taskAdded, .taskAdopted,

@@ -31,22 +31,26 @@ extension CloudKitSynchronizer: PartnershipSyncing {
 
     func load() async throws(SyncFailure) -> PartnershipState {
         guard let record = try await fetchRoot() else { return .init() }
-        return try decoding(record)
+        return try await decoding(record)
     }
 
     func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
         // 作り直したレコードで上書きすると、CKShare との結びつきを持つ
         // システムフィールドが落ちる。サーバーにあるものへ書き足す。
         guard let record = try await fetchRoot() else { throw .unavailable }
-        let current = try decoding(record)
+        let current = try await decoding(record)
         guard current == base else { throw .outdated(latest: current) }
 
+        let added = state.notes.filter { note in !base.notes.contains { $0.id == note.id } }
+        let removed = base.notes.filter { note in !state.notes.contains { $0.id == note.id } }
         let results: [CKRecord.ID: Result<CKRecord, any Error>]
         do {
             results = try await database.modifyRecords(
-                saving: [PartnershipRootRecord.encoding(state, into: record)],
-                deleting: [],
-                savePolicy: .ifServerRecordUnchanged
+                saving: [PartnershipRootRecord.encoding(state, into: record)]
+                    + added.map { note in try NoteRecord.creating(note, under: rootRecordID) },
+                deleting: removed.map { NoteRecord.id(of: $0.id, under: rootRecordID) },
+                savePolicy: .ifServerRecordUnchanged,
+                atomically: true
             ).saveResults
         } catch {
             logger.error("save: \(error, privacy: .public)")
@@ -60,7 +64,7 @@ extension CloudKitSynchronizer: PartnershipSyncing {
                 logger.error("save: 衝突したレコードが返っていない")
                 throw .unavailable
             }
-            throw .outdated(latest: try decoding(latest))
+            throw .outdated(latest: try await decoding(latest))
         case .failure(let error):
             logger.error("save: \(error, privacy: .public)")
             throw .unavailable
@@ -76,11 +80,42 @@ extension CloudKitSynchronizer: PartnershipSyncing {
 private extension CloudKitSynchronizer {
     static let subscriptionID = "partnership-changes"
 
-    func decoding(_ record: CKRecord) throws(SyncFailure) -> PartnershipState {
+    func decoding(_ record: CKRecord) async throws(SyncFailure) -> PartnershipState {
+        let notes = try await fetchNotes()
         do {
-            return try PartnershipRootRecord.decoding(record)
+            return try PartnershipRootRecord.decoding(record, notes: notes)
         } catch {
             logger.error("decode: \(error, privacy: .public)")
+            throw .unavailable
+        }
+    }
+
+    // 問い合わせに要る索引をサーバーのスキーマに足さずに済むよう、ゾーンの変更を最初から読む
+    func fetchNotes(since token: CKServerChangeToken? = nil) async throws(SyncFailure) -> [Note] {
+        let changes = try await zoneChanges(since: token)
+        let notes = try changes.records.filter { $0.recordType == NoteRecord.type }.map(decodingNote)
+        guard changes.moreComing else { return notes }
+        return notes + (try await fetchNotes(since: changes.token))
+    }
+
+    func zoneChanges(
+        since token: CKServerChangeToken?
+    ) async throws(SyncFailure) -> (records: [CKRecord], token: CKServerChangeToken, moreComing: Bool) {
+        do {
+            let changes = try await database.recordZoneChanges(inZoneWith: rootRecordID.zoneID, since: token)
+            let records = try changes.modificationResultsByID.values.map { try $0.get().record }
+            return (records, changes.changeToken, changes.moreComing)
+        } catch {
+            logger.error("fetch notes: \(error, privacy: .public)")
+            throw .unavailable
+        }
+    }
+
+    func decodingNote(_ record: CKRecord) throws(SyncFailure) -> Note {
+        do {
+            return try NoteRecord.decoding(record)
+        } catch {
+            logger.error("decode note: \(error, privacy: .public)")
             throw .unavailable
         }
     }
