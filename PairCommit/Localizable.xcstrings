@@ -290,6 +290,23 @@
         }
       }
     },
+    "criteriaReview.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t check the criteria right now."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いまは下読みできませんでした。"
+          }
+        }
+      }
+    },
     "criteriaReview.instructions" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -456,23 +473,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "空白だけの内容は登録できません。"
-          }
-        }
-      }
-    },
-    "error.bothAccepting" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Both devices tapped “Accept your partner’s invitation”. Choose a role on one of them."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2台とも「相手の招待を受ける」を押しています。片方の端末では役割を選んでください。"
           }
         }
       }
@@ -840,13 +840,30 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Send the invitation link to your partner in Messages or another app. Once they open it, keep this screen open until you’re paired."
+            "value" : "Send the invitation link to your partner. Once they open it, you’ll be paired while both of you have the app open."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LINE やメッセージで、相手に招待リンクを送ってください。相手がリンクを開いたら、ペアができるまでこの画面を開いたままにしてください。"
+            "value" : "相手に招待リンクを送ってください。相手がリンクを開いたあと、2人ともこのアプリを開いているあいだにペアができます。"
+          }
+        }
+      }
+    },
+    "invitation.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let’s pair up on Two at the Mast. You’ll be the %@. Open the link to join."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ふたりの帆柱」でペアを組みましょう。あなたは「%@」です。リンクを開くと参加できます。"
           }
         }
       }
@@ -864,6 +881,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "招待リンクを用意しています…"
+          }
+        }
+      }
+    },
+    "invitation.previewTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitation to Two at the Mast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ふたりの帆柱」への招待"
           }
         }
       }
@@ -915,6 +949,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "相手の参加を待っています…"
+          }
+        }
+      }
+    },
+    "joining.cancelling" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelling…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参加をやめています…"
+          }
+        }
+      }
+    },
+    "joining.instructions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’ll be paired once the person who invited you opens the app. If they haven’t yet, ask them to open it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "招待した相手がこのアプリを開くと、ペアができます。まだなら、開いてもらうよう伝えてください。"
+          }
+        }
+      }
+    },
+    "joining.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join your partner"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "招待に参加する"
+          }
+        }
+      }
+    },
+    "joining.waiting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting with your partner…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相手とつないでいます…"
           }
         }
       }
@@ -1017,6 +1119,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "追加する"
+          }
+        }
+      }
+    },
+    "managerTask.cancel.confirmation.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A cancelled task can’t be restored."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消したタスクは元に戻せません。"
+          }
+        }
+      }
+    },
+    "managerTask.cancel.confirmation.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel this task?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このタスクを取り消しますか"
           }
         }
       }
@@ -1333,7 +1469,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Registering your pair…"
+            "value" : "Setting up your pair…"
           }
         },
         "ja" : {
@@ -1356,7 +1492,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "相手と繋ぐ"
+            "value" : "相手とつなぐ"
           }
         }
       }
@@ -1577,7 +1713,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2台を近くに置いて、そのまま繋ぎます。"
+            "value" : "2台を近くに置いて、そのままつなぎます。"
           }
         }
       }
@@ -1713,7 +1849,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2人の記録"
+            "value" : "ふたりの記録"
           }
         }
       }
@@ -1799,6 +1935,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "書き直す"
+          }
+        }
+      }
+    },
+    "playerVision.reviseAndSubmit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revise and submit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き直して提出する"
+          }
+        }
+      }
+    },
+    "playerVision.sentBack" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent back by the %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が差し戻しました"
           }
         }
       }
@@ -1986,40 +2156,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビジョンを起案し、完了を報告する。タスクへの気持ちを表明できる。"
-          }
-        }
-      }
-    },
-    "rolePicker.acceptInvitation" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accept your partner’s invitation"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "相手の招待を受ける"
-          }
-        }
-      }
-    },
-    "rolePicker.acceptInvitation.note" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You’ll take the role your partner didn’t choose."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "相手が選ばなかったほうの役割になります。"
           }
         }
       }
@@ -2279,6 +2415,23 @@
         }
       }
     },
+    "taskList.closed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closed tasks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "済んだタスク"
+          }
+        }
+      }
+    },
     "taskList.empty.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2353,7 +2506,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not done"
+            "value" : "To do"
           }
         },
         "ja" : {

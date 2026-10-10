@@ -10,6 +10,7 @@ import SwiftUI
 
 struct InvitationView: View {
     let url: URL?
+    let partnerRole: Role?
     let failureMessage: String?
     let isCreatingLink: Bool
     let isCancelling: Bool
@@ -40,9 +41,16 @@ struct InvitationView: View {
                 if failureMessage != nil {
                     Button(.commonRetry, action: onRetry)
                         .buttonStyle(.filled)
-                } else if let url {
-                    ShareLink(.invitationShare, item: url)
-                        .buttonStyle(.filled)
+                } else if let url, let partnerRole {
+                    ShareLink(
+                        item: url,
+                        subject: Text(.invitationPreviewTitle),
+                        message: Text(.invitationMessage(partnerRole.label)),
+                        preview: SharePreview(String(localized: .invitationPreviewTitle))
+                    ) {
+                        Text(.invitationShare)
+                    }
+                    .buttonStyle(.filled)
                 }
                 Button(.commonCancel, action: onCancel)
                     .buttonStyle(.soft)
@@ -70,6 +78,7 @@ private extension InvitationView {
 #Preview("招待リンクの相手待ち") {
     InvitationView(
         url: URL(string: "https://www.icloud.com/share/example"),
+        partnerRole: .player,
         failureMessage: nil,
         isCreatingLink: false,
         isCancelling: false,
@@ -81,6 +90,7 @@ private extension InvitationView {
 #Preview("招待リンクの失敗") {
     InvitationView(
         url: nil,
+        partnerRole: .player,
         failureMessage: PairingFailure.offline.message,
         isCreatingLink: true,
         isCancelling: false,
@@ -90,5 +100,13 @@ private extension InvitationView {
 }
 
 #Preview("招待をやめている途中") {
-    InvitationView(url: nil, failureMessage: nil, isCreatingLink: false, isCancelling: true, onRetry: {}, onCancel: {})
+    InvitationView(
+        url: nil,
+        partnerRole: .player,
+        failureMessage: nil,
+        isCreatingLink: false,
+        isCancelling: true,
+        onRetry: {},
+        onCancel: {}
+    )
 }

@@ -137,6 +137,18 @@ struct RemotePairingTests {
         #expect(inviting.sendCalls == 0)
     }
 
+    @Test("見届ける人として招待リンクを送ったあとでアプリを開き直しても、招待した相手の役割は挑む人のまま変わらない")
+    func reopenedInvitationKeepsThePartnersRole() {
+        // Given
+        let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
+
+        // When
+        let pairing = RemotePairing(inviting: inviting)
+
+        // Then
+        #expect(pairing.partnerRole == .player)
+    }
+
     @Test("招待リンクで参加したあとでアプリを開き直したら、参加し直さずに招待した相手を待つ")
     func reopeningAfterJoiningWaitsForTheInviter() async {
         // Given

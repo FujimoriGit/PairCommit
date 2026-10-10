@@ -25,7 +25,6 @@ public final class NearbyPairing {
 
     public enum Failure: Equatable, Sendable {
         case sameRole(Role)
-        case bothAccepting
         case partnerFailed
         case external(PairingFailure)
     }
@@ -37,16 +36,16 @@ public final class NearbyPairing {
     private let makeChannel: @MainActor () -> any NearbyChannel
     private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
-    private var choice: PairingChoice = .invitation
+    private var role: Role?
 
     public init(sharing: any PartnershipSharing, makeChannel: @escaping @MainActor () -> any NearbyChannel) {
         self.sharing = sharing
         self.makeChannel = makeChannel
     }
 
-    public func start(with choice: PairingChoice) {
+    public func start(as role: Role) {
         guard phase == .idle else { return }
-        self.choice = choice
+        self.role = role
         phase = .searching
 
         let channel = makeChannel()
@@ -72,22 +71,12 @@ public final class NearbyPairing {
 private extension NearbyPairing {
     static let ackMessage = "paircommit://ack"
     static let failureMessage = "paircommit://failed"
-    static let choicePrefix = "paircommit://choice/"
-    static let invitationName = "invitation"
+    static let rolePrefix = "paircommit://role/"
     static let handOverPrefix = "paircommit://hand-over/"
 
-    static func message(for choice: PairingChoice) -> String {
-        switch choice {
-        case .role(let role): choicePrefix + role.rawValue
-        case .invitation: choicePrefix + invitationName
-        }
-    }
-
-    static func choice(from message: String) -> PairingChoice? {
-        guard message.hasPrefix(choicePrefix) else { return nil }
-        let name = String(message.dropFirst(choicePrefix.count))
-        if name == invitationName { return .invitation }
-        return Role(rawValue: name).map { .role($0) }
+    static func role(from message: String) -> Role? {
+        guard message.hasPrefix(rolePrefix) else { return nil }
+        return Role(rawValue: String(message.dropFirst(rolePrefix.count)))
     }
 
     static func initialState(ownerRole: Role) throws(PairingFailure) -> PartnershipState {
@@ -122,30 +111,26 @@ private extension NearbyPairing {
     }
 
     func handleConnected() {
+        guard let role else { return }
         if phase == .searching {
             phase = .connected
         }
         do throws(PairingFailure) {
-            try channel?.send(Self.message(for: choice))
+            try channel?.send(Self.rolePrefix + role.rawValue)
         } catch {
             fail(with: error)
         }
     }
 
-    func handlePartnerChoice(_ partner: PairingChoice) {
+    func handlePartnerRole(_ partnerRole: Role) {
         // 接続の知らせと受信のどちらが先に届くかは、文書で約束されていない。
-        guard phase == .searching || phase == .connected else { return }
+        guard let role, phase == .searching || phase == .connected else { return }
         phase = .connected
         // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
-        switch choice.plan(with: partner) {
-        case .makeShare(let ownerRole):
-            makeShare(ownerRole: ownerRole, handsOverOnRefusal: true)
-        case .awaitShare:
-            break
-        case .sameRole(let role):
+        if role == partnerRole {
             phase = .failed(.sameRole(role))
-        case .bothAccepting:
-            phase = .failed(.bothAccepting)
+        } else if role == .manager {
+            makeShare(ownerRole: role, handsOverOnRefusal: true)
         }
     }
 
@@ -203,8 +188,8 @@ private extension NearbyPairing {
     }
 
     func handleReceived(_ text: String) {
-        if let partner = Self.choice(from: text) {
-            handlePartnerChoice(partner)
+        if let partnerRole = Self.role(from: text) {
+            handlePartnerRole(partnerRole)
             return
         }
         switch text {

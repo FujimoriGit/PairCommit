@@ -89,6 +89,27 @@ extension PartnershipState {
         return updating(visions: visions.map { $0.id == id ? revised : $0 })
     }
 
+    /// 書いたビジョンを、下書きを経ずに管理者へ提出する。
+    public func submittingVision(
+        _ content: Vision.Content,
+        by role: Role,
+        id: UUID = UUID(),
+        now: Date = Date()
+    ) throws(DomainError) -> (state: Self, visionID: Vision.ID) {
+        let drafted = try draftingVision(content, by: role, id: id, now: now)
+        return (try drafted.state.proposingVision(drafted.visionID, by: role, now: now), drafted.visionID)
+    }
+
+    /// 差し戻されたビジョンを書き直し、そのまま提出し直す。
+    public func resubmittingVision(
+        _ id: Vision.ID,
+        as content: Vision.Content,
+        by role: Role,
+        now: Date = Date()
+    ) throws(DomainError) -> Self {
+        try revisingVision(id, to: content, by: role, now: now).proposingVision(id, by: role, now: now)
+    }
+
     public func discardingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
         try requiring(role, is: .player)
         _ = try requiringDraft(id)

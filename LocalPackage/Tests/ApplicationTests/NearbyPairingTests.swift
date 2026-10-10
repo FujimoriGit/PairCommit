@@ -16,10 +16,10 @@ struct NearbyPairingTests {
     @Test("2台とも同じ役割を選ぶと、ペアは保存されず、役割の重複でペアリングが失敗する", arguments: Role.allCases)
     func choosingTheSameRoleOnBothDevicesSavesNoPair(chosen: Role) async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(chosen))
+        let (pairing, channel, sharing) = Self.started(as: chosen)
 
         // When
-        channel.receive(.received(Partner.choosing(.role(chosen))))
+        channel.receive(.received(Partner.choosing(chosen)))
 
         // Then
         #expect(await eventually { pairing.phase == .failed(.sameRole(chosen)) })
@@ -29,13 +29,13 @@ struct NearbyPairingTests {
     @Test("自分の iCloud の空き容量が足りなくても、相手の iCloud にペアを保存して、ペアリングが完了する")
     func pairingCompletesInThePartnersICloudWhenYoursLacksSpace() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
         sharing.failure = .storageFull
-        channel.receive(.received(Partner.choosing(.invitation)))
+        channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { channel.sent.contains(Partner.handingOver(.manager)) })
 
         // When
-        channel.receive(.received(Partner.registeredPair))
+        channel.receive(.received(Partner.savedPair))
 
         // Then
         #expect(await eventually { pairing.phase == .done })
@@ -45,8 +45,8 @@ struct NearbyPairingTests {
     @Test("自分の iCloud にペアを保存した側は、相手がそのペアに参加した時点でペアリングが完了する")
     func pairingCompletesOnceThePartnerJoins() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
-        channel.receive(.received(Partner.choosing(.invitation)))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
+        channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
 
         // When
@@ -57,12 +57,25 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == true)
     }
 
+    @Test("挑む人を選んだ側は、見届ける人を選んだ相手が保存したペアに参加して、ペアリングが完了する")
+    func playerCompletesPairingByJoiningTheManagersPair() async {
+        // Given
+        let (pairing, channel, sharing) = Self.started(as: .player)
+        channel.receive(.received(Partner.choosing(.manager)))
+
+        // When
+        channel.receive(.received(sharing.url.absoluteString))
+
+        // Then
+        #expect(await eventually { pairing.phase == .done })
+    }
+
     @Test("ペアを保存している途中でやめたら、ペアは残らず、相手にも送られない")
     func cancellingWhileSavingThePairLeavesNoPair() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
+        let (pairing, channel, sharing) = Self.started(as: .manager)
         sharing.hold()
-        channel.receive(.received(Partner.choosing(.invitation)))
+        channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { sharing.isHeld })
 
         // When
@@ -81,11 +94,11 @@ struct NearbyPairingTests {
 // MARK: - Private
 
 private extension NearbyPairingTests {
-    static func started(with choice: PairingChoice) -> (NearbyPairing, FakeChannel, FakeSharing) {
+    static func started(as role: Role) -> (NearbyPairing, FakeChannel, FakeSharing) {
         let channel = FakeChannel()
         let sharing = FakeSharing()
         let pairing = NearbyPairing(sharing: sharing, makeChannel: { channel })
-        pairing.start(with: choice)
+        pairing.start(as: role)
         channel.receive(.connected)
         return (pairing, channel, sharing)
     }
@@ -94,13 +107,10 @@ private extension NearbyPairingTests {
 /// 相手の端末が送ってくる文字列。
 private enum Partner {
     static let acknowledgement = "paircommit://ack"
-    static let registeredPair = "file:///partners-pair"
+    static let savedPair = "file:///partners-pair"
 
-    static func choosing(_ choice: PairingChoice) -> String {
-        switch choice {
-        case .role(let role): "paircommit://choice/\(role.rawValue)"
-        case .invitation: "paircommit://choice/invitation"
-        }
+    static func choosing(_ role: Role) -> String {
+        "paircommit://role/\(role.rawValue)"
     }
 
     static func handingOver(_ role: Role) -> String {

@@ -23,6 +23,39 @@ struct VisionLifecycleTests {
         #expect(state.activeVision?.id == visionID)
     }
 
+    @Test("挑む人が書いたビジョンを提出すると、書いた中身のまま見届ける人の承認待ちになる")
+    func submittedVisionAwaitsManagersApprovalAsWritten() throws {
+        // Given
+        let content = Vision.Content(statement: "半年で10kg痩せる", doneCriteria: "健康診断オールA", deadline: nil, why: nil)
+
+        // When
+        let (state, visionID) = try PartnershipState().submittingVision(content, by: .player)
+
+        // Then
+        let vision = try #require(state.visions.first(where: { $0.id == visionID }))
+        #expect(vision.statement == "半年で10kg痩せる")
+        #expect(vision.status == .proposed)
+    }
+
+    @Test("差し戻されたビジョンを挑む人が書き直して提出し直すと、書き直した中身で見届ける人の承認待ちに戻る")
+    func resubmittedVisionAwaitsManagersApprovalAsRevised() throws {
+        // Given
+        let (proposed, visionID) = try PartnershipState().proposedVision()
+        let returned = try proposed.rejectingVision(visionID, by: .manager)
+
+        // When
+        let state = try returned.resubmittingVision(
+            visionID,
+            as: .init(statement: "半年で5kg痩せる", doneCriteria: "体重計で65kgを切る", deadline: nil, why: nil),
+            by: .player
+        )
+
+        // Then
+        let vision = try #require(state.visions.first(where: { $0.id == visionID }))
+        #expect(vision.statement == "半年で5kg痩せる")
+        #expect(vision.status == .proposed)
+    }
+
     @Test("ビジョンを承認できるのは見届ける人だけ")
     func onlyManagerCanApproveVision() throws {
         // Given

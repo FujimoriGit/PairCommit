@@ -15,7 +15,7 @@ struct PlayerVisionView: View {
     let now: Date
 
     @State private var input: VisionInput
-    @State private var review: CriteriaReview?
+    @State private var review: ReviewState = .idle
     @State private var failureMessage: String?
     @State private var revising: Vision.ID?
     @State private var confirmingDiscard = false
@@ -51,6 +51,13 @@ private extension PlayerVisionView {
         case blank
     }
 
+    enum ReviewState: Equatable {
+        case idle
+        case running
+        case done(CriteriaReview)
+        case failed
+    }
+
     var stage: Stage {
         if let proposed = store.state.visions.last(where: { $0.status == .proposed }) {
             return .proposed(proposed)
@@ -81,7 +88,7 @@ private extension PlayerVisionView {
             AchievementBanner(vision: achieved)
         }
         fields
-        Button(.commonPropose, action: draft)
+        Button(.playerVisionSubmit(Role.manager.label), action: submit)
             .buttonStyle(.filled)
             .disabled(!input.isComplete)
         FailureNote(message: failureMessage)
@@ -91,13 +98,13 @@ private extension PlayerVisionView {
     func revisionForm(_ vision: Vision) -> some View {
         fields
         VStack(spacing: 10) {
-            Button(.playerVisionRevise) { revise(vision) }
+            Button(.playerVisionReviseAndSubmit) { revise(vision) }
                 .buttonStyle(.filled)
                 .disabled(!input.isComplete)
             Button(.commonCancel) {
                 revising = nil
                 input = .init()
-                review = nil
+                review = .idle
                 failureMessage = nil
             }
             .buttonStyle(.soft)
@@ -133,32 +140,39 @@ private extension PlayerVisionView {
         if let reviewing {
             Panel(title: String(localized: .criteriaReviewTitle)) {
                 Button(.criteriaReviewRequest) {
-                    let entered = input
-                    Task {
-                        review = try? await reviewing.review(
-                            statement: entered.statement,
-                            doneCriteria: entered.doneCriteria
-                        )
-                    }
+                    requestReview(from: reviewing)
                 }
                 .buttonStyle(.soft)
-                .disabled(!input.isComplete)
+                .disabled(!input.isComplete || review == .running)
 
-                if let review {
+                switch review {
+                case .idle:
+                    EmptyView()
+                case .running:
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                case .done(let result):
                     Label(
-                        review.advice,
-                        systemImage: review.isVerifiable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
+                        result.advice,
+                        systemImage: result.isVerifiable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
                     )
                     .font(.subheadline)
-                    .foregroundStyle(review.isVerifiable ? .green : .orange)
+                    .foregroundStyle(result.isVerifiable ? .green : .orange)
+                case .failed:
+                    Label(String(localized: .criteriaReviewFailed), systemImage: "exclamationmark.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+            }
+            .onChange(of: [input.statement, input.doneCriteria]) {
+                review = .idle
             }
         }
     }
 
     @ViewBuilder
     func draftDetail(_ vision: Vision) -> some View {
-        VisionDetail(vision: vision)
+        VisionDetail(vision: vision, note: String(localized: .playerVisionSentBack(Role.manager.label)))
         VStack(spacing: 10) {
             Button(.playerVisionSubmit(Role.manager.label)) {
                 perform { state, role throws(DomainError) in try state.proposingVision(vision.id, by: role) }
@@ -166,7 +180,7 @@ private extension PlayerVisionView {
             .buttonStyle(.filled)
             Button(.playerVisionRevise) {
                 input = .init(vision)
-                review = nil
+                review = .idle
                 failureMessage = nil
                 revising = vision.id
             }
@@ -193,17 +207,32 @@ private extension PlayerVisionView {
         FailureNote(message: failureMessage)
     }
 
-    func draft() {
+    func requestReview(from reviewing: any CriteriaReviewing) {
+        let entered = input
+        review = .running
+        Task {
+            let result: ReviewState
+            do throws(ReviewFailure) {
+                result = .done(try await reviewing.review(statement: entered.statement, doneCriteria: entered.doneCriteria))
+            } catch {
+                result = .failed
+            }
+            guard input.statement == entered.statement, input.doneCriteria == entered.doneCriteria else { return }
+            review = result
+        }
+    }
+
+    func submit() {
         let content = input.content
         failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.draftingVision(content, by: role).state
+                    try state.submittingVision(content, by: role).state
                 }
                 failureMessage = nil
                 input = .init()
-                review = nil
+                review = .idle
             } catch {
                 failureMessage = error.message
             }
@@ -216,11 +245,11 @@ private extension PlayerVisionView {
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
-                    try state.revisingVision(vision.id, to: content, by: role)
+                    try state.resubmittingVision(vision.id, as: content, by: role)
                 }
                 failureMessage = nil
                 input = .init()
-                review = nil
+                review = .idle
                 revising = nil
             } catch {
                 failureMessage = error.message

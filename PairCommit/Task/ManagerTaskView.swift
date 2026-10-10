@@ -14,9 +14,9 @@ struct ManagerTaskView: View {
     let vision: Vision
     let now: Date
 
-    @State private var input = TaskInput()
     @State private var outcome: Vision.Outcome?
-    @State private var failureMessage: String?
+    @State private var cancelling: TaskItem?
+    @State private var isAddingTask = false
 
     @Environment(\.achievingVision) private var achievingVision
     @Environment(\.presentingFailure) private var presentingFailure
@@ -27,8 +27,6 @@ struct ManagerTaskView: View {
             content
         }
         .animation(.default, value: store.state)
-        .animation(.default, value: failureMessage)
-        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
         .toolbar {
@@ -47,6 +45,27 @@ struct ManagerTaskView: View {
             }
         } message: { _ in
             Text(.managerTaskCloseVisionConfirmationMessage)
+        }
+        .confirmationDialog(
+            .managerTaskCancelConfirmationTitle,
+            isPresented: Binding(presenting: $cancelling),
+            presenting: cancelling
+        ) { task in
+            Button(.managerTaskCancelTask, role: .destructive) {
+                playingFeedback?(.warning)
+                perform { state, role throws(DomainError) in try state.cancellingTask(task.id, by: role) }
+            }
+        } message: { _ in
+            Text(.managerTaskCancelConfirmationMessage)
+        }
+        .sheet(isPresented: $isAddingTask) {
+            TaskForm(
+                title: .managerTaskCreationTitle,
+                submitLabel: .managerTaskAdd,
+                role: store.role,
+                now: now,
+                onSubmit: { await create($0) }
+            )
         }
     }
 }
@@ -68,10 +87,15 @@ private extension ManagerTaskView {
             emptiness
         } else {
             judgementList(tasks.filter(needsJudgement))
-            taskList(tasks.filter { !needsJudgement($0) })
+            taskList(tasks.filter { $0.status == .todo })
         }
-        creation
-        FailureNote(message: failureMessage)
+        Button {
+            isAddingTask = true
+        } label: {
+            Label(.managerTaskCreationTitle, systemImage: "plus")
+        }
+        .buttonStyle(.soft)
+        ClosedTaskList(tasks: tasks.filter { !$0.status.isOpen })
     }
 
     @ViewBuilder
@@ -162,23 +186,9 @@ private extension ManagerTaskView {
 
     func cancellation(of task: TaskItem) -> some View {
         Button(.managerTaskCancelTask, role: .destructive) {
-            perform { state, role throws(DomainError) in try state.cancellingTask(task.id, by: role) }
+            cancelling = task
         }
-        .buttonStyle(.soft)
-    }
-
-    var creation: some View {
-        Panel(title: String(localized: .managerTaskCreationTitle)) {
-            TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
-                .fieldBox()
-            TextField(String(localized: .taskFormDetailPlaceholder), text: $input.detail, axis: .vertical)
-                .lineLimit(2...4)
-                .fieldBox()
-            DeadlineField(deadline: $input.deadline, now: now)
-            Button(.managerTaskAdd, action: create)
-                .buttonStyle(.filled)
-                .disabled(!input.isComplete)
-        }
+        .buttonStyle(.soft(feedback: .impact(weight: .light)))
     }
 
     var judgement: some View {
@@ -191,51 +201,39 @@ private extension ManagerTaskView {
         }
     }
 
-    // 閉じると保存の前にこの画面が消えるので、結果は画面の外へ知らせる
     func close(as outcome: Vision.Outcome) {
-        perform(then: outcome == .achieved ? achievingVision : nil, failed: presentingFailure) { state, role throws(DomainError) in
+        perform(then: outcome == .achieved ? achievingVision : nil) { state, role throws(DomainError) in
             try state.closingVision(vision.id, as: outcome, by: role)
         }
     }
 
-    func create() {
-        let entered = input
-        failureMessage = nil
-        Task {
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
-                    try state.creatingTask(
-                        title: entered.title,
-                        detail: entered.detail,
-                        deadline: entered.deadline,
-                        by: role
-                    ).state
-                }
-                failureMessage = nil
-                input = .init()
-            } catch {
-                failureMessage = error.message
+    func create(_ entered: TaskInput) async -> String? {
+        do throws(PartnershipFailure) {
+            try await store.perform { state, role throws(DomainError) in
+                try state.creatingTask(
+                    title: entered.title,
+                    detail: entered.detail,
+                    deadline: entered.deadline,
+                    by: role
+                ).state
             }
+            return nil
+        } catch {
+            return error.message
         }
     }
 
+    // ビジョンを閉じると、保存を待たずにこの画面ごと消える
     func perform(
         then succeeded: (@MainActor () -> Void)? = nil,
-        failed: (@MainActor (String) -> Void)? = nil,
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
     ) {
-        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
-                failureMessage = nil
                 succeeded?()
             } catch {
-                if let failed {
-                    failed(error.message)
-                } else {
-                    failureMessage = error.message
-                }
+                presentingFailure?(error.message)
             }
         }
     }
