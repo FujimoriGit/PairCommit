@@ -50,6 +50,16 @@ extension PartnershipState {
             tasks: tasks
         )
     }
+
+    /// 自分の名前を決める。決められるのは操作した本人の名前だけ。
+    public func naming(_ name: String, by role: Role) throws(DomainError) -> Self {
+        guard let pairing else { throw DomainError.notPaired }
+        return .init(
+            pairing: pairing.naming(role, as: try requiringText(name)),
+            visions: visions,
+            tasks: tasks
+        )
+    }
 }
 
 // MARK: - Vision 操作

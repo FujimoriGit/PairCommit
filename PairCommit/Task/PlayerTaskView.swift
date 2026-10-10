@@ -21,12 +21,11 @@ struct PlayerTaskView: View {
 
     var body: some View {
         Screen(role: store.role) {
+            PartnerLine(pairing: store.state.pairing, role: store.role)
             content
         }
         .animation(.default, value: store.state)
         .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
-        .partnershipSettingsLink()
-        .partnershipHistoryLink()
         .sheet(isPresented: $isProposingTask) {
             TaskForm(
                 title: .playerTaskProposalTitle,

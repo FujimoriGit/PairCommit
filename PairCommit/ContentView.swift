@@ -30,7 +30,6 @@ struct ContentView: View {
     @State private var remote: RemotePairing
     @State private var methodRole: Role?
     @State private var failureMessage: String?
-    @State private var refreshFailure: String?
     @State private var linkRefusal: LinkRefusal?
     @State private var achievements = 0
     @State private var operationFailure: String?
@@ -76,6 +75,7 @@ struct ContentView: View {
             // 押すと画面が切り替わる操作では、押した画面ごと振動の指定が消えるので、ここで鳴らす
             .environment(\.playingFeedback) { feedback = feedback.playing($0) }
             .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
+            .scrollIndicators(.hidden)
     }
 }
 
@@ -85,22 +85,12 @@ private extension ContentView {
     @ViewBuilder
     var content: some View {
         if let store = session.store {
-            NavigationStack {
-                screen(for: store)
-                    .refreshable { await refresh(store) }
-                    .partnershipHistoryDestination(store.state, role: store.role)
-                    .partnershipSettingsDestination(role: store.role)
-            }
+            PartnershipTabs(store: store, makeCriteriaReviewing: makeCriteriaReviewing)
             .tint(store.role.accent)
             .task {
                 for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
                     try? await store.refresh()
                 }
-            }
-            .alert(.rootRefreshFailed, isPresented: Binding(presenting: $refreshFailure)) {
-                Button(.commonOk) {}
-            } message: {
-                Text(refreshFailure ?? "")
             }
             .environment(\.resettingPartnership) { await reset() }
             .task(id: store.state) {
@@ -150,25 +140,6 @@ private extension ContentView {
                     isResuming = false
                     await enter(outcome, resuming: false)
                 }
-        }
-    }
-
-    @ViewBuilder
-    func screen(for store: PartnershipStore) -> some View {
-        switch (store.role, store.state.activeVision) {
-        case (.manager, .none): ManagerVisionView(store: store)
-        case (.manager, .some(let vision)):
-            TimelineView(.everyMinute) { context in
-                ManagerTaskView(store: store, vision: vision, now: context.date)
-            }
-        case (.player, .none):
-            TimelineView(.everyMinute) { context in
-                PlayerVisionView(store: store, reviewing: makeCriteriaReviewing(), now: context.date)
-            }
-        case (.player, .some(let vision)):
-            TimelineView(.everyMinute) { context in
-                PlayerTaskView(store: store, vision: vision, now: context.date)
-            }
         }
     }
 
@@ -305,14 +276,6 @@ private extension ContentView {
         }
         await notifications.requestPermission()
         session.store = started
-    }
-
-    func refresh(_ store: PartnershipStore) async {
-        do throws(SyncFailure) {
-            try await store.refresh()
-        } catch {
-            refreshFailure = error.message
-        }
     }
 
     func reset() async -> String? {

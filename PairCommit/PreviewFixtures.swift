@@ -68,12 +68,18 @@ extension TaskItem {
 }
 
 extension PartnershipStore {
-    static func preview(role: Role, visions: [Vision], tasks: [TaskItem] = []) -> Self {
+    static func preview(role: Role, visions: [Vision], tasks: [TaskItem] = [], named: Bool = true) -> Self {
         .init(
             role: role,
             synchronizer: PreviewSynchronizer(),
             state: PartnershipState(
-                pairing: Pairing(id: UUID(), ownerRole: role, createdAt: Date()),
+                pairing: Pairing(
+                    id: UUID(),
+                    ownerRole: role,
+                    createdAt: Date(),
+                    managerName: named ? "太郎" : nil,
+                    playerName: named ? "花子" : nil
+                ),
                 visions: visions,
                 tasks: tasks
             )

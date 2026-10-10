@@ -1,0 +1,77 @@
+//
+//  NamingForm.swift
+//  PairCommit
+//
+//  Created by Daiki Fujimori on 2026/10/10
+//
+
+import Application
+import Domain
+import SwiftUI
+
+struct NamingForm: View {
+    let store: PartnershipStore
+
+    @State private var name: String
+    @State private var failureMessage: String?
+
+    init(store: PartnershipStore) {
+        self.store = store
+        _name = State(initialValue: store.state.pairing?.name(of: store.role) ?? "")
+    }
+
+    var body: some View {
+        TextField(String(localized: .namingPlaceholder), text: $name)
+            .textContentType(.nickname)
+            .submitLabel(.done)
+            .onSubmit(save)
+            .fieldBox()
+        Button(.namingSave, action: save)
+            .buttonStyle(.filled)
+            .disabled(!canSave)
+        FailureNote(message: failureMessage)
+    }
+}
+
+// MARK: - Private
+
+private extension NamingForm {
+    var canSave: Bool {
+        !name.isBlank && name != store.state.pairing?.name(of: store.role)
+    }
+
+    func save() {
+        guard canSave else { return }
+        let entered = name
+        failureMessage = nil
+        Task {
+            do throws(PartnershipFailure) {
+                try await store.perform { state, role throws(DomainError) in
+                    try state.naming(entered, by: role)
+                }
+                name = store.state.pairing?.name(of: store.role) ?? entered
+            } catch {
+                failureMessage = error.message
+            }
+        }
+    }
+}
+
+struct NamingSheet: View {
+    let store: PartnershipStore
+
+    var body: some View {
+        Screen(role: store.role) {
+            Text(.namingTitle)
+                .font(.system(.title2, design: .rounded, weight: .bold))
+            Text(.namingMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            NamingForm(store: store)
+        }
+    }
+}
+
+#Preview("呼び名の入力") {
+    NamingSheet(store: .preview(role: .player, visions: [], named: false))
+}

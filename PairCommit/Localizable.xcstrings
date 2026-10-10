@@ -579,6 +579,23 @@
         }
       }
     },
+    "error.notPaired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re not paired."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペアが成立していません。"
+          }
+        }
+      }
+    },
     "error.offline" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1378,6 +1395,74 @@
         }
       }
     },
+    "naming.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shown on your partner’s screen. You can change it later in Settings."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相手の画面に出ます。あとから設定で変えられます。"
+          }
+        }
+      }
+    },
+    "naming.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "呼び名"
+          }
+        }
+      }
+    },
+    "naming.save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "決める"
+          }
+        }
+      }
+    },
+    "naming.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What should your partner call you?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相手に呼んでもらう名前を決めてください"
+          }
+        }
+      }
+    },
     "nearbyPairing.connected" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1782,6 +1867,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ペアリング方法を選ぶ"
+          }
+        }
+      }
+    },
+    "partnerLine.witnessed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is witnessing your challenge"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんが見届けています"
+          }
+        }
+      }
+    },
+    "partnerLine.witnessed.unnamed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your partner is witnessing your challenge"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相手が見届けています"
+          }
+        }
+      }
+    },
+    "partnerLine.witnessing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re witnessing %@’s challenge"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんの挑戦を見届けています"
+          }
+        }
+      }
+    },
+    "partnerLine.witnessing.unnamed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re witnessing your partner’s challenge"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相手の挑戦を見届けています"
           }
         }
       }
@@ -2296,6 +2449,23 @@
         }
       }
     },
+    "settings.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたの呼び名"
+          }
+        }
+      }
+    },
     "settings.repair" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2377,6 +2547,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ふたりの帆柱"
+          }
+        }
+      }
+    },
+    "tab.home" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホーム"
           }
         }
       }

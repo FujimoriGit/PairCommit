@@ -5,11 +5,16 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
+import Application
 import Domain
 import SwiftUI
 
+extension EnvironmentValues {
+    @Entry var resettingPartnership: (@Sendable () async -> String?)?
+}
+
 struct PartnershipSettingsView: View {
-    let role: Role
+    let store: PartnershipStore
 
     @Environment(\.resettingPartnership) private var reset
     @State private var confirming = false
@@ -17,7 +22,10 @@ struct PartnershipSettingsView: View {
     @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
-        Screen(role: role) {
+        Screen(role: store.role) {
+            Panel(title: String(localized: .settingsName)) {
+                NamingForm(store: store)
+            }
             Button(.settingsRepair, role: .destructive) {
                 confirming = true
             }
@@ -42,6 +50,6 @@ struct PartnershipSettingsView: View {
 
 #Preview("ペアリングの設定") {
     NavigationStack {
-        PartnershipSettingsView(role: .manager)
+        PartnershipSettingsView(store: .preview(role: .manager, visions: []))
     }
 }
