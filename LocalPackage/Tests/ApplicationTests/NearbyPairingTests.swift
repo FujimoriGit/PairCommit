@@ -13,16 +13,16 @@ import Testing
 @MainActor
 struct NearbyPairingTests {
 
-    @Test("話し合いの結果が止まるなら、共有を作らずに失敗で終わる")
-    func stopPlanFailsWithoutSharing() async {
+    @Test("2台とも同じ役割を選ぶと、どちらも共有を作らずに、役割が重なったことを伝えて止まる", arguments: Role.allCases)
+    func choosingTheSameRoleStopsWithoutSharing(chosen: Role) async {
         // Given
-        let (pairing, channel, sharing) = Self.started(as: .manager)
+        let (pairing, channel, sharing) = Self.started(as: chosen)
 
         // When
-        channel.receive(.received(Partner.choosing(.manager)))
+        channel.receive(.received(Partner.choosing(chosen)))
 
         // Then
-        #expect(await eventually { pairing.phase == .failed(.sameRole(.manager)) })
+        #expect(await eventually { pairing.phase == .failed(.sameRole(chosen)) })
         #expect(sharing.makeShareCalls == 0)
     }
 
