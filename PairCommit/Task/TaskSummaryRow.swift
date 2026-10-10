@@ -8,8 +8,9 @@
 import Domain
 import SwiftUI
 
-struct TaskSummaryRow: View {
+struct TaskSummaryRow<Actions: View>: View {
     let task: TaskItem
+    @ViewBuilder let actions: Actions
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -24,7 +25,14 @@ struct TaskSummaryRow: View {
                     .marker(task.status.tint)
             }
             TaskDetailText(task: task)
+            actions
         }
         .card(tinted: task.reaction?.tint)
+    }
+}
+
+extension TaskSummaryRow where Actions == EmptyView {
+    init(task: TaskItem) {
+        self.init(task: task) { EmptyView() }
     }
 }

@@ -18,6 +18,40 @@
         }
       }
     },
+    "cancelledTasks.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cancelled tasks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消したタスクはありません"
+          }
+        }
+      }
+    },
+    "cancelledTasks.restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore to “%@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」に戻す"
+          }
+        }
+      }
+    },
     "cancelledTasks.title" : {
       "extractionState" : "manual",
       "localizations" : {
