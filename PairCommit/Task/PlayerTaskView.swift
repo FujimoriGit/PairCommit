@@ -58,7 +58,7 @@ private extension PlayerTaskView {
             Label(.playerTaskProposalTitle, systemImage: "plus")
         }
         .buttonStyle(.soft)
-        ClosedTaskList(tasks: tasks.filter { !$0.status.isOpen })
+        ClosedTaskList(store: store, vision: vision)
     }
 
     @ViewBuilder

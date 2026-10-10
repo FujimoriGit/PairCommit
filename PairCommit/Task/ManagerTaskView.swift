@@ -89,7 +89,7 @@ private extension ManagerTaskView {
             Label(.managerTaskCreationTitle, systemImage: "plus")
         }
         .buttonStyle(.soft)
-        ClosedTaskList(tasks: tasks.filter { !$0.status.isOpen })
+        ClosedTaskList(store: store, vision: vision)
         judgement
     }
 
@@ -312,6 +312,26 @@ private extension ManagerTaskView {
                     .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .todo, reaction: .uneasy),
                     .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .todo, reaction: .happy),
                     .preview(visionID: vision.id, title: "週末に献立を決める", status: .todo)
+                ]
+            ),
+            vision: vision,
+            now: .preview
+        )
+    }
+}
+
+#Preview("管理者の済んだタスク") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active)
+        ManagerTaskView(
+            store: .preview(
+                role: .manager,
+                visions: [vision],
+                tasks: [
+                    .preview(visionID: vision.id, title: "週3でジムに行く", status: .todo),
+                    .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .approved, reaction: .happy),
+                    .preview(visionID: vision.id, title: "夜10時以降は食べない", status: .cancelled),
+                    .preview(visionID: vision.id, title: "間食をやめる", status: .cancelled)
                 ]
             ),
             vision: vision,
