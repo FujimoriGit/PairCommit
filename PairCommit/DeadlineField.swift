@@ -18,11 +18,13 @@ struct DeadlineField: View {
             Toggle(.deadlineFieldToggle, isOn: decided)
                 .font(.subheadline)
             if let deadline {
-                LabeledContent(.commonDeadline) {
+                LabeledContent {
                     Button(deadline.formatted(Date.FormatStyle.yearMonthDayTime)) {
                         isPicking = true
                     }
                     .buttonStyle(.bordered)
+                } label: {
+                    Text(.commonDeadline)
                 }
                 .font(.subheadline)
                 if deadline <= now {
