@@ -137,22 +137,7 @@ private extension ManagerTaskView {
             NavigationLink {
                 TaskDetailView(store: store, taskID: task.id, now: now)
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(task.title)
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                    Spacer(minLength: 8)
-                    if let reaction = task.reaction {
-                        Text(reaction.emoji)
-                    }
-                    DeadlineText(task: task, now: now)
-                    Text(task.status.label)
-                        .marker(task.status.tint)
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
-                .contentShape(.rect)
+                TaskRowHeading(task: task, now: now, showsReaction: true)
             }
             .buttonStyle(.plain)
             TaskDetailText(task: task)

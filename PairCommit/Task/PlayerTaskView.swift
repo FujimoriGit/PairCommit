@@ -88,19 +88,7 @@ private extension PlayerTaskView {
             NavigationLink {
                 TaskDetailView(store: store, taskID: task.id, now: now)
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(task.title)
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                    Spacer(minLength: 8)
-                    DeadlineText(task: task, now: now)
-                    Text(task.status.label)
-                        .marker(task.status.tint)
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
-                .contentShape(.rect)
+                TaskRowHeading(task: task, now: now, showsReaction: false)
             }
             .buttonStyle(.plain)
             TaskDetailText(task: task)
