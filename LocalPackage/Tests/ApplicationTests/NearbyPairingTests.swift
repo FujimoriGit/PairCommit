@@ -26,8 +26,8 @@ struct NearbyPairingTests {
         #expect(sharing.makeShareCalls == 0)
     }
 
-    @Test("自分の iCloud の空き容量が足りなくても、相手の iCloud にペアを保存して、ペアリングが完了する")
-    func pairingCompletesInThePartnersICloudWhenYoursLacksSpace() async {
+    @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
+    func pairingCompletesOnThePartnersSideWhenYoursLacksSpace() async {
         // Given
         let (pairing, channel, sharing) = Self.started(as: .manager)
         sharing.failure = .storageFull
@@ -42,7 +42,7 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == false)
     }
 
-    @Test("自分の iCloud にペアを保存した側は、相手がそのペアに参加した時点でペアリングが完了する")
+    @Test("自分の側でペアを保存したときは、相手がそのペアに参加した時点でペアリングが完了する")
     func pairingCompletesOnceThePartnerJoins() async {
         // Given
         let (pairing, channel, sharing) = Self.started(as: .manager)
@@ -70,8 +70,8 @@ struct NearbyPairingTests {
         #expect(await eventually { pairing.phase == .done })
     }
 
-    @Test("ペアを保存している途中でやめたら、ペアは残らず、相手にも送られない")
-    func cancellingWhileSavingThePairLeavesNoPair() async {
+    @Test("ペアを保存している途中でやめたら、ペアリングは完了せず、保存したペアは相手に送られない")
+    func cancellingWhileSavingThePairNeitherCompletesPairingNorSendsThePair() async {
         // Given
         let (pairing, channel, sharing) = Self.started(as: .manager)
         sharing.hold()

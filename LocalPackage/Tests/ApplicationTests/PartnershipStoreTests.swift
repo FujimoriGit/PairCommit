@@ -13,8 +13,8 @@ import Testing
 @MainActor
 struct PartnershipStoreTests {
 
-    @Test("操作は iCloud への保存の完了を待たずに手元の状態に反映され、iCloud にも保存される")
-    func anActionAppliesLocallyRightAwayAndIsSavedToICloud() async throws {
+    @Test("操作は保存の完了を待たずに手元の状態に反映され、保存もされる")
+    func anActionAppliesLocallyRightAwayAndIsSaved() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
@@ -113,7 +113,7 @@ struct PartnershipStoreTests {
         #expect(synchronizer.stored == store.state)
     }
 
-    @Test("iCloud への保存に失敗した操作は、手元の状態からも取り消され、エラーになる")
+    @Test("保存に失敗した操作は、手元の状態からも取り消され、エラーになる")
     func anActionThatFailsToSaveIsUndone() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
@@ -190,8 +190,8 @@ struct PartnershipStoreTests {
         #expect(store.state == latest)
     }
 
-    @Test("ペアリングが完了したら、iCloud に保存されたペアの状態から使い始める")
-    func usageStartsWithThePairSavedInICloud() async throws {
+    @Test("ペアリングが完了したら、保存されたペアの状態から使い始める")
+    func usageStartsWithTheSavedPair() async throws {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
@@ -230,7 +230,7 @@ struct PartnershipStoreTests {
         #expect(role != chosen)
     }
 
-    @Test("iCloud から受け取ったデータにペアがなければ、使い始めない")
+    @Test("受け取ったデータにペアがなければ、使い始めない")
     func nothingStartsWithoutAPair() async throws {
         // Given
         let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer())

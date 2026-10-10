@@ -63,10 +63,10 @@ struct PartnershipStateTests {
         }
     }
 
-    // MARK: - iCloud への保存
+    // MARK: - 書き出しと読み直し
 
-    @Test("iCloud に保存して読み直しても、ペアの状態は何も失われない")
-    func stateSurvivesBeingSavedAndReadBack() throws {
+    @Test("ペアの状態は、書き出して読み直しても何も失われない")
+    func stateSurvivesBeingWrittenOutAndReadBack() throws {
         // Given
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
         let now = deadline.addingTimeInterval(-24 * 60 * 60)
