@@ -147,6 +147,59 @@ struct TaskLifecycleTests {
         #expect(cancelled.status(of: taskID) == .cancelled)
     }
 
+    @Test("見届ける人が取り消したタスクを戻すと、取り消す前の状態に戻る", arguments: [
+        TaskItem.Status.proposed, .todo, .reported
+    ])
+    func cancelledTaskReturnsToItsStatusBeforeCancellation(_ before: TaskItem.Status) throws {
+        // Given
+        let (progressed, taskID) = try PartnershipState().activeVisionWithTask(in: before)
+        let cancelled = try progressed.cancellingTask(taskID, by: .manager)
+
+        // When
+        let state = try cancelled.restoringTask(taskID, by: .manager)
+
+        // Then
+        #expect(state.status(of: taskID) == before)
+    }
+
+    @Test("取り消したタスクを戻せるのは見届ける人だけ")
+    func onlyManagerCanRestoreACancelledTask() throws {
+        // Given
+        let (created, taskID) = try PartnershipState().activeVisionWithTask()
+        let state = try created.cancellingTask(taskID, by: .manager)
+
+        // When / Then
+        #expect(throws: DomainError.roleForbidden(required: .manager)) {
+            try state.restoringTask(taskID, by: .player)
+        }
+    }
+
+    @Test("ビジョンを閉じたあとは、取り消したタスクを戻せない")
+    func cancelledTaskCannotBeRestoredAfterTheVisionIsClosed() throws {
+        // Given
+        let (active, visionID) = try PartnershipState().activeVision()
+        let (created, taskID) = try active.creatingTask(title: "t", by: .manager)
+        let state = try created
+            .cancellingTask(taskID, by: .manager)
+            .closingVision(visionID, as: .abandoned, by: .manager)
+
+        // When / Then
+        #expect(throws: DomainError.invalidTaskTransition(from: .cancelled)) {
+            try state.restoringTask(taskID, by: .manager)
+        }
+    }
+
+    @Test("取り消していないタスクは戻せない")
+    func taskThatIsNotCancelledCannotBeRestored() throws {
+        // Given
+        let (state, taskID) = try PartnershipState().activeVisionWithTask()
+
+        // When / Then
+        #expect(throws: DomainError.invalidTaskTransition(from: .todo)) {
+            try state.restoringTask(taskID, by: .manager)
+        }
+    }
+
     @Test("完了したタスクは、見届ける人でも取り消せない")
     func completedTaskCannotBeCancelled() throws {
         // Given

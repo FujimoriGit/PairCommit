@@ -217,6 +217,16 @@ extension PartnershipState {
         return updating(tasks: try transitioningTask(id, from: [.proposed, .todo, .reported], to: .cancelled, at: now))
     }
 
+    /// 取り消したタスクを、取り消す前の状態に戻す。戻せるのは、ビジョンが進行中の間だけ。
+    public func restoringTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
+        try requiring(role, is: .manager)
+        guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
+        guard task.visionID == activeVision?.id, let previous = task.cancelledFrom else {
+            throw DomainError.invalidTaskTransition(from: task.status)
+        }
+        return updating(tasks: try transitioningTask(id, from: [.cancelled], to: previous, at: now))
+    }
+
     public func settingReaction(
         _ reaction: Reaction?,
         on id: TaskItem.ID,

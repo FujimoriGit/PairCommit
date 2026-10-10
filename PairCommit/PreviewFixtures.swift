@@ -50,7 +50,8 @@ extension TaskItem {
         createdBy: Role = .player,
         reaction: Reaction? = nil,
         deadline: Date? = nil,
-        statusChangedAt: Date = .preview
+        statusChangedAt: Date = .preview,
+        cancelledFrom: Status? = nil
     ) -> Self {
         .init(
             id: UUID(),
@@ -62,7 +63,8 @@ extension TaskItem {
             reaction: reaction,
             deadline: deadline,
             createdAt: Date(),
-            statusChangedAt: statusChangedAt
+            statusChangedAt: statusChangedAt,
+            cancelledFrom: cancelledFrom
         )
     }
 }
