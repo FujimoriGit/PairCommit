@@ -47,6 +47,20 @@ struct NoteTests {
         #expect(second.notes(on: .task(taskID)).map(\.number) == [1, 2])
     }
 
+    @Test("書き込みは、受け取った順に関係なく、書いた順に並ぶ")
+    func notesAreOrderedAsWrittenRegardlessOfArrival() {
+        // Given
+        let subject = Note.Subject.task(UUID())
+        let second = Note(id: UUID(), subject: subject, kind: .report, author: .player, number: 2, body: "b", writtenAt: Date())
+        let first = Note(id: UUID(), subject: subject, kind: .reminder, author: .manager, number: 1, body: "a", writtenAt: Date())
+
+        // When
+        let state = PartnershipState(notes: [second, first], lastNoteNumber: 2)
+
+        // Then
+        #expect(state.notes(on: subject).map(\.number) == [1, 2])
+    }
+
     @Test("空白だけの書き込みはできない")
     func blankNoteIsRefused() throws {
         // Given

@@ -21,7 +21,7 @@ enum PartnershipRootRecord {
             },
             visions: state.visions,
             tasks: state.tasks,
-            notes: notes.sorted { $0.number < $1.number },
+            notes: notes,
             lastNoteNumber: (record[Key.lastNoteNumber] as? Int) ?? 0
         )
     }

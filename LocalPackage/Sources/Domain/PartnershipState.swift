@@ -26,7 +26,7 @@ public struct PartnershipState: Sendable, Codable, Equatable {
         self.pairing = pairing
         self.visions = visions
         self.tasks = tasks
-        self.notes = notes
+        self.notes = notes.sorted { $0.number < $1.number }
         self.lastNoteNumber = lastNoteNumber
     }
 
