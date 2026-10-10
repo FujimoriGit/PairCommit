@@ -18,7 +18,9 @@ struct PlayerTaskActions: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            reactions
+            if task.status.isOpen {
+                reactions
+            }
             if task.status == .todo {
                 Button(.playerTaskReport) {
                     perform(succeeding: .success) { state, role throws(DomainError) in

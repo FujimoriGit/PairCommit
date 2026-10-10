@@ -124,4 +124,33 @@ struct NoteTests {
         // Then
         #expect(actions == [.noteWritten(noteID, author: .player)])
     }
+
+    @Test("見届ける人が書き込むと、挑む人にその書き込みが知らされる")
+    func noteByTheManagerIsToldToThePlayer() throws {
+        // Given
+        let (before, taskID) = try PartnershipState().activeVisionWithTask()
+        let after = try before.writingNote("進んでる？", kind: .reminder, on: .task(taskID), by: .manager)
+        let noteID = try #require(after.notes.first?.id)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .player)
+
+        // Then
+        #expect(actions == [.noteWritten(noteID, author: .manager)])
+    }
+
+    @Test("挑む人がもう一度書き込むと、見届ける人には新しい書き込みだけが知らされる")
+    func onlyTheNewNoteIsToldToTheManager() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let before = try todo.writingNote("1回目", kind: .report, on: .task(taskID), by: .player)
+        let after = try before.writingNote("2回目", kind: .report, on: .task(taskID), by: .player)
+        let noteID = try #require(after.notes.last?.id)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .manager)
+
+        // Then
+        #expect(actions == [.noteWritten(noteID, author: .player)])
+    }
 }
