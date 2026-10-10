@@ -17,7 +17,7 @@ struct PairingView: View {
         VStack(spacing: 24) {
             Spacer()
             SymbolBadge(symbol: "dot.radiowaves.left.and.right")
-                .symbolEffect(.variableColor.iterative, isActive: isConnecting)
+                .symbolEffect(.variableColor.iterative, isActive: isWaiting)
 
             VStack(spacing: 10) {
                 Text(.nearbyPairingTitle)
@@ -66,7 +66,7 @@ private extension NearbyPairing.Phase {
 }
 
 private extension PairingView {
-    var isConnecting: Bool {
+    var isWaiting: Bool {
         switch phase {
         case .searching, .connected, .sharing, .handedOver: true
         case .idle, .done, .failed: false
