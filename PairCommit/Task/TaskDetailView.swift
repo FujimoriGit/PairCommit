@@ -60,9 +60,16 @@ private extension TaskDetailView {
     @ViewBuilder
     func progress(of task: TaskItem) -> some View {
         if store.role == .manager, task.status == .todo || task.status == .reported {
-            Panel(title: String(localized: .taskDetailProgress)) {
+            Panel {
                 let current = editingProgress ?? Double(task.progress ?? 0)
-                TaskProgressBar(percent: Int(current))
+                HStack(alignment: .firstTextBaseline) {
+                    Text(.taskDetailProgress)
+                        .sectionTitle()
+                    Spacer(minLength: 8)
+                    Text(current / 100, format: .percent)
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
                 Slider(value: .init(get: { current }, set: { editingProgress = $0 }), in: 0...100, step: 10) { isEditing in
                     guard !isEditing, let value = editingProgress else { return }
                     setProgress(Int(value), on: task)

@@ -71,4 +71,20 @@ struct TaskProgressTests {
         // Then
         #expect(actions == [.progressChanged(taskID, 60)])
     }
+
+    @Test("進捗率が決まっているタスクを見届ける人が承認すると、挑む人には承認だけが知らされる")
+    func approvalOfATaskWithProgressIsToldWithoutTheProgress() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let before = try todo
+            .settingProgress(60, on: taskID, by: .manager)
+            .reportingTask(taskID, by: .player)
+        let after = try before.approvingTask(taskID, by: .manager)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .player)
+
+        // Then
+        #expect(actions == [.taskApproved(taskID)])
+    }
 }
