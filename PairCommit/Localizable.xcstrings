@@ -1905,6 +1905,244 @@
         }
       }
     },
+    "partnerAction.reactionChanged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ reacted %3$@ to “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」に%@を付けました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskAdded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ added the task “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がタスク「%@」を追加しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskAdopted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ accepted the task “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がタスク「%@」を採用しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskApproved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ approved “%2$@” as done."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」の完了を承認しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskCancelled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ cancelled the task “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がタスク「%@」を取り消しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskProposed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ proposed the task “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がタスク「%@」を起案しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskReported" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ reported “%2$@” as done."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」の完了を報告しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskReturned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent back the report on “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」の完了報告を差し戻しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.untitledVision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vision"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビジョン"
+          }
+        }
+      }
+    },
+    "partnerAction.visionAbandoned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ abandoned the vision “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がビジョン「%@」を取りやめにしました。"
+          }
+        }
+      }
+    },
+    "partnerAction.visionAchieved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ marked the vision “%2$@” as achieved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がビジョン「%@」を達成にしました。"
+          }
+        }
+      }
+    },
+    "partnerAction.visionApproved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ approved the vision “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がビジョン「%@」を承認しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.visionProposed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ submitted the vision “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がビジョン「%@」を提出しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.visionReturned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent back the vision “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がビジョン「%@」を差し戻しました。"
+          }
+        }
+      }
+    },
     "partnerLine.witnessed" : {
       "extractionState" : "manual",
       "localizations" : {

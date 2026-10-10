@@ -20,6 +20,8 @@ struct ContentView: View {
     let session: PartnershipSession
     let sharing: any PartnershipSharing
     let notifications: any NudgeNotifying
+    let partnerNotifications: any PartnerActionNotifying
+    let knownState: any KnownStateKeeping
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     let invitationLinks: AsyncStream<URL>
@@ -34,6 +36,7 @@ struct ContentView: View {
     @State private var achievements = 0
     @State private var operationFailure: String?
     @State private var feedback = FeedbackCue()
+    @Environment(\.scenePhase) private var scenePhase
 
     init(
         session: PartnershipSession,
@@ -41,6 +44,8 @@ struct ContentView: View {
         inviting: any PartnershipInviting,
         invitationLinks: AsyncStream<URL>,
         notifications: any NudgeNotifying,
+        partnerNotifications: any PartnerActionNotifying,
+        knownState: any KnownStateKeeping,
         makeCriteriaReviewing: @escaping () -> (any CriteriaReviewing)?,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
@@ -48,6 +53,8 @@ struct ContentView: View {
         self.sharing = sharing
         self.invitationLinks = invitationLinks
         self.notifications = notifications
+        self.partnerNotifications = partnerNotifications
+        self.knownState = knownState
         self.makeCriteriaReviewing = makeCriteriaReviewing
         let savedPairing = sharing.savedShare()
         _savedPairing = State(initialValue: savedPairing)
@@ -99,7 +106,15 @@ private extension ContentView {
                     return
                 }
                 let state = store.state
+                if scenePhase == .active {
+                    knownState.keep(state)
+                }
                 await notifications.post(for: store.role, in: state) { $0.message(in: state) }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    knownState.keep(store.state)
+                }
             }
             .environment(\.achievingVision) { achievements += 1 }
             .sensoryFeedback(.success, trigger: achievements)
@@ -293,6 +308,8 @@ private extension ContentView {
 
     func returnToPicker(with message: String?) async {
         await notifications.withdrawAll()
+        await partnerNotifications.withdrawAll()
+        knownState.forget()
         sharing.clearSavedShare()
         savedPairing = nil
         remote.reset()
@@ -309,6 +326,8 @@ private extension ContentView {
         inviting: PreviewInviting(),
         invitationLinks: AsyncStream { $0.finish() },
         notifications: PreviewNudgeNotifications(),
+        partnerNotifications: PreviewPartnerActionNotifications(),
+        knownState: PreviewKnownState(),
         makeCriteriaReviewing: { nil },
         makeNearbyChannel: { PreviewNearbyChannel() }
     )

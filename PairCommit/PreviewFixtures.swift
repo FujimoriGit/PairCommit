@@ -107,6 +107,22 @@ struct PreviewNudgeNotifications: NudgeNotifying {
     func withdrawAll() async {}
 }
 
+struct PreviewPartnerActionNotifications: PartnerActionNotifying {
+    func deliver(_ notices: [PartnerActionNotice]) async {}
+
+    func withdrawAll() async {}
+}
+
+struct PreviewKnownState: KnownStateKeeping {
+    func lastKnown() -> PartnershipState? {
+        nil
+    }
+
+    func keep(_ state: PartnershipState) {}
+
+    func forget() {}
+}
+
 struct PreviewSharing: PartnershipSharing {
     func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare) {
         throw .unexpected
