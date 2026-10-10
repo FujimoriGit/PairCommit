@@ -22,16 +22,19 @@ struct PartnershipTabs: View {
             Tab(String(localized: .tabHome), systemImage: "house", value: .home) {
                 home
                     .refreshable { await refresh() }
+                    .simultaneousGesture(tabSwipe)
             }
             Tab(String(localized: .commonHistory), systemImage: "clock.arrow.circlepath", value: .history) {
                 NavigationStack {
                     PartnershipHistoryView(state: store.state, role: store.role)
                         .refreshable { await refresh() }
+                        .simultaneousGesture(tabSwipe)
                 }
             }
             Tab(String(localized: .commonSettings), systemImage: "gearshape", value: .settings) {
                 NavigationStack {
                     PartnershipSettingsView(store: store)
+                        .simultaneousGesture(tabSwipe)
                 }
             }
         }
@@ -57,7 +60,7 @@ struct PartnershipTabs: View {
 // MARK: - Private
 
 private extension PartnershipTabs {
-    enum Destination {
+    enum Destination: CaseIterable {
         case home
         case history
         case settings
@@ -80,6 +83,19 @@ private extension PartnershipTabs {
                 PlayerTaskView(store: store, vision: vision, now: context.date)
             }
         }
+    }
+
+    var tabSwipe: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let distance = value.translation.width
+                guard abs(distance) > 80, abs(distance) > abs(value.translation.height) * 2 else { return }
+                let destinations = Destination.allCases
+                guard let index = destinations.firstIndex(of: destination) else { return }
+                let next = index + (distance < 0 ? 1 : -1)
+                guard destinations.indices.contains(next) else { return }
+                withAnimation { destination = destinations[next] }
+            }
     }
 
     // ペアが終わったときは最初の画面へ戻るので、入力を求めない
