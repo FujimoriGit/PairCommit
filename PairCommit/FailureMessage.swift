@@ -57,7 +57,6 @@ extension NearbyPairing.Failure {
         switch self {
         case .partnerFailed: String(localized: .errorPartnerFailed)
         case .sameRole(let role): String(localized: .errorSameRole(role.label, role.counterpart.label))
-        case .bothAccepting: String(localized: .errorBothAccepting)
         case .external(let failure): failure.message
         }
     }

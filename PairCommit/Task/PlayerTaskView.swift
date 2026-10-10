@@ -14,20 +14,28 @@ struct PlayerTaskView: View {
     let vision: Vision
     let now: Date
 
-    @State private var input = TaskInput()
-    @State private var failureMessage: String?
+    @State private var isProposingTask = false
     @State private var feedback = FeedbackCue()
+
+    @Environment(\.presentingFailure) private var presentingFailure
 
     var body: some View {
         Screen(role: store.role) {
             content
         }
         .animation(.default, value: store.state)
-        .animation(.default, value: failureMessage)
-        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
         .partnershipSettingsLink()
         .partnershipHistoryLink()
+        .sheet(isPresented: $isProposingTask) {
+            TaskForm(
+                title: .playerTaskProposalTitle,
+                submitLabel: .commonPropose,
+                role: store.role,
+                now: now,
+                onSubmit: { await create($0) }
+            )
+        }
     }
 }
 
@@ -43,22 +51,30 @@ private extension PlayerTaskView {
             now: now
         )
         NudgeCard(state: store.state, role: store.role, now: now)
-        taskList(store.state.tasks(for: vision.id))
-        proposal
-        FailureNote(message: failureMessage)
+        let tasks = store.state.tasks(for: vision.id)
+        taskList(tasks)
+        Button {
+            isProposingTask = true
+        } label: {
+            Label(.playerTaskProposalTitle, systemImage: "plus")
+        }
+        .buttonStyle(.soft)
+        ClosedTaskList(tasks: tasks.filter { !$0.status.isOpen })
     }
 
     @ViewBuilder
     func taskList(_ tasks: [TaskItem]) -> some View {
-        SectionHeader(text: String(localized: .commonTasks))
+        let open = tasks.filter(\.status.isOpen)
         if tasks.isEmpty {
+            SectionHeader(text: String(localized: .commonTasks))
             Placeholder(
                 symbol: "checklist",
                 title: String(localized: .taskListEmptyTitle),
                 message: String(localized: .playerTaskEmptyMessage)
             )
-        } else {
-            ForEach(tasks) { task in
+        } else if !open.isEmpty {
+            SectionHeader(text: String(localized: .commonTasks))
+            ForEach(open) { task in
                 row(task)
             }
         }
@@ -75,26 +91,14 @@ private extension PlayerTaskView {
                     .marker(task.status.tint)
             }
             TaskDetailText(task: task)
-            if task.status.isOpen {
-                reactions(for: task)
-            } else if let reaction = task.reaction {
-                Text(reaction.emoji)
-                    .font(.title2)
-            }
+            reactions(for: task)
             if task.status == .todo {
-                Button {
-                    feedback = feedback.playing(.impact(weight: .light))
+                Button(.playerTaskReport) {
                     perform(succeeding: .success) { state, role throws(DomainError) in
                         try state.reportingTask(task.id, by: role)
                     }
-                } label: {
-                    Text(.playerTaskReport)
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        .foregroundStyle(.tint)
-                        .frame(minHeight: 44)
-                        .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.filled)
             }
         }
         .card(tinted: task.reaction?.tint)
@@ -123,8 +127,8 @@ private extension PlayerTaskView {
 
     func reactionLabel(_ reaction: Reaction, chosen: Bool) -> some View {
         Text(reaction.emoji)
-            .font(.largeTitle)
-            .frame(maxWidth: .infinity, minHeight: 64)
+            .font(.title3)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .background(
                 chosen ? reaction.tint.opacity(0.22) : Color(.tertiarySystemFill),
                 in: .rect(cornerRadius: 16)
@@ -136,38 +140,19 @@ private extension PlayerTaskView {
             .contentShape(.rect)
     }
 
-    var proposal: some View {
-        Panel(title: String(localized: .playerTaskProposalTitle)) {
-            TextField(String(localized: .taskFormTitlePlaceholder), text: $input.title)
-                .fieldBox()
-            TextField(String(localized: .taskFormDetailPlaceholder), text: $input.detail, axis: .vertical)
-                .lineLimit(2...4)
-                .fieldBox()
-            DeadlineField(deadline: $input.deadline, now: now)
-            Button(.commonPropose, action: create)
-                .buttonStyle(.filled)
-                .disabled(!input.isComplete)
-        }
-    }
-
-    func create() {
-        let entered = input
-        failureMessage = nil
-        Task {
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
-                    try state.creatingTask(
-                        title: entered.title,
-                        detail: entered.detail,
-                        deadline: entered.deadline,
-                        by: role
-                    ).state
-                }
-                failureMessage = nil
-                input = .init()
-            } catch {
-                failureMessage = error.message
+    func create(_ entered: TaskInput) async -> String? {
+        do throws(PartnershipFailure) {
+            try await store.perform { state, role throws(DomainError) in
+                try state.creatingTask(
+                    title: entered.title,
+                    detail: entered.detail,
+                    deadline: entered.deadline,
+                    by: role
+                ).state
             }
+            return nil
+        } catch {
+            return error.message
         }
     }
 
@@ -175,16 +160,14 @@ private extension PlayerTaskView {
         succeeding success: SensoryFeedback? = nil,
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
     ) {
-        failureMessage = nil
         Task {
             do throws(PartnershipFailure) {
                 try await store.perform(transform)
-                failureMessage = nil
                 if let success {
                     feedback = feedback.playing(success)
                 }
             } catch {
-                failureMessage = error.message
+                presentingFailure?(error.message)
             }
         }
     }

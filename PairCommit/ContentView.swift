@@ -190,16 +190,6 @@ private extension ContentView {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Panel {
-                        Button(.rolePickerAcceptInvitation) {
-                            begin(with: .invitation)
-                        }
-                        .buttonStyle(.filled)
-                        Text(.rolePickerAcceptInvitationNote)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
                     FailureNote(message: failureMessage)
                 }
                 .padding(.horizontal, 20)
@@ -210,7 +200,7 @@ private extension ContentView {
             .navigationDestination(item: $methodRole) { role in
                 PairingMethodView(
                     role: role,
-                    onNearby: { begin(with: .role(role)) },
+                    onNearby: { begin(as: role) },
                     onRemote: { invite(ownerRole: role) }
                 )
             }
@@ -227,6 +217,7 @@ private extension ContentView {
             case .inviting:
                 InvitationView(
                     url: remote.invitationURL,
+                    partnerRole: remote.partnerRole,
                     failureMessage: remote.failure?.message,
                     isCreatingLink: remote.isCreatingLink,
                     isCancelling: remote.isCancelling,
@@ -234,10 +225,11 @@ private extension ContentView {
                     onCancel: { Task { await cancelRemote() } }
                 )
             case .joining, .idle:
-                ReconnectingView(
+                JoiningView(
                     failureMessage: remote.failure?.message,
+                    isCancelling: remote.isCancelling,
                     onRetry: remote.retry,
-                    onStartOver: { Task { await cancelRemote() } }
+                    onCancel: { Task { await cancelRemote() } }
                 )
             }
         }
@@ -256,10 +248,10 @@ private extension ContentView {
         }
     }
 
-    func begin(with choice: PairingChoice) {
+    func begin(as role: Role) {
         failureMessage = nil
         methodRole = nil
-        pairing.start(with: choice)
+        pairing.start(as: role)
     }
 
     func invite(ownerRole: Role) {
