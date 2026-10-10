@@ -43,6 +43,7 @@ struct NamingScreen: View {
             .padding(.top, 24)
         }
         .scrollDismissesKeyboard(.interactively)
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             Button(.namingSave, action: save)
                 .buttonStyle(.filled)
