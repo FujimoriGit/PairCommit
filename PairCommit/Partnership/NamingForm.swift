@@ -11,12 +11,16 @@ import SwiftUI
 
 struct NamingForm: View {
     let store: PartnershipStore
+    /// 名前が決まったときに呼ぶ。保存の途中では呼ばない。
+    let onNamed: @MainActor () -> Void
 
     @State private var name: String
     @State private var failureMessage: String?
+    @State private var isSaving = false
 
-    init(store: PartnershipStore) {
+    init(store: PartnershipStore, onNamed: @escaping @MainActor () -> Void = {}) {
         self.store = store
+        self.onNamed = onNamed
         _name = State(initialValue: store.state.pairing?.name(of: store.role) ?? "")
     }
 
@@ -26,6 +30,11 @@ struct NamingForm: View {
             .submitLabel(.done)
             .onSubmit(save)
             .fieldBox()
+            .onChange(of: isNamed) { _, isNamed in
+                if isNamed {
+                    onNamed()
+                }
+            }
         Button(.namingSave, action: save)
             .buttonStyle(.filled)
             .disabled(!canSave)
@@ -36,20 +45,31 @@ struct NamingForm: View {
 // MARK: - Private
 
 private extension NamingForm {
+    var savedName: String? {
+        store.state.pairing?.name(of: store.role)
+    }
+
+    // 保存の途中の状態には名前が先に入っているので、それでは決まったとみなさない
+    var isNamed: Bool {
+        !isSaving && savedName != nil
+    }
+
     var canSave: Bool {
-        !name.isBlank && name != store.state.pairing?.name(of: store.role)
+        !isSaving && !name.isBlank && name != savedName
     }
 
     func save() {
         guard canSave else { return }
         let entered = name
         failureMessage = nil
+        isSaving = true
         Task {
+            defer { isSaving = false }
             do throws(PartnershipFailure) {
                 try await store.perform { state, role throws(DomainError) in
                     try state.naming(entered, by: role)
                 }
-                name = store.state.pairing?.name(of: store.role) ?? entered
+                name = savedName ?? entered
             } catch {
                 failureMessage = error.message
             }
@@ -57,21 +77,43 @@ private extension NamingForm {
     }
 }
 
-struct NamingSheet: View {
+struct NamingScreen: View {
     let store: PartnershipStore
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        Screen(role: store.role) {
-            Text(.namingTitle)
-                .font(.system(.title2, design: .rounded, weight: .bold))
-            Text(.namingMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            NamingForm(store: store)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 24) {
+                    Spacer()
+                    SymbolBadge(symbol: "person.crop.circle")
+
+                    VStack(spacing: 10) {
+                        Text(.namingTitle)
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                        Text(.namingMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .multilineTextAlignment(.center)
+
+                    VStack(spacing: 12) {
+                        NamingForm(store: store) { dismiss() }
+                    }
+                    Spacer()
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
         }
+        .background(Backdrop(colors: [store.role.accent]))
+        .tint(store.role.accent)
     }
 }
 
 #Preview("呼び名の入力") {
-    NamingSheet(store: .preview(role: .player, visions: [], named: false))
+    NamingScreen(store: .preview(role: .player, visions: [], named: false))
 }
