@@ -16,25 +16,13 @@ struct PartnershipTabs: View {
     @State private var destination = Destination.home
     @State private var refreshFailure: String?
     @State private var isNaming = false
+    @State private var isTyping = false
 
     var body: some View {
         TabView(selection: $destination) {
-            Tab(String(localized: .tabHome), systemImage: "house", value: .home) {
-                home
-                    .refreshable { await refresh() }
-                    .simultaneousGesture(tabSwipe)
-            }
-            Tab(String(localized: .commonHistory), systemImage: "clock.arrow.circlepath", value: .history) {
-                NavigationStack {
-                    PartnershipHistoryView(state: store.state, role: store.role)
-                        .refreshable { await refresh() }
-                        .simultaneousGesture(tabSwipe)
-                }
-            }
-            Tab(String(localized: .commonSettings), systemImage: "gearshape", value: .settings) {
-                NavigationStack {
-                    PartnershipSettingsView(store: store)
-                        .simultaneousGesture(tabSwipe)
+            ForEach(Destination.allCases, id: \.self) { tab in
+                Tab(tab.title, systemImage: tab.symbol, value: tab) {
+                    root(of: tab)
                 }
             }
         }
@@ -54,6 +42,16 @@ struct PartnershipTabs: View {
                 isNaming = true
             }
         }
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: UIResponder.keyboardWillShowNotification) {
+                isTyping = true
+            }
+        }
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: UIResponder.keyboardWillHideNotification) {
+                isTyping = false
+            }
+        }
     }
 }
 
@@ -64,6 +62,44 @@ private extension PartnershipTabs {
         case home
         case history
         case settings
+
+        var title: String {
+            switch self {
+            case .home: String(localized: .tabHome)
+            case .history: String(localized: .commonHistory)
+            case .settings: String(localized: .commonSettings)
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .home: "house"
+            case .history: "clock.arrow.circlepath"
+            case .settings: "gearshape"
+            }
+        }
+    }
+
+    @ViewBuilder
+    func root(of tab: Destination) -> some View {
+        let mask: GestureMask = isTyping ? .subviews : .all
+        switch tab {
+        case .home:
+            home
+                .refreshable { await refresh() }
+                .simultaneousGesture(tabSwipe, including: mask)
+        case .history:
+            NavigationStack {
+                PartnershipHistoryView(state: store.state, role: store.role)
+                    .refreshable { await refresh() }
+                    .simultaneousGesture(tabSwipe, including: mask)
+            }
+        case .settings:
+            NavigationStack {
+                PartnershipSettingsView(store: store)
+                    .simultaneousGesture(tabSwipe, including: mask)
+            }
+        }
     }
 
     @ViewBuilder
