@@ -28,7 +28,6 @@ enum PartnershipRootRecord {
         try encoding(state, into: CKRecord(recordType: type, recordID: id))
     }
 
-    // 名前を知らない版のアプリは state を丸ごと書き戻すので、名前は state の外に置く
     static func encoding(_ state: PartnershipState, into record: CKRecord) throws -> CKRecord {
         let unnamed = PartnershipState(
             pairing: state.pairing.map { naming($0, manager: nil, player: nil) },
