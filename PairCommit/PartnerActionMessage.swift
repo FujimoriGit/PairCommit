@@ -26,6 +26,9 @@ extension PartnerAction {
         case .taskCancelled(let id): String(localized: .partnerActionTaskCancelled(partner, title(of: id, in: state)))
         case .reactionChanged(let id, let reaction):
             String(localized: .partnerActionReactionChanged(partner, title(of: id, in: state), reaction.emoji))
+        case .progressChanged(let id, let percent):
+            String(localized: .partnerActionProgressChanged(partner, title(of: id, in: state), percent))
+        case .noteWritten(let id, _): noteMessage(of: id, from: partner, in: state)
         }
     }
 }
@@ -39,5 +42,20 @@ private extension PartnerAction {
 
     func title(of id: TaskItem.ID, in state: PartnershipState) -> String {
         state.tasks.first { $0.id == id }?.title ?? String(localized: .nudgeUntitledTask)
+    }
+
+    func noteMessage(of id: Note.ID, from partner: String, in state: PartnershipState) -> String {
+        guard let note = state.notes.first(where: { $0.id == id }) else {
+            return String(localized: .partnerActionNoteWritten(partner))
+        }
+        let subject = switch note.subject {
+        case .vision(let id): statement(of: id, in: state)
+        case .task(let id): title(of: id, in: state)
+        }
+        return switch note.kind {
+        case .report: String(localized: .partnerActionNoteReport(partner, subject, note.body))
+        case .reminder: String(localized: .partnerActionNoteReminder(partner, subject, note.body))
+        case .feedback: String(localized: .partnerActionNoteFeedback(partner, subject, note.body))
+        }
     }
 }

@@ -51,7 +51,8 @@ extension TaskItem {
         reaction: Reaction? = nil,
         deadline: Date? = nil,
         statusChangedAt: Date = .preview,
-        cancelledFrom: Status? = nil
+        cancelledFrom: Status? = nil,
+        progress: Int? = nil
     ) -> Self {
         .init(
             id: UUID(),
@@ -64,13 +65,20 @@ extension TaskItem {
             deadline: deadline,
             createdAt: Date(),
             statusChangedAt: statusChangedAt,
-            cancelledFrom: cancelledFrom
+            cancelledFrom: cancelledFrom,
+            progress: progress
         )
     }
 }
 
 extension PartnershipStore {
-    static func preview(role: Role, visions: [Vision], tasks: [TaskItem] = [], named: Bool = true) -> Self {
+    static func preview(
+        role: Role,
+        visions: [Vision],
+        tasks: [TaskItem] = [],
+        notes: [Note] = [],
+        named: Bool = true
+    ) -> Self {
         .init(
             role: role,
             synchronizer: PreviewSynchronizer(),
@@ -83,8 +91,24 @@ extension PartnershipStore {
                     playerName: named ? "花子" : nil
                 ),
                 visions: visions,
-                tasks: tasks
+                tasks: tasks,
+                notes: notes,
+                lastNoteNumber: notes.map(\.number).max() ?? 0
             )
+        )
+    }
+}
+
+extension Note {
+    static func preview(on subject: Subject, kind: Kind, author: Role, number: Int, body: String) -> Self {
+        .init(
+            id: UUID(),
+            subject: subject,
+            kind: kind,
+            author: author,
+            number: number,
+            body: body,
+            writtenAt: .preview.addingTimeInterval(Double(number - 3) * 60 * 60)
         )
     }
 }

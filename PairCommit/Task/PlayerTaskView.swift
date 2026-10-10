@@ -16,9 +16,6 @@ struct PlayerTaskView: View {
 
     @State private var isProposingTask = false
     @State private var isShowingCancelledTasks = false
-    @State private var feedback = FeedbackCue()
-
-    @Environment(\.presentingFailure) private var presentingFailure
 
     var body: some View {
         Screen(role: store.role) {
@@ -26,7 +23,6 @@ struct PlayerTaskView: View {
             content
         }
         .animation(.default, value: store.state)
-        .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
         .sheet(isPresented: $isProposingTask) {
             TaskForm(
                 title: .playerTaskProposalTitle,
@@ -85,62 +81,19 @@ private extension PlayerTaskView {
 
     func row(_ task: TaskItem) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(task.title)
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                Spacer(minLength: 8)
-                DeadlineText(task: task, now: now)
-                Text(task.status.label)
-                    .marker(task.status.tint)
+            NavigationLink {
+                TaskDetailView(store: store, taskID: task.id, now: now)
+            } label: {
+                TaskRowHeading(task: task, now: now, showsReaction: false)
             }
+            .buttonStyle(.plain)
             TaskDetailText(task: task)
-            reactions(for: task)
-            if task.status == .todo {
-                Button(.playerTaskReport) {
-                    perform(succeeding: .success) { state, role throws(DomainError) in
-                        try state.reportingTask(task.id, by: role)
-                    }
-                }
-                .buttonStyle(.filled)
+            if let progress = task.progress {
+                TaskProgressBar(percent: progress)
             }
+            PlayerTaskActions(store: store, task: task)
         }
         .card(tinted: task.reaction?.tint)
-    }
-
-    func reactions(for task: TaskItem) -> some View {
-        HStack(spacing: 8) {
-            ForEach(Reaction.allCases, id: \.self) { reaction in
-                Button {
-                    feedback = feedback.playing(.selection)
-                    perform { state, role throws(DomainError) in
-                        try state.settingReaction(
-                            task.reaction == reaction ? nil : reaction,
-                            on: task.id,
-                            by: role
-                        )
-                    }
-                } label: {
-                    reactionLabel(reaction, chosen: task.reaction == reaction)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(task.reaction == reaction ? .isSelected : [])
-            }
-        }
-    }
-
-    func reactionLabel(_ reaction: Reaction, chosen: Bool) -> some View {
-        Text(reaction.emoji)
-            .font(.title3)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(
-                chosen ? reaction.tint.opacity(0.22) : Color(.tertiarySystemFill),
-                in: .rect(cornerRadius: 16)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(reaction.tint, lineWidth: chosen ? 2 : 0)
-            }
-            .contentShape(.rect)
     }
 
     func create(_ entered: TaskInput) async -> String? {
@@ -156,22 +109,6 @@ private extension PlayerTaskView {
             return nil
         } catch {
             return error.message
-        }
-    }
-
-    func perform(
-        succeeding success: SensoryFeedback? = nil,
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
-    ) {
-        Task {
-            do throws(PartnershipFailure) {
-                try await store.perform(transform)
-                if let success {
-                    feedback = feedback.playing(success)
-                }
-            } catch {
-                presentingFailure?(error.message)
-            }
         }
     }
 }
