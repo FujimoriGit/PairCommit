@@ -19,6 +19,9 @@ struct CancelledTaskSheet: View {
     var body: some View {
         NavigationStack {
             Screen(role: store.role) {
+                if tasks.isEmpty {
+                    Placeholder(symbol: "tray", title: String(localized: .cancelledTasksEmpty))
+                }
                 ForEach(tasks) { task in
                     TaskSummaryRow(task: task) {
                         restoration(of: task)

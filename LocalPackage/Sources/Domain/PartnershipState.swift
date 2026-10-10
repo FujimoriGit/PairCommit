@@ -221,7 +221,7 @@ extension PartnershipState {
     public func restoringTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
         guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
-        guard task.visionID == activeVision?.id, let previous = task.cancelledFrom else {
+        guard task.visionID == activeVision?.id, let previous = task.cancelledFrom, previous.isOpen else {
             throw DomainError.invalidTaskTransition(from: task.status)
         }
         return updating(tasks: try transitioningTask(id, from: [.cancelled], to: previous, at: now))

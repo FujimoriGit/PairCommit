@@ -189,6 +189,32 @@ struct TaskLifecycleTests {
         }
     }
 
+    @Test("取り消す前が完了だったことになっているタスクは、戻せない")
+    func cancelledTaskCannotBeRestoredAsCompleted() throws {
+        // Given
+        let (active, visionID) = try PartnershipState().activeVision()
+        let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        let task = TaskItem(
+            id: UUID(),
+            visionID: visionID,
+            title: "t",
+            detail: nil,
+            status: .cancelled,
+            createdBy: .manager,
+            reaction: nil,
+            deadline: nil,
+            createdAt: now,
+            statusChangedAt: now,
+            cancelledFrom: .approved
+        )
+        let state = PartnershipState(pairing: active.pairing, visions: active.visions, tasks: [task])
+
+        // When / Then
+        #expect(throws: DomainError.invalidTaskTransition(from: .cancelled)) {
+            try state.restoringTask(task.id, by: .manager)
+        }
+    }
+
     @Test("取り消していないタスクは戻せない")
     func taskThatIsNotCancelledCannotBeRestored() throws {
         // Given
