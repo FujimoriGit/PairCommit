@@ -36,6 +36,7 @@ struct SoftButtonStyle: PrimitiveButtonStyle {
             button
                 .foregroundStyle(Self.ink(for: configuration.role))
                 .buttonStyle(.glass)
+                .controlSize(.large)
         } else {
             button.buttonStyle(Appearance())
         }
@@ -126,7 +127,7 @@ private extension SoftButtonStyle {
         var body: some View {
             configuration.label
                 .foregroundStyle(fill)
-                .frame(maxWidth: .infinity, minHeight: 42)
+                .frame(maxWidth: .infinity, minHeight: 48)
                 .background(Color(.tertiarySystemFill), in: .capsule)
                 .opacity(configuration.isPressed ? 0.7 : 1)
         }
