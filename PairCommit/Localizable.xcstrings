@@ -477,6 +477,23 @@
         }
       }
     },
+    "deadlinePicker.decide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "決定"
+          }
+        }
+      }
+    },
     "error.accountUnverified" : {
       "extractionState" : "manual",
       "localizations" : {
