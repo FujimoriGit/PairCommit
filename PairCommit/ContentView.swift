@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var achievements = 0
     @State private var operationFailure: String?
     @State private var feedback = FeedbackCue()
+    @Environment(\.scenePhase) private var scenePhase
 
     init(
         session: PartnershipSession,
@@ -105,8 +106,16 @@ private extension ContentView {
                     return
                 }
                 let state = store.state
-                knownState.keep(state)
+                // バックグラウンドで先に残すと、プッシュを受けた側が比べる相手を失い、相手の操作を知らせられない。
+                if scenePhase == .active {
+                    knownState.keep(state)
+                }
                 await notifications.post(for: store.role, in: state) { $0.message(in: state) }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    knownState.keep(store.state)
+                }
             }
             .environment(\.achievingVision) { achievements += 1 }
             .sensoryFeedback(.success, trigger: achievements)

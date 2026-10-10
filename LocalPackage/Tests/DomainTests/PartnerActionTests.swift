@@ -63,6 +63,60 @@ struct PartnerActionTests {
         #expect(actions == [.visionReturned(visionID)])
     }
 
+    @Test("見届ける人がビジョンを達成にすると、挑む人に達成が知らされる")
+    func achievedVisionIsToldToThePlayer() throws {
+        // Given
+        let (before, visionID) = try PartnershipState().activeVision()
+        let after = try before.closingVision(visionID, as: .achieved, by: .manager)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .player)
+
+        // Then
+        #expect(actions == [.visionClosed(visionID, .achieved)])
+    }
+
+    @Test("挑む人がタスクを起案すると、見届ける人に起案が知らされる")
+    func proposedTaskIsToldToTheManager() throws {
+        // Given
+        let (before, _) = try PartnershipState().activeVision()
+        let (after, taskID) = try before.creatingTask(title: "走る", by: .player)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .manager)
+
+        // Then
+        #expect(actions == [.taskProposed(taskID)])
+    }
+
+    @Test("見届ける人がタスクの起案を採用すると、挑む人に採用が知らされる")
+    func adoptedTaskIsToldToThePlayer() throws {
+        // Given
+        let (active, _) = try PartnershipState().activeVision()
+        let (before, taskID) = try active.creatingTask(title: "走る", by: .player)
+        let after = try before.adoptingTask(taskID, by: .manager)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .player)
+
+        // Then
+        #expect(actions == [.taskAdopted(taskID)])
+    }
+
+    @Test("見届ける人がタスクの完了を承認すると、挑む人に承認が知らされる")
+    func approvedTaskIsToldToThePlayer() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let before = try todo.reportingTask(taskID, by: .player)
+        let after = try before.approvingTask(taskID, by: .manager)
+
+        // When
+        let actions = after.partnerActions(since: before, for: .player)
+
+        // Then
+        #expect(actions == [.taskApproved(taskID)])
+    }
+
     @Test("見届ける人がタスクを追加すると、挑む人に追加が知らされる")
     func addedTaskIsToldToThePlayer() throws {
         // Given

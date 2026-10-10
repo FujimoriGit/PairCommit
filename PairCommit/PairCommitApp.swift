@@ -73,31 +73,23 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable: Any]
     ) async -> UIBackgroundFetchResult {
-        // 取り直すと画面の側が新しい状態を残すので、その前に読む。
-        let known = knownState.lastKnown()
-        let store: PartnershipStore
+        let reception = PartnerChangeReception(
+            knownState: knownState,
+            nudges: notifications,
+            partnerActions: partnerNotifications,
+            nudgeMessage: { $0.message(in: $1) },
+            partnerActionMessage: { $0.message(in: $1) }
+        )
         do throws(SyncFailure) {
-            if let current = session.store {
-                try await current.refresh()
-                store = current
-            } else if let share = sharing.savedShare(), let started = try await PartnershipStore(starting: share) {
-                store = started
-            } else {
-                return .noData
-            }
+            let received = try await reception.receive(
+                into: session.store,
+                orStartingFrom: sharing.savedShare(),
+                isActive: application.applicationState == .active
+            )
+            return received ? .newData : .noData
         } catch {
             return .failed
         }
-        let state = store.state
-        // 前面では取り直しで画面が更新され、そちらからも掲示が走る。二重に出すと鳴り直す。
-        if application.applicationState != .active {
-            await notifications.post(for: store.role, in: state) { $0.message(in: state) }
-            if let known {
-                await partnerNotifications.post(for: store.role, in: state, since: known) { $0.message(in: state) }
-            }
-        }
-        knownState.keep(state)
-        return .newData
     }
 }
 
