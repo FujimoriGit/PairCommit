@@ -13,7 +13,7 @@ import Testing
 @MainActor
 struct NudgePostingTests {
 
-    @Test("始まっている催促はすぐ、これから始まる催促は始まる時刻に通知する")
+    @Test("催促は、すでに始まっているものはすぐ、これから始まるものは始まる時刻に、通知で届く")
     func nudgesInEffectAreNotifiedNowAndUpcomingOnesWhenTheyStart() async throws {
         // Given
         let active = try Self.activeVision()

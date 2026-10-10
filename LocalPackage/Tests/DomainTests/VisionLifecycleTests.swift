@@ -11,7 +11,7 @@ import Testing
 
 struct VisionLifecycleTests {
 
-    @Test("プレイヤーが出したビジョンを管理者が承認すると、進行中のビジョンになる")
+    @Test("挑む人が提出したビジョンを見届ける人が承認すると、進行中のビジョンになる")
     func visionIsInProgressOnceManagerApprovesIt() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
@@ -23,7 +23,7 @@ struct VisionLifecycleTests {
         #expect(state.activeVision?.id == visionID)
     }
 
-    @Test("ビジョンの承認は管理者だけができる（執行権限は管理者）")
+    @Test("ビジョンを承認できるのは見届ける人だけ")
     func onlyManagerCanApproveVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().proposedVision()
@@ -62,7 +62,7 @@ struct VisionLifecycleTests {
         }
     }
 
-    @Test("管理者は承認待ちのビジョンを差し戻して、プレイヤーの書きかけに戻せる（却下は削除ではない）")
+    @Test("見届ける人は承認待ちのビジョンを差し戻して、挑む人が書き直せるように戻せる（却下は削除ではない）")
     func managerCanSendASubmittedVisionBack() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
@@ -87,8 +87,8 @@ struct VisionLifecycleTests {
         }
     }
 
-    @Test("ビジョンを閉じると、配下の終わっていないタスクは取り消しになり、完了したタスクは完了のまま残る")
-    func closingVisionCancelsItsOpenTasksButKeepsApprovedOnes() throws {
+    @Test("ビジョンを閉じると、その下の終わっていないタスクは取り消しになり、完了したタスクは完了のまま残る")
+    func closingAVisionCancelsUnfinishedTasksButKeepsCompletedOnes() throws {
         // Given
         let (active, visionID) = try PartnershipState().activeVision()
         let (withTodo, todoTask) = try active.creatingTask(title: "todoのまま", by: .manager)
@@ -113,7 +113,7 @@ struct VisionLifecycleTests {
         #expect(state.activeVision == nil)
     }
 
-    @Test("達成・中止の判断は管理者だけができる（プレイヤーはビジョンを閉じられない）")
+    @Test("達成したか取りやめるかを判断してビジョンを閉じられるのは、見届ける人だけ")
     func onlyManagerCanCloseVision() throws {
         // Given
         let (state, visionID) = try PartnershipState().activeVision()
@@ -139,8 +139,8 @@ struct VisionLifecycleTests {
         #expect(state.activeVision?.id == second)
     }
 
-    @Test("履歴に残るのは閉じたビジョンだけ")
-    func historyHoldsOnlyClosedVisions() throws {
+    @Test("記録に残るのは閉じたビジョンだけ")
+    func recordHoldsOnlyClosedVisions() throws {
         // Given
         let (state, _) = try PartnershipState()
             .closedVision(statement: "閉じた方", as: .achieved, now: Date(timeIntervalSince1970: 0))
@@ -153,7 +153,7 @@ struct VisionLifecycleTests {
         #expect(closed.map(\.vision.statement) == ["閉じた方"])
     }
 
-    @Test("履歴は新しく起案したビジョンから並ぶ")
+    @Test("記録は新しく起案したビジョンから並ぶ")
     func closedVisionsAreListedNewestFirst() throws {
         // Given
         let state = try PartnershipState()
@@ -167,7 +167,7 @@ struct VisionLifecycleTests {
         #expect(closed.map(\.vision.statement) == ["新しい方", "古い方"])
     }
 
-    @Test("履歴のビジョンには、閉じたときの結果が付く")
+    @Test("記録のビジョンには、閉じたときの結果（達成・取りやめ）が付く")
     func closedVisionCarriesItsOutcome() throws {
         // Given
         let state = try PartnershipState()

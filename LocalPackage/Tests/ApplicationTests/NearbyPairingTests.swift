@@ -13,35 +13,37 @@ import Testing
 @MainActor
 struct NearbyPairingTests {
 
-    @Test("2台とも同じ役割を選ぶと、ペアにならず、共有も作られない")
-    func bothDevicesChoosingTheSameRoleDoNotPair() async {
+    @Test("2台とも同じ役割を選ぶと、ペアは登録されず、役割が重なったと出る", arguments: Role.allCases)
+    func choosingTheSameRoleOnBothDevicesRegistersNoPair(chosen: Role) async {
         // Given
-        let (pairing, channel, sharing) = Self.started(with: .role(.manager))
+        let (pairing, channel, sharing) = Self.started(with: .role(chosen))
 
         // When
-        channel.receive(.received(Partner.choosing(.role(.manager))))
+        channel.receive(.received(Partner.choosing(.role(chosen))))
 
         // Then
-        #expect(await eventually { pairing.phase == .failed(.sameRole(.manager)) })
+        #expect(await eventually { pairing.phase == .failed(.sameRole(chosen)) })
         #expect(sharing.makeShareCalls == 0)
     }
 
-    @Test("共有を作る端末の iCloud がいっぱいなら、相手の端末に代わりに作ってもらう")
-    func fullICloudOnTheSharingDeviceAsksThePartnerToShareInstead() async {
+    @Test("自分の iCloud がいっぱいでも、相手の iCloud にペアを登録して、ペアリングを終えられる")
+    func pairingFinishesInThePartnersICloudWhenYoursIsFull() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         sharing.failure = .storageFull
+        channel.receive(.received(Partner.choosing(.invitation)))
+        #expect(await eventually { channel.sent.contains(Partner.handingOver(.manager)) })
 
         // When
-        channel.receive(.received(Partner.choosing(.invitation)))
+        channel.receive(.received(Partner.registeredPair))
 
         // Then
-        #expect(await eventually { pairing.phase == .handedOver })
-        #expect(channel.sent.contains(Partner.handingOver(.manager)))
+        #expect(await eventually { pairing.phase == .done })
+        #expect(pairing.outcome?.isOwner == false)
     }
 
-    @Test("共有を作った端末は、相手から参加したと知らせが届いたらペアリングを終える")
-    func sharingDeviceFinishesPairingWhenThePartnerConfirmsJoining() async {
+    @Test("自分の iCloud にペアを登録したら、相手が参加し終えたところで、ペアリングできたと出る")
+    func pairingFinishesOnceThePartnerHasJoined() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         channel.receive(.received(Partner.choosing(.invitation)))
@@ -55,8 +57,8 @@ struct NearbyPairingTests {
         #expect(pairing.outcome?.isOwner == true)
     }
 
-    @Test("共有を作っている間にやめたら、ペアは残らず、相手にも共有を送らない")
-    func cancellingWhileTheShareIsBeingMadeLeavesNoPair() async {
+    @Test("ペアを登録している途中でやめたら、ペアは残らず、相手にも届かない")
+    func cancellingWhileRegisteringThePairLeavesNoPair() async {
         // Given
         let (pairing, channel, sharing) = Self.started(with: .role(.manager))
         sharing.hold()
@@ -92,6 +94,7 @@ private extension NearbyPairingTests {
 /// 相手の端末が送ってくる文字列。
 private enum Partner {
     static let acknowledgement = "paircommit://ack"
+    static let registeredPair = "file:///partners-pair"
 
     static func choosing(_ choice: PairingChoice) -> String {
         switch choice {

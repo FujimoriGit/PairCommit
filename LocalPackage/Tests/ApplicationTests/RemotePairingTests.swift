@@ -13,7 +13,7 @@ import Testing
 @MainActor
 struct RemotePairingTests {
 
-    @Test("やめる前にペアができていたら、招待を消すのではなくペアごと終わらせる")
+    @Test("招待をやめたときにもう相手が参加していたら、招待だけでなく、できたペアも終わらせる")
     func cancellingAfterThePairFormedEndsThePair() async {
         // Given
         let inviting = FakeInviting()
@@ -31,8 +31,8 @@ struct RemotePairingTests {
         #expect(pairing.phase == .idle)
     }
 
-    @Test("やめる後始末が終わるまでは、やめている途中として見える")
-    func cancellationStaysVisibleUntilCleanupFinishes() async {
+    @Test("招待をやめ終わるまでは、やめている途中だと出る")
+    func cancellationStaysVisibleUntilItFinishes() async {
         // Given
         let inviting = FakeInviting()
         let pairing = RemotePairing(inviting: inviting)
@@ -50,7 +50,7 @@ struct RemotePairingTests {
         #expect(!pairing.isCancelling)
     }
 
-    @Test("招待リンクを作れなかったら、リンクを作っている途中の失敗として見える")
+    @Test("招待リンクを用意できなかったら、招待リンクを作れなかったと出る")
     func failingToSendIsAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
@@ -66,8 +66,8 @@ struct RemotePairingTests {
         #expect(pairing.isCreatingLink)
     }
 
-    @Test("リンクを作っている途中でやめて後始末に失敗したら、リンクを作る失敗とは見なさない")
-    func failingToCleanUpIsNotAFailureWhileCreatingTheLink() async {
+    @Test("招待リンクを用意している途中でやめて、やめるのに失敗したら、招待リンクを作れなかったとは出ない")
+    func failingToCancelIsNotAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
         inviting.cleanupFailure = .offline
@@ -82,8 +82,8 @@ struct RemotePairingTests {
         #expect(!pairing.isCreatingLink)
     }
 
-    @Test("後始末に失敗したあとにもう一度試すと、相手待ちに戻らず同じ後始末をやり直す")
-    func tryingAgainAfterAFailedCleanupRepeatsTheSameCleanup() async {
+    @Test("招待をやめるのに失敗してもう一度試すと、相手の参加を待つところへは戻らず、やめるのをやり直す")
+    func tryingAgainAfterFailingToCancelCancelsAgain() async {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -100,11 +100,12 @@ struct RemotePairingTests {
         // Then
         #expect(paired == nil)
         #expect(inviting.withdrawCalls == 2)
+        #expect(inviting.advanceCalls == 0)
         #expect(pairing.phase == .idle)
     }
 
-    @Test("後始末の途中で開き直したら、相手を待たずに後始末を続ける")
-    func reopeningDuringCleanupContinuesTheCleanup() async {
+    @Test("招待をやめている途中でアプリを開き直したら、相手の参加を待たずに、やめるのを続ける")
+    func reopeningWhileCancellingKeepsCancelling() async {
         // Given
         let inviting = FakeInviting(savedWithdrawal: .invitation)
         inviting.progress = .paired(StubShare(isOwner: true))
@@ -116,10 +117,11 @@ struct RemotePairingTests {
         // Then
         #expect(paired == nil)
         #expect(inviting.withdrawCalls == 1)
+        #expect(inviting.advanceCalls == 0)
         #expect(pairing.phase == .idle)
     }
 
-    @Test("招待リンクを送ったあとで開き直したら、リンクを作り直さずに相手を待つ")
+    @Test("招待リンクを送ったあとでアプリを開き直したら、リンクを作り直さずに相手の参加を待つ")
     func reopeningAfterSendingTheLinkWaitsForThePartner() async {
         // Given
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
@@ -135,7 +137,7 @@ struct RemotePairingTests {
         #expect(inviting.sendCalls == 0)
     }
 
-    @Test("招待リンクで参加したあとで開き直したら、参加し直さずに招待した側を待つ")
+    @Test("招待リンクで参加したあとでアプリを開き直したら、参加し直さずに招待した相手を待つ")
     func reopeningAfterJoiningWaitsForTheInviter() async {
         // Given
         let inviting = FakeInviting(savedStage: .joined)
@@ -151,7 +153,7 @@ struct RemotePairingTests {
         #expect(inviting.joinCalls == 0)
     }
 
-    @Test("相手を待っている間に打ち切ったら、そのあとペアができても、そのペアでは始まらない")
+    @Test("相手の参加を待つのを途中で打ち切ったら、そのあと相手が参加しても、そのペアでは使い始めない")
     func stoppingTheWaitStartsNoPair() async {
         // Given
         let inviting = FakeInviting()
@@ -180,6 +182,7 @@ private final class FakeInviting: PartnershipInviting {
     var sendFailure: PairingFailure?
     var cleanupFailure: PairingFailure?
     private(set) var sendCalls = 0
+    private(set) var advanceCalls = 0
     private(set) var joinCalls = 0
     private(set) var withdrawCalls = 0
     private(set) var endPairCalls = 0
@@ -218,6 +221,7 @@ private final class FakeInviting: PartnershipInviting {
     }
 
     func advance(ownerRole: Role) async throws(PairingFailure) -> InvitationProgress {
+        advanceCalls += 1
         if held {
             await withCheckedContinuation { waiting = $0 }
         }
