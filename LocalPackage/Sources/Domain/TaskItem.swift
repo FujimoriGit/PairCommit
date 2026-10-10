@@ -34,6 +34,8 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
     public let deadline: Date?
     public let createdAt: Date
     public let statusChangedAt: Date
+    /// 取り消したタスクの、取り消す前の状態。取り消していないときと、分からないときは nil。
+    public let cancelledFrom: Status?
 
     public init(
         id: UUID,
@@ -45,7 +47,8 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         reaction: Reaction?,
         deadline: Date?,
         createdAt: Date,
-        statusChangedAt: Date
+        statusChangedAt: Date,
+        cancelledFrom: Status? = nil
     ) {
         self.id = id
         self.visionID = visionID
@@ -57,21 +60,27 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         self.deadline = deadline
         self.createdAt = createdAt
         self.statusChangedAt = statusChangedAt
+        self.cancelledFrom = cancelledFrom
     }
 
     func with(status: Status, at changedAt: Date) -> Self {
-        with(status: status, reaction: reaction, statusChangedAt: changedAt)
+        with(
+            status: status,
+            reaction: reaction,
+            statusChangedAt: changedAt,
+            cancelledFrom: status == .cancelled ? self.status : nil
+        )
     }
 
     func with(reaction: Reaction?) -> Self {
-        with(status: status, reaction: reaction, statusChangedAt: statusChangedAt)
+        with(status: status, reaction: reaction, statusChangedAt: statusChangedAt, cancelledFrom: cancelledFrom)
     }
 }
 
 // MARK: - Private
 
 private extension TaskItem {
-    func with(status: Status, reaction: Reaction?, statusChangedAt: Date) -> Self {
+    func with(status: Status, reaction: Reaction?, statusChangedAt: Date, cancelledFrom: Status?) -> Self {
         .init(
             id: id,
             visionID: visionID,
@@ -82,7 +91,8 @@ private extension TaskItem {
             reaction: reaction,
             deadline: deadline,
             createdAt: createdAt,
-            statusChangedAt: statusChangedAt
+            statusChangedAt: statusChangedAt,
+            cancelledFrom: cancelledFrom
         )
     }
 }

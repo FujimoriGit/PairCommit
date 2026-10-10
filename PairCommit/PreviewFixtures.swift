@@ -50,7 +50,8 @@ extension TaskItem {
         createdBy: Role = .player,
         reaction: Reaction? = nil,
         deadline: Date? = nil,
-        statusChangedAt: Date = .preview
+        statusChangedAt: Date = .preview,
+        cancelledFrom: Status? = nil
     ) -> Self {
         .init(
             id: UUID(),
@@ -62,7 +63,8 @@ extension TaskItem {
             reaction: reaction,
             deadline: deadline,
             createdAt: Date(),
-            statusChangedAt: statusChangedAt
+            statusChangedAt: statusChangedAt,
+            cancelledFrom: cancelledFrom
         )
     }
 }
@@ -105,6 +107,22 @@ struct PreviewNudgeNotifications: NudgeNotifying {
     func replace(with notices: [NudgeNotice], now: Date) async {}
 
     func withdrawAll() async {}
+}
+
+struct PreviewPartnerActionNotifications: PartnerActionNotifying {
+    func deliver(_ notices: [PartnerActionNotice]) async {}
+
+    func withdrawAll() async {}
+}
+
+struct PreviewKnownState: KnownStateKeeping {
+    func lastKnown() -> PartnershipState? {
+        nil
+    }
+
+    func keep(_ state: PartnershipState) {}
+
+    func forget() {}
 }
 
 struct PreviewSharing: PartnershipSharing {

@@ -18,6 +18,7 @@ struct JoiningView: View {
         VStack(spacing: 24) {
             Spacer()
             SymbolBadge(symbol: "link")
+                .symbolEffect(.pulse, isActive: failureMessage == nil && !isCancelling)
 
             VStack(spacing: 10) {
                 Text(.joiningTitle)
@@ -62,6 +63,8 @@ private extension JoiningView {
 
 #Preview("招待リンクで参加して相手待ち") {
     JoiningView(failureMessage: nil, isCancelling: false, onRetry: {}, onCancel: {})
+        // 動いている途中を撮ると、撮るたびに画像が変わる
+        .symbolEffectsRemoved()
 }
 
 #Preview("招待リンクで参加できない") {

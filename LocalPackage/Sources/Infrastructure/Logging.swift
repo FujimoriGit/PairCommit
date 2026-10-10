@@ -10,6 +10,7 @@ import OSLog
 extension Logger {
     static let pairing = Logger(subsystem: subsystemName, category: "pairing")
     static let sync = Logger(subsystem: subsystemName, category: "sync")
+    static let notification = Logger(subsystem: subsystemName, category: "notification")
 }
 
 // MARK: - Private
