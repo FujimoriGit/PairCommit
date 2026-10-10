@@ -20,14 +20,13 @@ struct PlayerTaskView: View {
 
     var body: some View {
         Screen(role: store.role) {
+            PartnerLine(pairing: store.state.pairing, role: store.role)
             content
         }
         .animation(.default, value: store.state)
         .animation(.default, value: failureMessage)
         .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
         .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
-        .partnershipSettingsLink()
-        .partnershipHistoryLink()
     }
 }
 

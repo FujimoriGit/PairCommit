@@ -24,18 +24,12 @@ struct ManagerTaskView: View {
 
     var body: some View {
         Screen(role: store.role) {
+            PartnerLine(pairing: store.state.pairing, role: store.role)
             content
         }
         .animation(.default, value: store.state)
         .animation(.default, value: failureMessage)
         .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
-        .partnershipSettingsLink()
-        .partnershipHistoryLink()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                judgement
-            }
-        }
         .confirmationDialog(
             .managerTaskCloseVisionConfirmationTitle,
             isPresented: Binding(presenting: $outcome),
@@ -71,6 +65,7 @@ private extension ManagerTaskView {
             taskList(tasks.filter { !needsJudgement($0) })
         }
         creation
+        judgement
         FailureNote(message: failureMessage)
     }
 
@@ -182,10 +177,13 @@ private extension ManagerTaskView {
     }
 
     var judgement: some View {
-        Menu(.managerTaskJudgeOutcome, systemImage: "flag.checkered") {
-            ForEach(Vision.Outcome.allCases, id: \.self) { candidate in
-                Button(candidate.label, role: candidate == .abandoned ? .destructive : nil) {
-                    outcome = candidate
+        Panel(title: String(localized: .managerTaskJudgeOutcome)) {
+            HStack(spacing: 10) {
+                ForEach(Vision.Outcome.allCases, id: \.self) { candidate in
+                    Button(candidate.label, role: candidate == .abandoned ? .destructive : nil) {
+                        outcome = candidate
+                    }
+                    .buttonStyle(.soft(feedback: .impact(weight: .light)))
                 }
             }
         }

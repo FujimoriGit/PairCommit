@@ -63,13 +63,6 @@ extension PrimitiveButtonStyle where Self == ChoiceButtonStyle {
     static var choice: Self { .init() }
 }
 
-extension View {
-    // ツールバーの項目はボタンのスタイルを差し替えると見た目が変わるので、スタイルではなくタップのジェスチャーで鳴らす
-    func tapFeedback() -> some View {
-        modifier(TapFeedback())
-    }
-}
-
 // MARK: - Private
 
 // 押下状態の変化で鳴らすと、タップを取り消したときやスクロールし始めたときにも鳴る
@@ -87,15 +80,6 @@ private struct FeedbackButton: View {
             configuration.label
                 .frame(maxWidth: .infinity)
         }
-    }
-}
-
-private struct TapFeedback: ViewModifier {
-    @Environment(\.playingFeedback) private var playingFeedback
-
-    func body(content: Content) -> some View {
-        content
-            .simultaneousGesture(TapGesture().onEnded { playingFeedback?(.impact(weight: .light)) })
     }
 }
 
