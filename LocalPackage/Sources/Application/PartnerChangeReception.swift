@@ -48,10 +48,8 @@ public struct PartnerChangeReception: Sendable {
             return false
         }
         let state = store.state
-        // 読んでから残すまでに中断を挟まない。挟むと、続けて届いたプッシュが同じ状態と比べ、同じ操作を2度知らせる。
         let known = knownState.lastKnown()
         knownState.keep(state)
-        // 前面では画面の側も催促を掲示するので、二重に出すと鳴り直す。相手の操作は画面で見える。
         guard !isActive else { return true }
         await nudges.post(for: store.role, in: state) { nudgeMessage($0, state) }
         if let known {

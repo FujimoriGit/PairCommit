@@ -106,7 +106,6 @@ private extension ContentView {
                     return
                 }
                 let state = store.state
-                // バックグラウンドで先に残すと、プッシュを受けた側が比べる相手を失い、相手の操作を知らせられない。
                 if scenePhase == .active {
                     knownState.keep(state)
                 }
