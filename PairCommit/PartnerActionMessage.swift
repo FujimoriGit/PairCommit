@@ -26,6 +26,8 @@ extension PartnerAction {
         case .taskCancelled(let id): String(localized: .partnerActionTaskCancelled(partner, title(of: id, in: state)))
         case .reactionChanged(let id, let reaction):
             String(localized: .partnerActionReactionChanged(partner, title(of: id, in: state), reaction.emoji))
+        case .progressChanged(let id, let percent):
+            String(localized: .partnerActionProgressChanged(partner, title(of: id, in: state), percent))
         }
     }
 }

@@ -48,6 +48,7 @@ private extension PartnerActionNotifications {
         case .taskReturned(let id): "\(prefix)task-returned.\(id)"
         case .taskCancelled(let id): "\(prefix)task-cancelled.\(id)"
         case .reactionChanged(let id, _): "\(prefix)reaction.\(id)"
+        case .progressChanged(let id, _): "\(prefix)progress.\(id)"
         }
     }
 }

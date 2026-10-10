@@ -51,7 +51,8 @@ extension TaskItem {
         reaction: Reaction? = nil,
         deadline: Date? = nil,
         statusChangedAt: Date = .preview,
-        cancelledFrom: Status? = nil
+        cancelledFrom: Status? = nil,
+        progress: Int? = nil
     ) -> Self {
         .init(
             id: UUID(),
@@ -64,7 +65,8 @@ extension TaskItem {
             deadline: deadline,
             createdAt: Date(),
             statusChangedAt: statusChangedAt,
-            cancelledFrom: cancelledFrom
+            cancelledFrom: cancelledFrom,
+            progress: progress
         )
     }
 }

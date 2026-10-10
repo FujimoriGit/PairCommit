@@ -85,15 +85,28 @@ private extension PlayerTaskView {
 
     func row(_ task: TaskItem) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(task.title)
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                Spacer(minLength: 8)
-                DeadlineText(task: task, now: now)
-                Text(task.status.label)
-                    .marker(task.status.tint)
+            NavigationLink {
+                TaskDetailView(store: store, taskID: task.id, now: now)
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(task.title)
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                    Spacer(minLength: 8)
+                    DeadlineText(task: task, now: now)
+                    Text(task.status.label)
+                        .marker(task.status.tint)
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(.rect)
             }
+            .buttonStyle(.plain)
             TaskDetailText(task: task)
+            if let progress = task.progress {
+                TaskProgressBar(percent: progress)
+            }
             reactions(for: task)
             if task.status == .todo {
                 Button(.playerTaskReport) {

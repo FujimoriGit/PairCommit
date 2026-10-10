@@ -25,6 +25,9 @@ struct TaskSummaryRow<Actions: View>: View {
                     .marker(task.status.tint)
             }
             TaskDetailText(task: task)
+            if let progress = task.progress {
+                TaskProgressBar(percent: progress)
+            }
             actions
         }
         .card(tinted: task.reaction?.tint)

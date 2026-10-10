@@ -715,6 +715,23 @@
         }
       }
     },
+    "error.progressOutOfRange" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress must be between 0 and 100."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗率は0〜100の範囲で決めてください。"
+          }
+        }
+      }
+    },
     "error.roleForbidden" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1939,6 +1956,23 @@
         }
       }
     },
+    "partnerAction.progressChanged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ set the progress of “%2$@” to %3$lld%%."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」の進捗率を%lld%%にしました。"
+          }
+        }
+      }
+    },
     "partnerAction.reactionChanged" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2870,6 +2904,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ホーム"
+          }
+        }
+      }
+    },
+    "taskDetail.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗率"
+          }
+        }
+      }
+    },
+    "taskDetail.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Task Details"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクの詳細"
           }
         }
       }

@@ -236,6 +236,17 @@ extension PartnershipState {
         guard tasks.contains(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
         return updating(tasks: tasks.map { $0.id == id ? $0.with(reaction: reaction) : $0 })
     }
+
+    /// タスクの進捗率（0〜100）を決める。決められるのは、採用してから承認するまでの間だけ。
+    public func settingProgress(_ percent: Int, on id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
+        try requiring(role, is: .manager)
+        guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
+        guard task.status == .todo || task.status == .reported else {
+            throw DomainError.invalidTaskTransition(from: task.status)
+        }
+        guard (0...100).contains(percent) else { throw DomainError.progressOutOfRange }
+        return updating(tasks: tasks.map { $0.id == id ? $0.with(progress: percent) : $0 })
+    }
 }
 
 // MARK: - 催促
@@ -344,8 +355,9 @@ private extension PartnershipState {
         case (.some, _): nil
         }
         let reaction = task.reaction.flatMap { $0 == previous?.reaction ? nil : PartnerAction.reactionChanged(task.id, $0) }
+        let progress = task.progress.flatMap { $0 == previous?.progress ? nil : PartnerAction.progressChanged(task.id, $0) }
         let before = previous?.status ?? (task.createdBy == .manager ? .todo : .proposed)
-        return [creation, statusAction(on: task, from: before), reaction].compactMap { $0 }
+        return [creation, statusAction(on: task, from: before), reaction, progress].compactMap { $0 }
     }
 
     func statusAction(on task: TaskItem, from before: TaskItem.Status) -> PartnerAction? {

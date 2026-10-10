@@ -36,6 +36,8 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
     public let statusChangedAt: Date
     /// 取り消したタスクの、取り消す前の状態。取り消していないときと、分からないときは nil。
     public let cancelledFrom: Status?
+    /// 見届ける人が決めた進捗率（0〜100）。決めていないときは nil。
+    public let progress: Int?
 
     public init(
         id: UUID,
@@ -48,7 +50,8 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         deadline: Date?,
         createdAt: Date,
         statusChangedAt: Date,
-        cancelledFrom: Status? = nil
+        cancelledFrom: Status? = nil,
+        progress: Int? = nil
     ) {
         self.id = id
         self.visionID = visionID
@@ -61,6 +64,7 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
         self.createdAt = createdAt
         self.statusChangedAt = statusChangedAt
         self.cancelledFrom = cancelledFrom
+        self.progress = progress
     }
 
     func with(status: Status, at changedAt: Date) -> Self {
@@ -68,19 +72,42 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
             status: status,
             reaction: reaction,
             statusChangedAt: changedAt,
-            cancelledFrom: status == .cancelled ? self.status : nil
+            cancelledFrom: status == .cancelled ? self.status : nil,
+            progress: progress
         )
     }
 
     func with(reaction: Reaction?) -> Self {
-        with(status: status, reaction: reaction, statusChangedAt: statusChangedAt, cancelledFrom: cancelledFrom)
+        with(
+            status: status,
+            reaction: reaction,
+            statusChangedAt: statusChangedAt,
+            cancelledFrom: cancelledFrom,
+            progress: progress
+        )
+    }
+
+    func with(progress: Int) -> Self {
+        with(
+            status: status,
+            reaction: reaction,
+            statusChangedAt: statusChangedAt,
+            cancelledFrom: cancelledFrom,
+            progress: progress
+        )
     }
 }
 
 // MARK: - Private
 
 private extension TaskItem {
-    func with(status: Status, reaction: Reaction?, statusChangedAt: Date, cancelledFrom: Status?) -> Self {
+    func with(
+        status: Status,
+        reaction: Reaction?,
+        statusChangedAt: Date,
+        cancelledFrom: Status?,
+        progress: Int?
+    ) -> Self {
         .init(
             id: id,
             visionID: visionID,
@@ -92,7 +119,8 @@ private extension TaskItem {
             deadline: deadline,
             createdAt: createdAt,
             statusChangedAt: statusChangedAt,
-            cancelledFrom: cancelledFrom
+            cancelledFrom: cancelledFrom,
+            progress: progress
         )
     }
 }

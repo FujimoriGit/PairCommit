@@ -19,4 +19,5 @@ public enum DomainError: Error, Equatable {
     case notPaired
     case blankText
     case pastDeadline
+    case progressOutOfRange
 }
