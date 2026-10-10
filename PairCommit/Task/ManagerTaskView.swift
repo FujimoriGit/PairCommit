@@ -15,7 +15,6 @@ struct ManagerTaskView: View {
     let now: Date
 
     @State private var outcome: Vision.Outcome?
-    @State private var cancelling: TaskItem?
     @State private var isAddingTask = false
     @State private var isShowingCancelledTasks = false
 
@@ -40,18 +39,6 @@ struct ManagerTaskView: View {
             }
         } message: { _ in
             Text(.managerTaskCloseVisionConfirmationMessage)
-        }
-        .confirmationDialog(
-            .managerTaskCancelConfirmationTitle,
-            isPresented: Binding(presenting: $cancelling),
-            presenting: cancelling
-        ) { task in
-            Button(.managerTaskCancelTask, role: .destructive) {
-                playingFeedback?(.warning)
-                perform { state, role throws(DomainError) in try state.cancellingTask(task.id, by: role) }
-            }
-        } message: { _ in
-            Text(.managerTaskCancelConfirmationMessage)
         }
         .sheet(isPresented: $isAddingTask) {
             TaskForm(
@@ -144,48 +131,9 @@ private extension ManagerTaskView {
             if let progress = task.progress {
                 TaskProgressBar(percent: progress)
             }
-            actions(for: task)
+            ManagerTaskActions(store: store, task: task)
         }
         .card(tinted: task.reaction?.tint)
-    }
-
-    @ViewBuilder
-    func actions(for task: TaskItem) -> some View {
-        switch task.status {
-        case .proposed:
-            VStack(spacing: 10) {
-                Button(.managerTaskAccept) {
-                    perform { state, role throws(DomainError) in try state.adoptingTask(task.id, by: role) }
-                }
-                .buttonStyle(.filled)
-                cancellation(of: task)
-            }
-        case .reported:
-            VStack(spacing: 10) {
-                Button(.commonApprove) {
-                    perform { state, role throws(DomainError) in try state.approvingTask(task.id, by: role) }
-                }
-                .buttonStyle(.filled)
-                HStack(spacing: 10) {
-                    Button(.managerTaskSendBack) {
-                        perform { state, role throws(DomainError) in try state.returningTask(task.id, by: role) }
-                    }
-                    .buttonStyle(.soft(feedback: .warning))
-                    cancellation(of: task)
-                }
-            }
-        case .todo:
-            cancellation(of: task)
-        case .approved, .cancelled:
-            EmptyView()
-        }
-    }
-
-    func cancellation(of task: TaskItem) -> some View {
-        Button(.managerTaskCancelTask, role: .destructive) {
-            cancelling = task
-        }
-        .buttonStyle(.soft(feedback: .impact(weight: .light)))
     }
 
     var judgement: some View {

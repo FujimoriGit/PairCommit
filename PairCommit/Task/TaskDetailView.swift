@@ -21,14 +21,19 @@ struct TaskDetailView: View {
     var body: some View {
         Screen(role: store.role) {
             if let task {
-                summary(of: task)
-                progress(of: task)
-                NoteSection(store: store, subject: .task(task.id))
+                overview(of: task)
+                NoteTimeline(notes: store.state.notes(on: .task(task.id)), pairing: store.state.pairing, role: store.role)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let task {
+                NoteComposer(store: store, subject: .task(task.id))
             }
         }
         .navigationTitle(.taskDetailTitle)
         .navigationBarTitleDisplayMode(.inline)
         .animation(.default, value: task)
+        .animation(.default, value: store.state.notes)
         .sensoryFeedback(.selection, trigger: editingProgress) { _, value in value != nil }
     }
 }
@@ -40,20 +45,28 @@ private extension TaskDetailView {
         store.state.tasks.first { $0.id == taskID }
     }
 
-    func summary(of task: TaskItem) -> some View {
+    func overview(of task: TaskItem) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(task.title)
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                Spacer(minLength: 8)
-                if let reaction = task.reaction {
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if store.role == .manager, let reaction = task.reaction {
                     Text(reaction.emoji)
                 }
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                DeadlineText(task: task, now: now)
+                Spacer(minLength: 8)
                 Text(task.status.label)
                     .marker(task.status.tint)
             }
-            DeadlineText(task: task, now: now)
             TaskDetailText(task: task)
+            progress(of: task)
+            switch store.role {
+            case .manager: ManagerTaskActions(store: store, task: task)
+            case .player: PlayerTaskActions(store: store, task: task)
+            }
         }
         .card(tinted: task.reaction?.tint)
     }
@@ -61,8 +74,8 @@ private extension TaskDetailView {
     @ViewBuilder
     func progress(of task: TaskItem) -> some View {
         if store.role == .manager, task.status == .todo || task.status == .reported {
-            Panel {
-                let current = editingProgress ?? Double(task.progress ?? 0)
+            let current = editingProgress ?? Double(task.progress ?? 0)
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(.taskDetailProgress)
                         .sectionTitle()
@@ -84,7 +97,9 @@ private extension TaskDetailView {
                 }
             }
         } else if let percent = task.progress {
-            Panel(title: String(localized: .taskDetailProgress)) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(.taskDetailProgress)
+                    .sectionTitle()
                 TaskProgressBar(percent: percent)
             }
         }

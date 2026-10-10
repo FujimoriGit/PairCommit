@@ -1786,6 +1786,23 @@
         }
       }
     },
+    "note.you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなた"
+          }
+        }
+      }
+    },
     "nudge.approvalStalled" : {
       "extractionState" : "manual",
       "localizations" : {
