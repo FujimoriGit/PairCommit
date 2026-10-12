@@ -13,6 +13,13 @@ extension View {
             .padding(18)
             .modifier(CardSurface(tint: tint, outline: outline))
     }
+
+    /// 行を縁まで並べるカード。行の背景はカードの角で切り取られる。
+    func rowCard() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+            .clipShape(.rect(cornerRadius: cardCornerRadius))
+            .modifier(CardSurface(tint: nil, outline: nil))
+    }
 }
 
 // MARK: - Private

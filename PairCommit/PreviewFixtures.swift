@@ -71,6 +71,51 @@ extension TaskItem {
     }
 }
 
+extension [TaskItem] {
+    static func board(in vision: Vision) -> Self {
+        [
+            .preview(
+                visionID: vision.id,
+                title: "週3でジムに行く",
+                status: .reported,
+                reaction: .happy,
+                deadline: .preview(daysLater: -5)
+            ),
+            .preview(visionID: vision.id, title: "毎朝体重を記録する", status: .proposed),
+            .preview(
+                visionID: vision.id,
+                title: "夜10時以降は食べない",
+                status: .todo,
+                createdBy: .manager,
+                reaction: .angry,
+                deadline: .preview(daysLater: -3),
+                progress: 40
+            ),
+            .preview(
+                visionID: vision.id,
+                title: "週末の献立を決める",
+                status: .todo,
+                createdBy: .manager,
+                deadline: .preview.addingTimeInterval(3 * 60 * 60)
+            ),
+            .preview(
+                visionID: vision.id,
+                title: "間食をナッツに置き換える",
+                status: .todo,
+                reaction: .uneasy,
+                deadline: .preview(daysLater: 3),
+                progress: 70
+            ),
+            .preview(visionID: vision.id, title: "血液検査の予約を取る", status: .todo, createdBy: .manager, deadline: .preview(daysLater: 5)),
+            .preview(visionID: vision.id, title: "5kmを30分で走る", status: .todo, deadline: .preview(daysLater: 23)),
+            .preview(visionID: vision.id, title: "毎日8000歩あるく", status: .todo, createdBy: .manager, progress: 20),
+            .preview(visionID: vision.id, title: "ジムに入会する", status: .approved, reaction: .happy, deadline: .preview(daysLater: -26)),
+            .preview(visionID: vision.id, title: "体組成計を買う", status: .approved, createdBy: .manager, deadline: .preview(daysLater: -24)),
+            .preview(visionID: vision.id, title: "間食をやめる", status: .cancelled)
+        ]
+    }
+}
+
 extension PartnershipStore {
     static func preview(
         role: Role,

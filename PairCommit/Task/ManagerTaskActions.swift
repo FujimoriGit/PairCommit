@@ -12,6 +12,7 @@ import SwiftUI
 struct ManagerTaskActions: View {
     let store: PartnershipStore
     let task: TaskItem
+    var layout = TaskActionLayout.full
 
     @State private var isConfirmingCancel = false
     @State private var review: TaskReview?
@@ -40,13 +41,37 @@ struct ManagerTaskActions: View {
 private extension ManagerTaskActions {
     @ViewBuilder
     var buttons: some View {
+        switch layout {
+        case .full: fullButtons
+        case .compact: compactButton
+        }
+    }
+
+    @ViewBuilder
+    var compactButton: some View {
+        switch task.status {
+        case .proposed:
+            Button(.taskRowAdopt, action: adopt)
+                .buttonStyle(.compact)
+                .accessibilityLabel(Text(.managerTaskAccept))
+        case .reported:
+            Button(.taskRowApprove) {
+                review = .approval
+            }
+            .buttonStyle(.compact)
+            .accessibilityLabel(Text(.commonApprove))
+        case .todo, .approved, .cancelled:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    var fullButtons: some View {
         switch task.status {
         case .proposed:
             VStack(spacing: 10) {
-                Button(.managerTaskAccept) {
-                    perform { state, role throws(TaskAdoptionError) in try state.adoptingTask(task.id, by: role) }
-                }
-                .buttonStyle(.filled)
+                Button(.managerTaskAccept, action: adopt)
+                    .buttonStyle(.filled)
                 cancellation
             }
         case .reported:
@@ -68,6 +93,10 @@ private extension ManagerTaskActions {
         case .approved, .cancelled:
             EmptyView()
         }
+    }
+
+    func adopt() {
+        perform { state, role throws(TaskAdoptionError) in try state.adoptingTask(task.id, by: role) }
     }
 
     var cancellation: some View {

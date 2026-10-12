@@ -61,12 +61,14 @@ struct PartnershipTabs: View {
 private extension PartnershipTabs {
     enum Destination: CaseIterable {
         case home
+        case tasks
         case history
         case settings
 
         var title: String {
             switch self {
             case .home: String(localized: .tabHome)
+            case .tasks: String(localized: .commonTasks)
             case .history: String(localized: .commonHistory)
             case .settings: String(localized: .commonSettings)
             }
@@ -75,6 +77,7 @@ private extension PartnershipTabs {
         var symbol: String {
             switch self {
             case .home: "house"
+            case .tasks: "checklist"
             case .history: "clock.arrow.circlepath"
             case .settings: "gearshape"
             }
@@ -90,6 +93,12 @@ private extension PartnershipTabs {
                 home
                     .refreshable { await refresh() }
                     .toolbar(.hidden, for: .navigationBar)
+                    .simultaneousGesture(tabSwipe, including: mask)
+            }
+        case .tasks:
+            NavigationStack {
+                tasks
+                    .refreshable { await refresh() }
                     .simultaneousGesture(tabSwipe, including: mask)
             }
         case .history:
@@ -109,19 +118,21 @@ private extension PartnershipTabs {
     @ViewBuilder
     var home: some View {
         switch (store.role, store.state.activeVision) {
-        case (.manager, .none): ManagerVisionView(store: store)
-        case (.manager, .some(let vision)):
+        case (_, .some(let vision)):
             TimelineView(.everyMinute) { context in
-                ManagerTaskView(store: store, vision: vision, now: context.date)
+                HomeView(store: store, vision: vision, now: context.date)
             }
+        case (.manager, .none): ManagerVisionView(store: store)
         case (.player, .none):
             TimelineView(.everyMinute) { context in
                 PlayerVisionView(store: store, reviewing: makeCriteriaReviewing(), now: context.date)
             }
-        case (.player, .some(let vision)):
-            TimelineView(.everyMinute) { context in
-                PlayerTaskView(store: store, vision: vision, now: context.date)
-            }
+        }
+    }
+
+    var tasks: some View {
+        TimelineView(.everyMinute) { context in
+            TaskBoardView(store: store, vision: store.state.activeVision, now: context.date)
         }
     }
 

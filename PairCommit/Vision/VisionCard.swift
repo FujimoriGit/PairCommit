@@ -16,9 +16,16 @@ struct VisionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(.commonVision)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
+            HStack {
+                Text(.commonVision)
+                    .font(.caption.weight(.bold))
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.bold))
+                    .opacity(0.8)
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(.white)
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundStyle(.white)
@@ -69,23 +76,16 @@ private struct Surface: ViewModifier {
 private extension VisionCard {
     @ViewBuilder
     var completion: some View {
-        if let fraction = taskProgress.fraction {
-            Label(
-                String(localized: .visionCardTaskProgress(
-                    taskProgress.approved,
-                    taskProgress.total,
-                    fraction.formatted(.percent.precision(.fractionLength(0)))
-                )),
-                systemImage: "checklist.checked"
-            )
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.white)
+        if let summary = taskProgress.summary {
+            Label(summary, systemImage: "checklist.checked")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
         }
     }
 
     var countdown: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(remaining, systemImage: symbol)
+            Label(vision.remaining(at: now), systemImage: vision.remainingSymbol(at: now))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white)
             bar
@@ -100,41 +100,9 @@ private extension VisionCard {
                 GeometryReader { proxy in
                     Capsule()
                         .fill(.white)
-                        .frame(width: proxy.size.width * (progress ?? 0))
+                        .frame(width: proxy.size.width * (vision.elapsed(at: now) ?? 0))
                 }
             }
-    }
-
-    var remaining: String {
-        switch vision.countdown(at: now, in: .current) {
-        case .unbounded: String(localized: .commonNoDeadline)
-        case .overdue(let deadline): String(localized: .visionCardOverdue(deadline.formatted(Date.FormatStyle.yearMonthDayTime)))
-        case .days(0, _): String(localized: .visionCardDueToday)
-        case .days(let days, let deadline):
-            String(localized: .visionCardDaysLeft(days: days, deadline.formatted(Date.FormatStyle.yearMonthDayTime)))
-        }
-    }
-
-    var symbol: String {
-        switch vision.countdown(at: now, in: .current) {
-        case .unbounded: "infinity"
-        case .overdue: "exclamationmark.triangle.fill"
-        case .days: "calendar"
-        }
-    }
-
-    var progress: Double? {
-        switch vision.countdown(at: now, in: .current) {
-        case .unbounded: nil
-        case .overdue: 1
-        case .days(_, let deadline): elapsed(until: deadline)
-        }
-    }
-
-    func elapsed(until deadline: Date) -> Double? {
-        let span = deadline.timeIntervalSince(vision.createdAt)
-        guard span > 0 else { return nil }
-        return min(max(now.timeIntervalSince(vision.createdAt) / span, 0), 1)
     }
 }
 

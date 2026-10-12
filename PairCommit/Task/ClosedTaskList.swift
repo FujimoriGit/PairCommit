@@ -5,25 +5,32 @@
 //  Created by Daiki Fujimori on 2026/10/06
 //
 
+import Application
 import Domain
 import SwiftUI
 
 struct ClosedTaskList: View {
+    let store: PartnershipStore
     let tasks: [TaskItem]
+    let now: Date
     let onShowCancelled: () -> Void
 
     @ViewBuilder
     var body: some View {
         if !approved.isEmpty || !cancelled.isEmpty {
-            SectionHeader(text: String(localized: .taskListClosed))
-            ForEach(approved) { task in
-                TaskSummaryRow(task: task)
-            }
-            if !cancelled.isEmpty {
-                Button(action: onShowCancelled) {
-                    cancelledLink
+            VStack(alignment: .leading, spacing: 8) {
+                TaskSectionHeader(title: String(localized: .taskListClosed), count: approved.count + cancelled.count)
+                TaskRowGroup {
+                    ForEach(approved) { task in
+                        TaskRow(store: store, task: task, now: now)
+                    }
+                    if !cancelled.isEmpty {
+                        Button(action: onShowCancelled) {
+                            cancelledLink
+                        }
+                        .buttonStyle(.choice)
+                    }
                 }
-                .buttonStyle(.choice)
             }
         }
     }
@@ -44,6 +51,7 @@ private extension ClosedTaskList {
         HStack(spacing: 12) {
             Text(.cancelledTasksTitle)
                 .font(.system(.body, design: .rounded, weight: .semibold))
+                .foregroundStyle(.secondary)
             Spacer(minLength: 8)
             Text(cancelled.count, format: .number)
                 .foregroundStyle(.secondary)
@@ -52,6 +60,8 @@ private extension ClosedTaskList {
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
         }
-        .card()
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .contentShape(.rect)
     }
 }
