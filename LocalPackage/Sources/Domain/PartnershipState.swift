@@ -237,7 +237,7 @@ extension PartnershipState {
         return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported, at: now))
     }
 
-    /// 完了報告を承認する。`feedback` が空白だけなら、フィードバックは残さない。
+    /// `feedback` が空白だけなら、フィードバックは残さない。
     public func approvingTask(
         _ id: TaskItem.ID,
         feedback: String? = nil,
@@ -251,7 +251,7 @@ extension PartnershipState {
         return try approved.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
     }
 
-    /// 完了報告を差し戻す。`feedback` は空白だけにはできない。
+    /// `feedback` は空白だけにはできない。
     public func returningTask(
         _ id: TaskItem.ID,
         feedback: String,

@@ -84,8 +84,8 @@ struct NoteTests {
         #expect(approved.notes(on: .task(taskID)).map(\.kind) == [.feedback])
     }
 
-    @Test("見届ける人は、フィードバックを書かずに承認できる")
-    func managerCanApproveWithoutFeedback() throws {
+    @Test("見届ける人が空白だけのフィードバックを付けて承認すると、タスクは承認され、書き込みは残らない")
+    func blankFeedbackOnApprovalLeavesNoNote() throws {
         // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try todo.reportingTask(taskID, by: .player)
