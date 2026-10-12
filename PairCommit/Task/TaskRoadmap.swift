@@ -16,6 +16,8 @@ struct TaskRoadmap: View {
     let tasks: [TaskItem]
     let now: Date
 
+    @ScaledMetric(relativeTo: .headline) private var dateWidth: CGFloat = 40
+
     var body: some View {
         if !scheduled.isEmpty || vision.deadline != nil {
             ForEach(months, id: \.start) { month in
@@ -33,7 +35,7 @@ struct TaskRoadmap: View {
                         Rectangle()
                             .fill(.quaternary)
                             .frame(width: 2)
-                            .padding(.leading, Self.dateWidth + Self.pinWidth / 2 - 1)
+                            .padding(.leading, dateWidth + Self.pinWidth / 2 - 1)
                     }
                 }
             }
@@ -50,7 +52,6 @@ struct TaskRoadmap: View {
 // MARK: - Private
 
 private extension TaskRoadmap {
-    static let dateWidth: CGFloat = 34
     static let pinWidth: CGFloat = 30
 
     enum Mark: Identifiable {
@@ -99,7 +100,7 @@ private extension TaskRoadmap {
         case .task(let task, let deadline):
             HStack(spacing: 0) {
                 date(of: deadline, isLate: isLate(task))
-                    .frame(width: Self.dateWidth, alignment: .trailing)
+                    .frame(width: dateWidth, alignment: .trailing)
                 pin(of: task)
                     .frame(width: Self.pinWidth)
                 TaskRow(store: store, task: task, now: now, style: .timeline)
@@ -113,7 +114,7 @@ private extension TaskRoadmap {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(Color.red, in: .capsule)
-                    .frame(width: Self.dateWidth + Self.pinWidth)
+                    .frame(width: dateWidth + Self.pinWidth)
                 Rectangle()
                     .fill(Color.red)
                     .frame(height: 2)
@@ -141,7 +142,7 @@ private extension TaskRoadmap {
 
     func date(of deadline: Date, isLate: Bool) -> some View {
         VStack(spacing: 0) {
-            Text(deadline, format: .dateTime.day(.defaultDigits).locale(Locale(identifier: "en_US_POSIX")))
+            Text(deadline, format: .dateTime.day(.defaultDigits))
                 .font(.system(.headline, design: .rounded, weight: .bold))
             Text(deadline, format: .dateTime.weekday(.abbreviated))
                 .font(.caption2.weight(.semibold))
