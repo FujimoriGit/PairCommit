@@ -43,6 +43,21 @@ struct SoftButtonStyle: PrimitiveButtonStyle {
     }
 }
 
+struct CompactButtonStyle: PrimitiveButtonStyle {
+    @ViewBuilder
+    func makeBody(configuration: Configuration) -> some View {
+        let button = FeedbackButton(configuration: configuration, feedback: .impact, fillsWidth: false)
+            .font(.system(.subheadline, design: .rounded, weight: .bold))
+        if #available(iOS 26, *) {
+            button
+                .buttonStyle(.glassProminent)
+                .controlSize(.small)
+        } else {
+            button.buttonStyle(Appearance())
+        }
+    }
+}
+
 struct ChoiceButtonStyle: PrimitiveButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         FeedbackButton(configuration: configuration, feedback: .impact(weight: .light))
@@ -60,6 +75,10 @@ extension PrimitiveButtonStyle where Self == SoftButtonStyle {
     static func soft(feedback: SensoryFeedback) -> Self { .init(feedback: feedback) }
 }
 
+extension PrimitiveButtonStyle where Self == CompactButtonStyle {
+    static var compact: Self { .init() }
+}
+
 extension PrimitiveButtonStyle where Self == ChoiceButtonStyle {
     static var choice: Self { .init() }
 }
@@ -70,6 +89,7 @@ extension PrimitiveButtonStyle where Self == ChoiceButtonStyle {
 private struct FeedbackButton: View {
     let configuration: PrimitiveButtonStyleConfiguration
     let feedback: SensoryFeedback
+    var fillsWidth = true
 
     @Environment(\.playingFeedback) private var playingFeedback
 
@@ -79,7 +99,7 @@ private struct FeedbackButton: View {
             configuration.trigger()
         } label: {
             configuration.label
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: fillsWidth ? .infinity : nil)
         }
     }
 }
@@ -105,6 +125,19 @@ private extension FilledButtonStyle {
 
         var fill: AnyShapeStyle {
             isEnabled ? AnyShapeStyle(.tint) : AnyShapeStyle(Color(.tertiarySystemFill))
+        }
+    }
+}
+
+private extension CompactButtonStyle {
+    struct Appearance: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .frame(minHeight: 34)
+                .background(.tint, in: .capsule)
+                .opacity(configuration.isPressed ? 0.7 : 1)
         }
     }
 }

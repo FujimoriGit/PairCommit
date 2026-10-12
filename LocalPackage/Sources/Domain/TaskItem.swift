@@ -22,6 +22,15 @@ public struct TaskItem: Identifiable, Sendable, Codable, Equatable {
             case .approved, .cancelled:       return false
             }
         }
+
+        /// 次に手を動かす役割。済んだタスクでは nil。
+        public var turn: Role? {
+            switch self {
+            case .proposed, .reported: return .manager
+            case .todo:                return .player
+            case .approved, .cancelled: return nil
+            }
+        }
     }
 
     public let id: UUID

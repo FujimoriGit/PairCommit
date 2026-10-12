@@ -12,22 +12,29 @@ import SwiftUI
 struct PlayerTaskActions: View {
     let store: PartnershipStore
     let task: TaskItem
+    var layout = TaskActionLayout.full
 
     @Environment(\.presentingFailure) private var presentingFailure
     @Environment(\.playingFeedback) private var playingFeedback
 
+    @ViewBuilder
     var body: some View {
-        VStack(spacing: 12) {
-            if task.status.isOpen {
-                reactions
-            }
-            if task.status == .todo {
-                Button(.playerTaskReport) {
-                    perform(succeeding: .success) { state, role throws(TaskReportError) in
-                        try state.reportingTask(task.id, by: role)
-                    }
+        switch layout {
+        case .full:
+            VStack(spacing: 12) {
+                if task.status.isOpen {
+                    reactions
                 }
-                .buttonStyle(.filled)
+                if task.status == .todo {
+                    Button(.playerTaskReport, action: report)
+                        .buttonStyle(.filled)
+                }
+            }
+        case .compact:
+            if task.status == .todo {
+                Button(.taskRowReport, action: report)
+                    .buttonStyle(.compact)
+                    .accessibilityLabel(Text(.playerTaskReport))
             }
         }
     }
@@ -36,6 +43,12 @@ struct PlayerTaskActions: View {
 // MARK: - Private
 
 private extension PlayerTaskActions {
+    func report() {
+        perform(succeeding: .success) { state, role throws(TaskReportError) in
+            try state.reportingTask(task.id, by: role)
+        }
+    }
+
     var reactions: some View {
         HStack(spacing: 8) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
