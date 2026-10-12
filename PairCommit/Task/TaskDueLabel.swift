@@ -19,9 +19,3 @@ extension TaskItem.Due {
         }
     }
 }
-
-extension [TaskItem] {
-    func sortedByDeadline() -> Self {
-        sorted { ($0.deadline ?? .distantFuture) < ($1.deadline ?? .distantFuture) }
-    }
-}

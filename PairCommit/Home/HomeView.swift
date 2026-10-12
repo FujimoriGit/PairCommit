@@ -44,49 +44,37 @@ struct HomeView: View {
 // MARK: - Private
 
 private extension HomeView {
-    var tasks: [TaskItem] {
-        store.state.tasks(for: vision.id)
-    }
-
-    var todo: [TaskItem] {
-        tasks.filter { $0.status == .todo }.sortedByDeadline()
-    }
-
     @ViewBuilder
     var sections: some View {
-        switch store.role {
-        case .manager: managerSections
-        case .player: playerSections
-        }
-    }
-
-    @ViewBuilder
-    var managerSections: some View {
-        let decisions = tasks.filter { $0.status.turn == .manager }
-        let overdue = todo.filter { $0.due(at: now, in: .current) == .overdue }
-        if decisions.isEmpty, overdue.isEmpty {
+        let tasks = store.state.tasksAtHand(for: store.role, now: now, in: .current)
+        if tasks.isEmpty {
             idle
         } else {
-            TaskSection(title: String(localized: .managerTaskNeedsDecision), tasks: decisions, store: store, now: now)
-            TaskSection(title: String(localized: .homeOverdueTasks), isAlert: true, tasks: overdue, store: store, now: now)
-        }
-    }
-
-    @ViewBuilder
-    var playerSections: some View {
-        let dues: [TaskItem.Due] = [.overdue, .today, .withinWeek]
-        let soon = todo.filter { dues.contains($0.due(at: now, in: .current)) }
-        if soon.isEmpty {
-            idle
-        } else {
-            ForEach(dues, id: \.self) { due in
+            switch store.role {
+            case .manager:
                 TaskSection(
-                    title: due.label,
-                    isAlert: due == .overdue,
-                    tasks: soon.filter { $0.due(at: now, in: .current) == due },
+                    title: String(localized: .managerTaskNeedsDecision),
+                    tasks: tasks.filter { $0.status.turn == .manager },
                     store: store,
                     now: now
                 )
+                TaskSection(
+                    title: String(localized: .homeOverdueTasks),
+                    isAlert: true,
+                    tasks: tasks.filter { $0.status == .todo },
+                    store: store,
+                    now: now
+                )
+            case .player:
+                ForEach([TaskItem.Due.overdue, .today, .withinWeek], id: \.self) { due in
+                    TaskSection(
+                        title: due.label,
+                        isAlert: due == .overdue,
+                        tasks: tasks.filter { $0.due(at: now, in: .current) == due },
+                        store: store,
+                        now: now
+                    )
+                }
             }
         }
     }

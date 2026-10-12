@@ -11,8 +11,8 @@ import Testing
 
 struct TaskDueTests {
 
-    @Test("期限の時刻を過ぎたタスクは、期限の当日でも期限切れになり、催促と食い違わない")
-    func passingTheDeadlineTimeOnTheDayIsOverdueLikeTheNudge() throws {
+    @Test("期限の当日でも期限の時刻を過ぎたタスクは期限切れになり、挑む人には期限切れの催促が届く")
+    func taskPastItsDeadlineTimeOnTheDayIsOverdueAndThePlayerIsNudged() throws {
         // Given
         let state = try stateWithTask(deadline: day(0, hoursLater: 10))
         let task = try #require(state.tasks.first)
