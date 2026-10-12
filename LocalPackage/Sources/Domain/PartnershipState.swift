@@ -310,7 +310,10 @@ extension PartnershipState {
         id: UUID = UUID(),
         now: Date = Date()
     ) throws(NoteWritingError) -> Self {
-        guard kind.isWritable(by: role) else { throw .notPlayer }
+        switch kind {
+        case .report: guard role == .player else { throw .notPlayer }
+        case .reminder: guard role == .manager else { throw .notManager }
+        }
         guard let body = nonBlank(body) else { throw .blankBody }
         switch subject {
         case .vision(let visionID):

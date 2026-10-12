@@ -34,6 +34,17 @@ struct NoteTests {
         }
     }
 
+    @Test("挑む人は催促を書けない")
+    func playerCannotWriteAReminder() throws {
+        // Given
+        let (state, taskID) = try PartnershipState().activeVisionWithTask()
+
+        // When / Then
+        #expect(throws: NoteWritingError.notManager) {
+            try state.writingNote("承認して", kind: .reminder, on: .task(taskID), by: .player)
+        }
+    }
+
     @Test("見届ける人が完了報告を差し戻すと、理由がフィードバックとしてタスクに残る")
     func reasonForSendingBackRemainsAsFeedback() throws {
         // Given

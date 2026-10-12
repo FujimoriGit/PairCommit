@@ -9,6 +9,7 @@ import Foundation
 
 public enum NoteWritingError: Error, Equatable {
     case notPlayer
+    case notManager
     case blankBody
     case subjectNotFound
     case subjectClosed

@@ -15,7 +15,7 @@ public struct Note: Identifiable, Sendable, Codable, Equatable {
         case feedback
     }
 
-    /// 承認や差し戻しをせずに書ける種類。フィードバックは、見届ける人が承認か差し戻しをするときにだけ書ける。
+    /// 承認や差し戻しをせずに書ける種類。状況報告は挑む人だけが、催促は見届ける人だけが書ける。フィードバックは、見届ける人が承認か差し戻しをするときにだけ書ける。
     public enum StandaloneKind: Sendable, CaseIterable {
         case report
         case reminder
@@ -25,11 +25,6 @@ public struct Note: Identifiable, Sendable, Codable, Equatable {
             case .report: .report
             case .reminder: .reminder
             }
-        }
-
-        /// 状況報告は挑む人だけが書ける。
-        public func isWritable(by role: Role) -> Bool {
-            self != .report || role == .player
         }
     }
 

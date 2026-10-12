@@ -202,6 +202,7 @@ extension NoteWritingError: PresentableError {
     var message: String {
         switch self {
         case .notPlayer: .onlyPlayer
+        case .notManager: .onlyManager
         case .blankBody: String(localized: .errorBlankText)
         case .subjectNotFound: String(localized: .errorNoteSubjectNotFound)
         case .subjectClosed: String(localized: .errorNoteSubjectClosed)
