@@ -34,6 +34,69 @@ struct NoteTests {
         }
     }
 
+    @Test("承認や差し戻しをせずに、フィードバックだけを書くことはできない", arguments: [Role.manager, .player])
+    func feedbackCannotBeWrittenWithoutAReview(role: Role) throws {
+        // Given
+        let (state, taskID) = try PartnershipState().activeVisionWithTask()
+
+        // When / Then
+        #expect(throws: DomainError.feedbackOutsideReview) {
+            try state.writingNote("いいね", kind: .feedback, on: .task(taskID), by: role)
+        }
+    }
+
+    @Test("見届ける人が完了報告を差し戻すと、理由がフィードバックとしてタスクに残る")
+    func reasonForSendingBackRemainsAsFeedback() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let reported = try todo.reportingTask(taskID, by: .player)
+
+        // When
+        let returned = try reported.returningTask(taskID, feedback: "写真も付けてほしい", by: .manager)
+
+        // Then
+        let note = try #require(returned.notes(on: .task(taskID)).first)
+        #expect(note.kind == .feedback && note.author == .manager && note.body == "写真も付けてほしい")
+    }
+
+    @Test("理由が空白だけでは、完了報告を差し戻せない")
+    func reportCannotBeSentBackWithoutAReason() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let reported = try todo.reportingTask(taskID, by: .player)
+
+        // When / Then
+        #expect(throws: DomainError.blankText) {
+            try reported.returningTask(taskID, feedback: "  \n", by: .manager)
+        }
+    }
+
+    @Test("見届ける人が承認するときに書いたフィードバックは、タスクに残る")
+    func feedbackWrittenOnApprovalRemainsOnTheTask() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let reported = try todo.reportingTask(taskID, by: .player)
+
+        // When
+        let approved = try reported.approvingTask(taskID, feedback: "よく続けた", by: .manager)
+
+        // Then
+        #expect(approved.notes(on: .task(taskID)).map(\.kind) == [.feedback])
+    }
+
+    @Test("見届ける人は、フィードバックを書かずに承認できる")
+    func managerCanApproveWithoutFeedback() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let reported = try todo.reportingTask(taskID, by: .player)
+
+        // When
+        let approved = try reported.approvingTask(taskID, feedback: " ", by: .manager)
+
+        // Then
+        #expect(approved.status(of: taskID) == .approved && approved.notes(on: .task(taskID)).isEmpty)
+    }
+
     @Test("書き込みには、書いた順に1から番号が振られる")
     func notesAreNumberedInTheOrderWritten() throws {
         // Given
@@ -68,7 +131,7 @@ struct NoteTests {
 
         // When / Then
         #expect(throws: DomainError.blankText) {
-            try state.writingNote("  \n", kind: .feedback, on: .task(taskID), by: .manager)
+            try state.writingNote("  \n", kind: .reminder, on: .task(taskID), by: .manager)
         }
     }
 
@@ -81,7 +144,7 @@ struct NoteTests {
 
         // When / Then
         #expect(throws: DomainError.noteSubjectClosed) {
-            try closed.writingNote("おつかれさま", kind: .feedback, on: .task(taskID), by: .manager)
+            try closed.writingNote("おつかれさま", kind: .reminder, on: .task(taskID), by: .manager)
         }
     }
 
@@ -93,7 +156,7 @@ struct NoteTests {
 
         // When / Then
         #expect(throws: DomainError.noteSubjectClosed) {
-            try closed.writingNote("おつかれさま", kind: .feedback, on: .vision(visionID), by: .manager)
+            try closed.writingNote("おつかれさま", kind: .reminder, on: .vision(visionID), by: .manager)
         }
     }
 
@@ -102,7 +165,7 @@ struct NoteTests {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
         let returned = try proposed.rejectingVision(visionID, by: .manager)
-        let written = try returned.writingNote("期限を決めてほしい", kind: .feedback, on: .vision(visionID), by: .manager)
+        let written = try returned.writingNote("期限を決めてほしい", kind: .reminder, on: .vision(visionID), by: .manager)
 
         // When
         let discarded = try written.discardingVision(visionID, by: .player)

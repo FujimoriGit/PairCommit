@@ -17,8 +17,10 @@ public enum PartnerAction: Hashable, Sendable {
     case taskProposed(TaskItem.ID)
     case taskAdopted(TaskItem.ID)
     case taskReported(TaskItem.ID)
-    case taskApproved(TaskItem.ID)
-    case taskReturned(TaskItem.ID)
+    /// `feedback` は、承認と一緒に書かれたフィードバック。
+    case taskApproved(TaskItem.ID, feedback: Note.ID?)
+    /// `feedback` は、差し戻しと一緒に書かれたフィードバック。
+    case taskReturned(TaskItem.ID, feedback: Note.ID?)
     case taskCancelled(TaskItem.ID)
     case reactionChanged(TaskItem.ID, Reaction)
     case progressChanged(TaskItem.ID, Int)
@@ -33,6 +35,15 @@ public enum PartnerAction: Hashable, Sendable {
         case .visionApproved, .visionReturned, .visionClosed, .taskAdded, .taskAdopted,
              .taskApproved, .taskReturned, .taskCancelled, .progressChanged:
             .player
+        }
+    }
+}
+
+extension PartnerAction {
+    var feedback: Note.ID? {
+        switch self {
+        case .taskApproved(_, let feedback), .taskReturned(_, let feedback): feedback
+        default: nil
         }
     }
 }

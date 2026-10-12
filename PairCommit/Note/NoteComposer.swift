@@ -26,12 +26,14 @@ struct NoteComposer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker(String(localized: .noteSection), selection: $kind) {
-                ForEach(Note.Kind.allCases.filter { $0.isWritable(by: store.role) }, id: \.self) { kind in
-                    Text(kind.label).tag(kind)
+            if kinds.count > 1 {
+                Picker(String(localized: .noteSection), selection: $kind) {
+                    ForEach(kinds, id: \.self) { kind in
+                        Text(kind.label).tag(kind)
+                    }
                 }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
             HStack(alignment: .bottom, spacing: 10) {
                 TextField(String(localized: .notePlaceholder), text: $text, axis: .vertical)
                     .lineLimit(1...4)
@@ -60,6 +62,10 @@ struct NoteComposer: View {
 // MARK: - Private
 
 private extension NoteComposer {
+    var kinds: [Note.Kind] {
+        Note.Kind.allCases.filter { $0.isWritable(by: store.role) }
+    }
+
     func post() {
         let body = text
         let kind = kind

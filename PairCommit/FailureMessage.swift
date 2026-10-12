@@ -34,6 +34,7 @@ extension DomainError {
         case .pastDeadline: String(localized: .errorPastDeadline)
         case .progressOutOfRange: String(localized: .errorProgressOutOfRange)
         case .noteSubjectClosed: String(localized: .errorNoteSubjectClosed)
+        case .feedbackOutsideReview: String(localized: .errorFeedbackOutsideReview)
         }
     }
 }

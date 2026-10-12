@@ -562,6 +562,23 @@
         }
       }
     },
+    "error.feedbackOutsideReview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can leave feedback when you approve or send back a report."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードバックは、完了報告を承認するか差し戻すときに書けます。"
+          }
+        }
+      }
+    },
     "error.invalidTaskTransition" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2262,6 +2279,23 @@
         }
       }
     },
+    "partnerAction.taskApprovedWithFeedback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ approved “%2$@” as done: %3$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」の完了を承認しました：%@"
+          }
+        }
+      }
+    },
     "partnerAction.taskCancelled" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2326,6 +2360,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@が「%@」の完了報告を差し戻しました。"
+          }
+        }
+      }
+    },
+    "partnerAction.taskReturnedWithFeedback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent back the report on “%2$@”: %3$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が「%@」の完了報告を差し戻しました：%@"
           }
         }
       }
@@ -3227,6 +3278,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まだタスクがありません"
+          }
+        }
+      }
+    },
+    "taskReview.approvalPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedback (optional)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードバック（任意）"
+          }
+        }
+      }
+    },
+    "taskReview.approvalTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve completion"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了を承認する"
+          }
+        }
+      }
+    },
+    "taskReview.sendBackPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why are you sending it back?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "差し戻す理由"
+          }
+        }
+      }
+    },
+    "taskReview.sendBackTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send back the report"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了報告を差し戻す"
           }
         }
       }

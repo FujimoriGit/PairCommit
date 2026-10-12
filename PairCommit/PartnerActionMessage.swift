@@ -21,8 +21,14 @@ extension PartnerAction {
         case .taskProposed(let id): String(localized: .partnerActionTaskProposed(partner, title(of: id, in: state)))
         case .taskAdopted(let id): String(localized: .partnerActionTaskAdopted(partner, title(of: id, in: state)))
         case .taskReported(let id): String(localized: .partnerActionTaskReported(partner, title(of: id, in: state)))
-        case .taskApproved(let id): String(localized: .partnerActionTaskApproved(partner, title(of: id, in: state)))
-        case .taskReturned(let id): String(localized: .partnerActionTaskReturned(partner, title(of: id, in: state)))
+        case .taskApproved(let id, let feedback):
+            body(of: feedback, in: state).map {
+                String(localized: .partnerActionTaskApprovedWithFeedback(partner, title(of: id, in: state), $0))
+            } ?? String(localized: .partnerActionTaskApproved(partner, title(of: id, in: state)))
+        case .taskReturned(let id, let feedback):
+            body(of: feedback, in: state).map {
+                String(localized: .partnerActionTaskReturnedWithFeedback(partner, title(of: id, in: state), $0))
+            } ?? String(localized: .partnerActionTaskReturned(partner, title(of: id, in: state)))
         case .taskCancelled(let id): String(localized: .partnerActionTaskCancelled(partner, title(of: id, in: state)))
         case .reactionChanged(let id, let reaction):
             String(localized: .partnerActionReactionChanged(partner, title(of: id, in: state), reaction.emoji))
@@ -42,6 +48,10 @@ private extension PartnerAction {
 
     func title(of id: TaskItem.ID, in state: PartnershipState) -> String {
         state.tasks.first { $0.id == id }?.title ?? String(localized: .nudgeUntitledTask)
+    }
+
+    func body(of note: Note.ID?, in state: PartnershipState) -> String? {
+        state.notes.first { $0.id == note }?.body
     }
 
     func noteMessage(of id: Note.ID, from partner: String, in state: PartnershipState) -> String {
