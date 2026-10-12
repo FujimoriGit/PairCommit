@@ -59,7 +59,7 @@ private extension HomeView {
                     now: now
                 )
                 TaskSection(
-                    title: String(localized: .taskDueOverdue),
+                    title: TaskItem.Due.overdue.label,
                     isAlert: true,
                     tasks: tasks.filter { $0.status == .todo },
                     store: store,
