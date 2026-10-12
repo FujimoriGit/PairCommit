@@ -13,7 +13,7 @@ struct NoteComposer: View {
     let store: PartnershipStore
     let subject: Note.Subject
 
-    @State private var kind: Note.Kind
+    @State private var kind: Note.StandaloneKind
     @State private var text = ""
     @State private var isPosting = false
     @State private var failureMessage: String?
@@ -62,8 +62,8 @@ struct NoteComposer: View {
 // MARK: - Private
 
 private extension NoteComposer {
-    var kinds: [Note.Kind] {
-        Note.Kind.allCases.filter { $0.isWritable(by: store.role) }
+    var kinds: [Note.StandaloneKind] {
+        Note.StandaloneKind.allCases.filter { $0.isWritable(by: store.role) }
     }
 
     func post() {
@@ -73,8 +73,8 @@ private extension NoteComposer {
         isPosting = true
         Task {
             defer { isPosting = false }
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
+            do throws(PartnershipFailure<NoteWritingError>) {
+                try await store.perform { state, role throws(NoteWritingError) in
                     try state.writingNote(body, kind: kind, on: subject, by: role)
                 }
                 text = ""

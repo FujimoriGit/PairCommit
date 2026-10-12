@@ -511,23 +511,6 @@
         }
       }
     },
-    "error.alreadyPaired" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You’re already paired."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すでにペアが成立しています。"
-          }
-        }
-      }
-    },
     "error.blankText" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -558,23 +541,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "相手との接続が切れました。2台を近くに置いたまま、もう一度お試しください。"
-          }
-        }
-      }
-    },
-    "error.feedbackOutsideReview" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can leave feedback when you approve or send back a report."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フィードバックは、完了報告を承認するか差し戻すときに書けます。"
           }
         }
       }
@@ -694,6 +660,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閉じたビジョンと、そのタスクには書き込めません。"
+          }
+        }
+      }
+    },
+    "error.noteSubjectNotFound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vision or task to write on wasn’t found."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き込む先のビジョンかタスクが見つかりません。"
           }
         }
       }

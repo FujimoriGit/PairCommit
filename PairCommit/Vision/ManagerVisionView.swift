@@ -79,7 +79,7 @@ private extension ManagerVisionView {
             }
             .buttonStyle(.filled)
             Button(.managerVisionSendBack) {
-                perform { state, role throws(DomainError) in try state.rejectingVision(vision.id, by: role) }
+                perform { state, role throws(VisionRejectionError) in try state.rejectingVision(vision.id, by: role) }
             }
             .buttonStyle(.soft(feedback: .warning))
         }
@@ -88,16 +88,16 @@ private extension ManagerVisionView {
 
     // 承認すると保存の前にこの画面が消えるので、失敗は画面の外へ知らせる
     func approve(_ vision: Vision) {
-        perform(failed: presentingFailure) { state, role throws(DomainError) in try state.approvingVision(vision.id, by: role) }
+        perform(failed: presentingFailure) { state, role throws(VisionApprovalError) in try state.approvingVision(vision.id, by: role) }
     }
 
-    func perform(
+    func perform<Rejection: PresentableError>(
         failed: (@MainActor (String) -> Void)? = nil,
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
     ) {
         failureMessage = nil
         Task {
-            do throws(PartnershipFailure) {
+            do throws(PartnershipFailure<Rejection>) {
                 try await store.perform(transform)
                 failureMessage = nil
             } catch {

@@ -47,9 +47,9 @@ public final class PartnershipStore {
         }
     }
 
-    public func perform(
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
-    ) async throws(PartnershipFailure) {
+    public func perform<Rejection: Error>(
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+    ) async throws(PartnershipFailure<Rejection>) {
         let failure = await serialized { [self] in
             await apply(transform, to: state, remaining: Self.attempts)
         }
@@ -64,13 +64,13 @@ public final class PartnershipStore {
 private extension PartnershipStore {
     static let attempts = 3
 
-    func apply(
-        _ transform: @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState,
+    func apply<Rejection: Error>(
+        _ transform: @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState,
         to base: PartnershipState,
         remaining: Int
-    ) async -> PartnershipFailure? {
+    ) async -> PartnershipFailure<Rejection>? {
         let next: PartnershipState
-        do throws(DomainError) {
+        do throws(Rejection) {
             next = try transform(base, role)
         } catch {
             state = base

@@ -29,7 +29,7 @@ struct TaskProgressTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .manager)) {
+        #expect(throws: ProgressError.notManager) {
             try state.settingProgress(40, on: taskID, by: .player)
         }
     }
@@ -43,7 +43,7 @@ struct TaskProgressTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask(in: status)
 
         // When / Then
-        #expect(throws: DomainError.invalidTaskTransition(from: status)) {
+        #expect(throws: ProgressError.notInProgress) {
             try state.settingProgress(40, on: taskID, by: .manager)
         }
     }
@@ -54,7 +54,7 @@ struct TaskProgressTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.progressOutOfRange) {
+        #expect(throws: ProgressError.outOfRange) {
             try state.settingProgress(percent, on: taskID, by: .manager)
         }
     }

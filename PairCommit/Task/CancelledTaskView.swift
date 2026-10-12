@@ -51,8 +51,8 @@ private extension CancelledTaskView {
 
     func restore(_ task: TaskItem) {
         Task {
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
+            do throws(PartnershipFailure<TaskRestorationError>) {
+                try await store.perform { state, role throws(TaskRestorationError) in
                     try state.restoringTask(task.id, by: role)
                 }
             } catch {

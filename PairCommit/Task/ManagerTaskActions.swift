@@ -24,7 +24,7 @@ struct ManagerTaskActions: View {
             .confirmationDialog(.managerTaskCancelConfirmationTitle, isPresented: $isConfirmingCancel) {
                 Button(.managerTaskCancelTask, role: .destructive) {
                     playingFeedback?(.warning)
-                    perform { state, role throws(DomainError) in try state.cancellingTask(task.id, by: role) }
+                    perform { state, role throws(TaskCancellationError) in try state.cancellingTask(task.id, by: role) }
                 }
             } message: {
                 Text(.managerTaskCancelConfirmationMessage)
@@ -44,7 +44,7 @@ private extension ManagerTaskActions {
         case .proposed:
             VStack(spacing: 10) {
                 Button(.managerTaskAccept) {
-                    perform { state, role throws(DomainError) in try state.adoptingTask(task.id, by: role) }
+                    perform { state, role throws(TaskAdoptionError) in try state.adoptingTask(task.id, by: role) }
                 }
                 .buttonStyle(.filled)
                 cancellation
@@ -78,22 +78,34 @@ private extension ManagerTaskActions {
     }
 
     func submit(_ review: TaskReview, feedback: String) async -> String? {
-        do throws(PartnershipFailure) {
-            try await store.perform { state, role throws(DomainError) in
-                switch review {
-                case .approval: try state.approvingTask(task.id, feedback: feedback, by: role)
-                case .sendingBack: try state.returningTask(task.id, feedback: feedback, by: role)
-                }
+        switch review {
+        case .approval:
+            await failureMessage { state, role throws(TaskApprovalError) in
+                try state.approvingTask(task.id, feedback: feedback, by: role)
             }
+        case .sendingBack:
+            await failureMessage { state, role throws(TaskReturnError) in
+                try state.returningTask(task.id, feedback: feedback, by: role)
+            }
+        }
+    }
+
+    func failureMessage<Rejection: PresentableError>(
+        performing transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+    ) async -> String? {
+        do throws(PartnershipFailure<Rejection>) {
+            try await store.perform(transform)
             return nil
         } catch {
             return error.message
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+    func perform<Rejection: PresentableError>(
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+    ) {
         Task {
-            do throws(PartnershipFailure) {
+            do throws(PartnershipFailure<Rejection>) {
                 try await store.perform(transform)
             } catch {
                 presentingFailure?(error.message)

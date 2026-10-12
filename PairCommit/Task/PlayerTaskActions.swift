@@ -23,7 +23,7 @@ struct PlayerTaskActions: View {
             }
             if task.status == .todo {
                 Button(.playerTaskReport) {
-                    perform(succeeding: .success) { state, role throws(DomainError) in
+                    perform(succeeding: .success) { state, role throws(TaskReportError) in
                         try state.reportingTask(task.id, by: role)
                     }
                 }
@@ -41,7 +41,7 @@ private extension PlayerTaskActions {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button {
                     playingFeedback?(.selection)
-                    perform { state, role throws(DomainError) in
+                    perform { state, role throws(ReactionError) in
                         try state.settingReaction(
                             task.reaction == reaction ? nil : reaction,
                             on: task.id,
@@ -72,12 +72,12 @@ private extension PlayerTaskActions {
             .contentShape(.rect)
     }
 
-    func perform(
+    func perform<Rejection: PresentableError>(
         succeeding success: SensoryFeedback? = nil,
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
     ) {
         Task {
-            do throws(PartnershipFailure) {
+            do throws(PartnershipFailure<Rejection>) {
                 try await store.perform(transform)
                 if let success {
                     playingFeedback?(success)

@@ -35,14 +35,14 @@ struct PartnershipNamingTests {
 
         // Then
         #expect(named.pairing?.name(of: .manager) == "太郎")
-        #expect(throws: DomainError.blankText) {
+        #expect(throws: NamingError.blankName) {
             try state.naming(" \n", by: .manager)
         }
     }
 
     @Test("ペアが無ければ名前は決められない")
     func namingWithoutPairFails() {
-        #expect(throws: DomainError.notPaired) {
+        #expect(throws: NamingError.notPaired) {
             try PartnershipState().naming("太郎", by: .manager)
         }
     }

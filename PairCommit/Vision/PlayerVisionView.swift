@@ -174,7 +174,7 @@ private extension PlayerVisionView {
         VisionDetail(vision: vision, note: String(localized: .playerVisionSentBack(Role.manager.label)))
         VStack(spacing: 10) {
             Button(.playerVisionSubmit(Role.manager.label)) {
-                perform { state, role throws(DomainError) in try state.proposingVision(vision.id, by: role) }
+                perform { state, role throws(VisionProposalError) in try state.proposingVision(vision.id, by: role) }
             }
             .buttonStyle(.filled)
             Button(.playerVisionRevise) {
@@ -192,7 +192,7 @@ private extension PlayerVisionView {
         .confirmationDialog(.playerVisionWithdrawConfirmationTitle, isPresented: $confirmingDiscard) {
             Button(.playerVisionWithdraw, role: .destructive) {
                 playingFeedback?(.warning)
-                perform { state, role throws(DomainError) in try state.discardingVision(vision.id, by: role) }
+                perform { state, role throws(VisionDiscardingError) in try state.discardingVision(vision.id, by: role) }
             }
         } message: {
             Text(.playerVisionWithdrawConfirmationMessage)
@@ -225,8 +225,8 @@ private extension PlayerVisionView {
         let content = input.content
         failureMessage = nil
         Task {
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
+            do throws(PartnershipFailure<VisionDraftingError>) {
+                try await store.perform { state, role throws(VisionDraftingError) in
                     try state.submittingVision(content, by: role).state
                 }
                 failureMessage = nil
@@ -242,8 +242,8 @@ private extension PlayerVisionView {
         let content = input.content
         failureMessage = nil
         Task {
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
+            do throws(PartnershipFailure<VisionRevisionError>) {
+                try await store.perform { state, role throws(VisionRevisionError) in
                     try state.resubmittingVision(vision.id, as: content, by: role)
                 }
                 failureMessage = nil
@@ -256,10 +256,12 @@ private extension PlayerVisionView {
         }
     }
 
-    func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {
+    func perform<Rejection: PresentableError>(
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+    ) {
         failureMessage = nil
         Task {
-            do throws(PartnershipFailure) {
+            do throws(PartnershipFailure<Rejection>) {
                 try await store.perform(transform)
                 failureMessage = nil
             } catch {

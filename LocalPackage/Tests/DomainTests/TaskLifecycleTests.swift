@@ -41,7 +41,7 @@ struct TaskLifecycleTests {
         let state = PartnershipState()
 
         // When / Then
-        #expect(throws: DomainError.noActiveVision) {
+        #expect(throws: TaskCreationError.noActiveVision) {
             try state.creatingTask(title: "孤立タスク", by: .manager)
         }
     }
@@ -77,7 +77,7 @@ struct TaskLifecycleTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .player)) {
+        #expect(throws: TaskReportError.notPlayer) {
             try state.reportingTask(taskID, by: .manager)
         }
     }
@@ -89,7 +89,7 @@ struct TaskLifecycleTests {
         let state = try created.reportingTask(taskID, by: .player)
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .manager)) {
+        #expect(throws: TaskApprovalError.notManager) {
             try state.approvingTask(taskID, by: .player)
         }
     }
@@ -117,7 +117,7 @@ struct TaskLifecycleTests {
         )
 
         // When / Then
-        #expect(throws: DomainError.pastDeadline) {
+        #expect(throws: TaskAdoptionError.pastDeadline) {
             try proposed.adoptingTask(taskID, by: .manager, now: deadline)
         }
     }
@@ -169,7 +169,7 @@ struct TaskLifecycleTests {
         let state = try created.cancellingTask(taskID, by: .manager)
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .manager)) {
+        #expect(throws: TaskRestorationError.notManager) {
             try state.restoringTask(taskID, by: .player)
         }
     }
@@ -184,7 +184,7 @@ struct TaskLifecycleTests {
             .closingVision(visionID, as: .abandoned, by: .manager)
 
         // When / Then
-        #expect(throws: DomainError.invalidTaskTransition(from: .cancelled)) {
+        #expect(throws: TaskRestorationError.notRestorable) {
             try state.restoringTask(taskID, by: .manager)
         }
     }
@@ -210,7 +210,7 @@ struct TaskLifecycleTests {
         let state = PartnershipState(pairing: active.pairing, visions: active.visions, tasks: [task])
 
         // When / Then
-        #expect(throws: DomainError.invalidTaskTransition(from: .cancelled)) {
+        #expect(throws: TaskRestorationError.notRestorable) {
             try state.restoringTask(task.id, by: .manager)
         }
     }
@@ -221,7 +221,7 @@ struct TaskLifecycleTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.invalidTaskTransition(from: .todo)) {
+        #expect(throws: TaskRestorationError.notRestorable) {
             try state.restoringTask(taskID, by: .manager)
         }
     }
@@ -235,7 +235,7 @@ struct TaskLifecycleTests {
             .approvingTask(taskID, by: .manager)
 
         // When / Then
-        #expect(throws: DomainError.invalidTaskTransition(from: .approved)) {
+        #expect(throws: TaskCancellationError.alreadyClosed) {
             try state.cancellingTask(taskID, by: .manager)
         }
     }
@@ -246,7 +246,7 @@ struct TaskLifecycleTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.invalidTaskTransition(from: .todo)) {
+        #expect(throws: TaskApprovalError.notReported) {
             try state.approvingTask(taskID, by: .manager)
         }
     }
@@ -257,7 +257,7 @@ struct TaskLifecycleTests {
         let (state, _) = try PartnershipState().activeVision()
 
         // When / Then
-        #expect(throws: DomainError.blankText) {
+        #expect(throws: TaskCreationError.blankTitle) {
             try state.creatingTask(title: "　", by: .manager)
         }
     }
@@ -269,7 +269,7 @@ struct TaskLifecycleTests {
         let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
         // When / Then
-        #expect(throws: DomainError.pastDeadline) {
+        #expect(throws: TaskCreationError.pastDeadline) {
             try state.creatingTask(title: "走る", deadline: now.addingTimeInterval(-60), by: .manager, now: now)
         }
     }
