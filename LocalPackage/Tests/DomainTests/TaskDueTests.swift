@@ -53,7 +53,7 @@ struct TaskDueTests {
         #expect(due == .withinWeek)
     }
 
-    @Test("期限が8日後の日付より先のタスクは、それより先になる")
+    @Test("期限が8日後以降の日付のタスクは、それより先になる")
     func deadlineEightDaysLaterIsLater() {
         // Given
         let task = task(deadline: day(8, hoursLater: -7))

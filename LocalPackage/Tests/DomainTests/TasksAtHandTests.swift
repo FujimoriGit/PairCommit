@@ -16,7 +16,7 @@ struct TasksAtHandTests {
         day(0, hoursLater: 3),
         day(7)
     ])
-    func challengerSeesTodoDueWithinAWeek(deadline: Date) throws {
+    func playerSeesTodoDueWithinAWeek(deadline: Date) throws {
         // Given
         let (state, taskID) = try todoTask(deadline: deadline)
 
@@ -27,8 +27,8 @@ struct TasksAtHandTests {
         #expect(tasks.map(\.id) == [taskID])
     }
 
-    @Test("挑む人がいま手を動かすタスクに、期限が8日後より先の日付のタスクと、期限の無いタスクは入らない", arguments: [day(8), nil])
-    func challengerDoesNotSeeTodoDueLaterOrUnscheduled(deadline: Date?) throws {
+    @Test("挑む人がいま手を動かすタスクに、期限が8日後以降のタスクと、期限の無いタスクは入らない", arguments: [day(8), nil])
+    func playerDoesNotSeeTodoDueLaterOrUnscheduled(deadline: Date?) throws {
         // Given
         let (state, _) = try todoTask(deadline: deadline)
 
@@ -40,7 +40,7 @@ struct TasksAtHandTests {
     }
 
     @Test("挑む人がいま手を動かすタスクに、見届ける人の番のタスクは入らない", arguments: [TaskItem.Status.proposed, .reported])
-    func challengerDoesNotSeeTheManagersTurn(status: TaskItem.Status) throws {
+    func playerDoesNotSeeTheManagersTurn(status: TaskItem.Status) throws {
         // Given
         let (state, _) = try paired().activeVisionWithTask(in: status)
 
@@ -52,7 +52,7 @@ struct TasksAtHandTests {
     }
 
     @Test("見届ける人がいま手を動かすタスクに、採用待ちと承認待ちのタスクが入る", arguments: [TaskItem.Status.proposed, .reported])
-    func witnessSeesTasksAwaitingDecision(status: TaskItem.Status) throws {
+    func managerSeesTasksAwaitingDecision(status: TaskItem.Status) throws {
         // Given
         let (state, taskID) = try paired().activeVisionWithTask(in: status)
 
@@ -64,7 +64,7 @@ struct TasksAtHandTests {
     }
 
     @Test("見届ける人がいま手を動かすタスクに、期限が過ぎた未完了のタスクが入る")
-    func witnessSeesOverdueTodo() throws {
+    func managerSeesOverdueTodo() throws {
         // Given
         let (state, taskID) = try todoTask(deadline: day(-1))
 
@@ -76,7 +76,7 @@ struct TasksAtHandTests {
     }
 
     @Test("見届ける人がいま手を動かすタスクに、期限が過ぎていない未完了のタスクは入らない", arguments: [day(0, hoursLater: 3), nil])
-    func witnessDoesNotSeeTodoNotYetDue(deadline: Date?) throws {
+    func managerDoesNotSeeTodoNotYetDue(deadline: Date?) throws {
         // Given
         let (state, _) = try todoTask(deadline: deadline)
 
@@ -88,7 +88,7 @@ struct TasksAtHandTests {
     }
 
     @Test("いま手を動かすタスクは期限の早い順に並び、期限の無いタスクは最後になる")
-    func tasksAtHandAreOrderedByDeadline() throws {
+    func tasksToActOnAreOrderedByDeadline() throws {
         // Given
         let (active, _) = try paired().activeVision()
         let (first, later) = try active.creatingTask(title: "later", deadline: day(5), by: .player, now: day(-1))
