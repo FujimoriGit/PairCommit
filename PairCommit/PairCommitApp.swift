@@ -20,16 +20,10 @@ struct PairCommitApp: App {
         WindowGroup {
             ContentView(
                 session: delegate.session,
-                sharing: delegate.sharing,
-                inviting: CloudInviting(shareTitle: Self.shareTitle),
                 invitationLinks: InvitationSceneDelegate.links,
-                notifications: delegate.notifications,
-                partnerNotifications: delegate.partnerNotifications,
-                knownState: delegate.knownState,
                 makeCriteriaReviewing: {
                     OnDeviceCriteriaReview(instructions: CriteriaReviewPrompt.instructions, prompt: CriteriaReviewPrompt.prompt)
-                },
-                makeNearbyChannel: makeNearbyChannel
+                }
             )
         }
     }
@@ -43,11 +37,32 @@ private extension PairCommitApp {
 
 @MainActor
 final class PairCommitDelegate: NSObject, UIApplicationDelegate {
-    let session = PartnershipSession()
-    let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
-    let notifications = NudgeNotifications()
-    let partnerNotifications = PartnerActionNotifications()
-    let knownState = SavedKnownState()
+    let sharing: CloudSharing
+    let notifications: NudgeNotifications
+    let partnerNotifications: PartnerActionNotifications
+    let knownState: SavedKnownState
+    let session: PartnershipSession
+
+    override init() {
+        let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
+        let notifications = NudgeNotifications()
+        let partnerNotifications = PartnerActionNotifications()
+        let knownState = SavedKnownState()
+        self.sharing = sharing
+        self.notifications = notifications
+        self.partnerNotifications = partnerNotifications
+        self.knownState = knownState
+        session = PartnershipSession(
+            sharing: sharing,
+            inviting: CloudInviting(shareTitle: PairCommitApp.shareTitle),
+            nudges: notifications,
+            partnerActions: partnerNotifications,
+            knownState: knownState,
+            nudgeMessage: { $0.message(in: $1) },
+            makeNearbyChannel: makeNearbyChannel
+        )
+        super.init()
+    }
 
     func application(
         _ application: UIApplication,

@@ -14,9 +14,6 @@ struct PlayerTaskActions: View {
     let task: TaskItem
     var layout = TaskActionLayout.full
 
-    @Environment(\.presentingFailure) private var presentingFailure
-    @Environment(\.playingFeedback) private var playingFeedback
-
     @ViewBuilder
     var body: some View {
         switch layout {
@@ -44,8 +41,13 @@ struct PlayerTaskActions: View {
 
 private extension PlayerTaskActions {
     func report() {
-        perform(succeeding: .success) { state, role throws(TaskReportError) in
-            try state.reportingTask(task.id, by: role)
+        Task {
+            let saved = await store.send { state, role throws(TaskReportError) in
+                try state.reportingTask(task.id, by: role)
+            }
+            if saved {
+                Haptic.success.play()
+            }
         }
     }
 
@@ -53,13 +55,15 @@ private extension PlayerTaskActions {
         HStack(spacing: 8) {
             ForEach(Reaction.allCases, id: \.self) { reaction in
                 Button {
-                    playingFeedback?(.selection)
-                    perform { state, role throws(ReactionError) in
-                        try state.settingReaction(
-                            task.reaction == reaction ? nil : reaction,
-                            on: task.id,
-                            by: role
-                        )
+                    Haptic.selection.play()
+                    Task {
+                        await store.send { state, role throws(ReactionError) in
+                            try state.settingReaction(
+                                task.reaction == reaction ? nil : reaction,
+                                on: task.id,
+                                by: role
+                            )
+                        }
                     }
                 } label: {
                     label(of: reaction, chosen: task.reaction == reaction)
@@ -83,21 +87,5 @@ private extension PlayerTaskActions {
                     .strokeBorder(reaction.tint, lineWidth: chosen ? 2 : 0)
             }
             .contentShape(.rect)
-    }
-
-    func perform<Rejection: PresentableError>(
-        succeeding success: SensoryFeedback? = nil,
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
-    ) {
-        Task {
-            do throws(PartnershipFailure<Rejection>) {
-                try await store.perform(transform)
-                if let success {
-                    playingFeedback?(success)
-                }
-            } catch {
-                presentingFailure?(error.message)
-            }
-        }
     }
 }

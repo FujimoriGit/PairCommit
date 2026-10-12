@@ -3112,23 +3112,6 @@
         }
       }
     },
-    "root.savedPairUnreadable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn’t read the pair saved on this device."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "端末に残したペアを読めませんでした。"
-          }
-        }
-      }
-    },
     "settings.name" : {
       "extractionState" : "manual",
       "localizations" : {

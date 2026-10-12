@@ -19,7 +19,6 @@ struct PlayerVisionView: View {
     @State private var failureMessage: String?
     @State private var revising: Vision.ID?
     @State private var confirmingDiscard = false
-    @Environment(\.playingFeedback) private var playingFeedback
 
     init(store: PartnershipStore, reviewing: (any CriteriaReviewing)? = nil, revising draft: Vision? = nil, now: Date) {
         self.store = store
@@ -187,11 +186,11 @@ private extension PlayerVisionView {
             Button(.playerVisionWithdraw, role: .destructive) {
                 confirmingDiscard = true
             }
-            .buttonStyle(.soft(feedback: .impact(weight: .light)))
+            .buttonStyle(.soft(feedback: .lightImpact))
         }
         .confirmationDialog(.playerVisionWithdrawConfirmationTitle, isPresented: $confirmingDiscard) {
             Button(.playerVisionWithdraw, role: .destructive) {
-                playingFeedback?(.warning)
+                Haptic.warning.play()
                 perform { state, role throws(VisionDiscardingError) in try state.discardingVision(vision.id, by: role) }
             }
         } message: {

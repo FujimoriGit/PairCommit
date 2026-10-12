@@ -158,6 +158,20 @@ extension Note {
     }
 }
 
+extension PartnershipSession {
+    static var preview: PartnershipSession {
+        .init(
+            sharing: PreviewSharing(),
+            inviting: PreviewInviting(),
+            nudges: PreviewNudgeNotifications(),
+            partnerActions: PreviewPartnerActionNotifications(),
+            knownState: PreviewKnownState(),
+            nudgeMessage: { $0.message(in: $1) },
+            makeNearbyChannel: { PreviewNearbyChannel() }
+        )
+    }
+}
+
 struct PreviewSynchronizer: PartnershipSyncing {
     func start() -> PartnershipState {
         .init()

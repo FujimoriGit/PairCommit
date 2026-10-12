@@ -17,15 +17,12 @@ struct ManagerTaskActions: View {
     @State private var isConfirmingCancel = false
     @State private var review: TaskReview?
 
-    @Environment(\.presentingFailure) private var presentingFailure
-    @Environment(\.playingFeedback) private var playingFeedback
-
     var body: some View {
         buttons
             .confirmationDialog(.managerTaskCancelConfirmationTitle, isPresented: $isConfirmingCancel) {
                 Button(.managerTaskCancelTask, role: .destructive) {
-                    playingFeedback?(.warning)
-                    perform { state, role throws(TaskCancellationError) in try state.cancellingTask(task.id, by: role) }
+                    Haptic.warning.play()
+                    send { state, role throws(TaskCancellationError) in try state.cancellingTask(task.id, by: role) }
                 }
             } message: {
                 Text(.managerTaskCancelConfirmationMessage)
@@ -96,14 +93,14 @@ private extension ManagerTaskActions {
     }
 
     func adopt() {
-        perform { state, role throws(TaskAdoptionError) in try state.adoptingTask(task.id, by: role) }
+        send { state, role throws(TaskAdoptionError) in try state.adoptingTask(task.id, by: role) }
     }
 
     var cancellation: some View {
         Button(.managerTaskCancelTask, role: .destructive) {
             isConfirmingCancel = true
         }
-        .buttonStyle(.soft(feedback: .impact(weight: .light)))
+        .buttonStyle(.soft(feedback: .lightImpact))
     }
 
     func submit(_ review: TaskReview, feedback: String) async -> String? {
@@ -130,15 +127,9 @@ private extension ManagerTaskActions {
         }
     }
 
-    func perform<Rejection: PresentableError>(
+    func send<Rejection: Error>(
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
     ) {
-        Task {
-            do throws(PartnershipFailure<Rejection>) {
-                try await store.perform(transform)
-            } catch {
-                presentingFailure?(error.message)
-            }
-        }
+        Task { await store.send(transform) }
     }
 }

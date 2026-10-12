@@ -129,6 +129,23 @@ struct PartnershipStoreTests {
         #expect(store.state == PartnershipState())
     }
 
+    @Test("保存の結果を待たない操作が保存に失敗したら、エラーにはならず、手元の状態から取り消されて保存の失敗が残る")
+    func aSentActionThatFailsToSaveIsUndoneAndKept() async {
+        // Given
+        let synchronizer = InterruptibleSynchronizer()
+        synchronizer.failure = .unavailable
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+
+        // When
+        await store.send { state, role throws(VisionDraftingError) in
+            try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
+        }
+
+        // Then
+        #expect(store.state == PartnershipState())
+        #expect(store.saveFailure == .unavailable)
+    }
+
     @Test("相手の操作を取得する前に自分が操作しても、相手の操作は消えずに両方残る")
     func actingBeforeReloadingKeepsThePartnersChange() async throws {
         // Given
