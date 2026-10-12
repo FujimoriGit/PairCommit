@@ -16,8 +16,6 @@ struct TaskDetailView: View {
 
     @State private var editingProgress: Double?
 
-    @Environment(\.presentingFailure) private var presentingFailure
-
     var body: some View {
         Screen(role: store.role) {
             if let task {
@@ -111,14 +109,10 @@ private extension TaskDetailView {
             return
         }
         Task {
-            defer { editingProgress = nil }
-            do throws(PartnershipFailure<ProgressError>) {
-                try await store.perform { state, role throws(ProgressError) in
-                    try state.settingProgress(percent, on: task.id, by: role)
-                }
-            } catch {
-                presentingFailure?(error.message)
+            await store.send { state, role throws(ProgressError) in
+                try state.settingProgress(percent, on: task.id, by: role)
             }
+            editingProgress = nil
         }
     }
 }

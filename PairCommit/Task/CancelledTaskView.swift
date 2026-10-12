@@ -13,8 +13,6 @@ struct CancelledTaskView: View {
     let store: PartnershipStore
     let vision: Vision
 
-    @Environment(\.presentingFailure) private var presentingFailure
-
     var body: some View {
         Screen(role: store.role) {
             if tasks.isEmpty {
@@ -51,12 +49,8 @@ private extension CancelledTaskView {
 
     func restore(_ task: TaskItem) {
         Task {
-            do throws(PartnershipFailure<TaskRestorationError>) {
-                try await store.perform { state, role throws(TaskRestorationError) in
-                    try state.restoringTask(task.id, by: role)
-                }
-            } catch {
-                presentingFailure?(error.message)
+            await store.send { state, role throws(TaskRestorationError) in
+                try state.restoringTask(task.id, by: role)
             }
         }
     }

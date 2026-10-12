@@ -14,8 +14,6 @@ struct ManagerVisionView: View {
 
     @State private var failureMessage: String?
 
-    @Environment(\.presentingFailure) private var presentingFailure
-
     var body: some View {
         Screen(role: store.role) {
             PartnerLine(pairing: store.state.pairing, role: store.role)
@@ -86,13 +84,15 @@ private extension ManagerVisionView {
         FailureNote(message: failureMessage)
     }
 
-    // 承認すると保存の前にこの画面が消えるので、失敗は画面の外へ知らせる
+    // 承認すると保存の前にこの画面が消える
     func approve(_ vision: Vision) {
-        perform(failed: presentingFailure) { state, role throws(VisionApprovalError) in try state.approvingVision(vision.id, by: role) }
+        failureMessage = nil
+        Task {
+            await store.send { state, role throws(VisionApprovalError) in try state.approvingVision(vision.id, by: role) }
+        }
     }
 
     func perform<Rejection: PresentableError>(
-        failed: (@MainActor (String) -> Void)? = nil,
         _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
     ) {
         failureMessage = nil
@@ -101,11 +101,7 @@ private extension ManagerVisionView {
                 try await store.perform(transform)
                 failureMessage = nil
             } catch {
-                if let failed {
-                    failed(error.message)
-                } else {
-                    failureMessage = error.message
-                }
+                failureMessage = error.message
             }
         }
     }
@@ -114,7 +110,6 @@ private extension ManagerVisionView {
 #Preview("管理者の起案待ち") {
     NavigationStack {
         ManagerVisionView(store: .preview(role: .manager, visions: []))
-            .environment(\.resettingPartnership) { nil }
     }
 }
 

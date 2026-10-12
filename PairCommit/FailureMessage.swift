@@ -235,6 +235,16 @@ extension NearbyPairing.Failure {
     }
 }
 
+extension PartnershipSession.Interruption {
+    var message: String {
+        switch self {
+        case .partnershipEnded: String(localized: .rootPartnershipEnded)
+        case .pairingResultMissing: String(localized: .rootPairingResultMissing)
+        case .partnerSetupMissing: String(localized: .rootPartnerSetupMissing)
+        }
+    }
+}
+
 extension SyncFailure {
     var message: String {
         switch self {

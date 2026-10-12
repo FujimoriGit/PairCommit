@@ -11,6 +11,7 @@ import SwiftUI
 import UIKit
 
 struct PartnershipTabs: View {
+    let session: PartnershipSession
     let store: PartnershipStore
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
@@ -109,7 +110,7 @@ private extension PartnershipTabs {
             }
         case .settings:
             NavigationStack {
-                PartnershipSettingsView(store: store)
+                PartnershipSettingsView(session: session, store: store)
                     .simultaneousGesture(tabSwipe, including: mask)
             }
         }
@@ -165,5 +166,5 @@ private extension PartnershipTabs {
 }
 
 #Preview("ペアのタブ") {
-    PartnershipTabs(store: .preview(role: .manager, visions: []), makeCriteriaReviewing: { nil })
+    PartnershipTabs(session: .preview, store: .preview(role: .manager, visions: []), makeCriteriaReviewing: { nil })
 }

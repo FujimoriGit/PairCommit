@@ -5,13 +5,10 @@
 //  Created by Daiki Fujimori on 2026/09/27
 //
 
+import Application
 import Foundation
 
-/// 招待リンクを開いても参加しない理由。
-enum LinkRefusal: Sendable {
-    case alreadyPaired
-    case pairingInProgress
-
+extension PartnershipSession.LinkRefusal {
     var title: String {
         switch self {
         case .alreadyPaired: String(localized: .linkRefusalAlreadyPairedTitle)

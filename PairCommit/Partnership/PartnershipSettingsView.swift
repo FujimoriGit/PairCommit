@@ -9,17 +9,12 @@ import Application
 import Domain
 import SwiftUI
 
-extension EnvironmentValues {
-    @Entry var resettingPartnership: (@Sendable () async -> String?)?
-}
-
 struct PartnershipSettingsView: View {
+    let session: PartnershipSession
     let store: PartnershipStore
 
-    @Environment(\.resettingPartnership) private var reset
     @State private var confirming = false
     @State private var failureMessage: String?
-    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Screen(role: store.role) {
@@ -29,13 +24,13 @@ struct PartnershipSettingsView: View {
             Button(.settingsRepair, role: .destructive) {
                 confirming = true
             }
-            .buttonStyle(.soft(feedback: .impact(weight: .light)))
+            .buttonStyle(.soft(feedback: .lightImpact))
         }
         .navigationTitle(.commonSettings)
         .confirmationDialog(.settingsRepairConfirmationTitle, isPresented: $confirming) {
             Button(.settingsRepair, role: .destructive) {
-                playingFeedback?(.warning)
-                Task { failureMessage = await reset?() }
+                Haptic.warning.play()
+                endPartnership()
             }
         } message: {
             Text(.settingsRepairConfirmationMessage)
@@ -48,8 +43,22 @@ struct PartnershipSettingsView: View {
     }
 }
 
+// MARK: - Private
+
+private extension PartnershipSettingsView {
+    func endPartnership() {
+        Task {
+            do throws(PairingFailure) {
+                try await session.endPartnership()
+            } catch {
+                failureMessage = error.message
+            }
+        }
+    }
+}
+
 #Preview("ペアリングの設定") {
     NavigationStack {
-        PartnershipSettingsView(store: .preview(role: .manager, visions: []))
+        PartnershipSettingsView(session: .preview, store: .preview(role: .manager, visions: []))
     }
 }

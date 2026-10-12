@@ -23,13 +23,13 @@ struct FilledButtonStyle: PrimitiveButtonStyle {
 }
 
 struct SoftButtonStyle: PrimitiveButtonStyle {
-    let feedback: SensoryFeedback?
+    let feedback: Haptic?
 
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         let button = FeedbackButton(
             configuration: configuration,
-            feedback: feedback ?? (configuration.role == .destructive ? .warning : .impact(weight: .light))
+            feedback: feedback ?? (configuration.role == .destructive ? .warning : .lightImpact)
         )
         .font(.system(.subheadline, design: .rounded, weight: .semibold))
         if #available(iOS 26, *) {
@@ -60,7 +60,7 @@ struct CompactButtonStyle: PrimitiveButtonStyle {
 
 struct ChoiceButtonStyle: PrimitiveButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        FeedbackButton(configuration: configuration, feedback: .impact(weight: .light))
+        FeedbackButton(configuration: configuration, feedback: .lightImpact)
             .buttonStyle(.plain)
     }
 }
@@ -72,7 +72,7 @@ extension PrimitiveButtonStyle where Self == FilledButtonStyle {
 extension PrimitiveButtonStyle where Self == SoftButtonStyle {
     static var soft: Self { .init(feedback: nil) }
 
-    static func soft(feedback: SensoryFeedback) -> Self { .init(feedback: feedback) }
+    static func soft(feedback: Haptic) -> Self { .init(feedback: feedback) }
 }
 
 extension PrimitiveButtonStyle where Self == CompactButtonStyle {
@@ -88,14 +88,12 @@ extension PrimitiveButtonStyle where Self == ChoiceButtonStyle {
 // 押下状態の変化で鳴らすと、タップを取り消したときやスクロールし始めたときにも鳴る
 private struct FeedbackButton: View {
     let configuration: PrimitiveButtonStyleConfiguration
-    let feedback: SensoryFeedback
+    let feedback: Haptic
     var fillsWidth = true
-
-    @Environment(\.playingFeedback) private var playingFeedback
 
     var body: some View {
         Button(role: configuration.role) {
-            playingFeedback?(feedback)
+            feedback.play()
             configuration.trigger()
         } label: {
             configuration.label

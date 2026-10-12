@@ -16,10 +16,6 @@ struct ActiveVisionView: View {
 
     @State private var outcome: Vision.Outcome?
 
-    @Environment(\.achievingVision) private var achievingVision
-    @Environment(\.presentingFailure) private var presentingFailure
-    @Environment(\.playingFeedback) private var playingFeedback
-
     var body: some View {
         Screen(role: store.role) {
             Text(vision.statement)
@@ -38,7 +34,7 @@ struct ActiveVisionView: View {
             presenting: outcome
         ) { outcome in
             Button(outcome.confirmation, role: .destructive) {
-                playingFeedback?(outcome == .achieved ? .impact : .warning)
+                (outcome == .achieved ? Haptic.impact : .warning).play()
                 close(as: outcome)
             }
         } message: { _ in
@@ -101,7 +97,7 @@ private extension ActiveVisionView {
                     Button(candidate.label, role: candidate == .abandoned ? .destructive : nil) {
                         outcome = candidate
                     }
-                    .buttonStyle(.soft(feedback: .impact(weight: .light)))
+                    .buttonStyle(.soft(feedback: .lightImpact))
                 }
             }
         }
@@ -109,15 +105,12 @@ private extension ActiveVisionView {
 
     // ビジョンを閉じると、保存を待たずにこの画面ごと消える
     func close(as outcome: Vision.Outcome) {
-        let succeeded = outcome == .achieved ? achievingVision : nil
         Task {
-            do throws(PartnershipFailure<VisionClosingError>) {
-                try await store.perform { state, role throws(VisionClosingError) in
-                    try state.closingVision(vision.id, as: outcome, by: role)
-                }
-                succeeded?()
-            } catch {
-                presentingFailure?(error.message)
+            let saved = await store.send { state, role throws(VisionClosingError) in
+                try state.closingVision(vision.id, as: outcome, by: role)
+            }
+            if saved, outcome == .achieved {
+                Haptic.success.play()
             }
         }
     }

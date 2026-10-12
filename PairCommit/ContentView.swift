@@ -10,78 +10,30 @@ import Domain
 import SwiftUI
 import UIKit
 
-extension EnvironmentValues {
-    @Entry var achievingVision: (@MainActor () -> Void)?
-    @Entry var presentingFailure: (@MainActor (String) -> Void)?
-    @Entry var playingFeedback: (@MainActor (SensoryFeedback) -> Void)?
-}
-
 struct ContentView: View {
     let session: PartnershipSession
-    let sharing: any PartnershipSharing
-    let notifications: any NudgeNotifying
-    let partnerNotifications: any PartnerActionNotifying
-    let knownState: any KnownStateKeeping
+    let invitationLinks: AsyncStream<URL>
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
-    let invitationLinks: AsyncStream<URL>
-
-    @State private var savedPairing: (any PairedShare)?
-    @State private var isResuming: Bool
-    @State private var pairing: NearbyPairing
-    @State private var remote: RemotePairing
-    @State private var methodRole: Role?
-    @State private var failureMessage: String?
-    @State private var linkRefusal: LinkRefusal?
-    @State private var achievements = 0
-    @State private var operationFailure: String?
-    @State private var feedback = FeedbackCue()
+    @State private var linkRefusal: PartnershipSession.LinkRefusal?
     @Environment(\.scenePhase) private var scenePhase
-
-    init(
-        session: PartnershipSession,
-        sharing: any PartnershipSharing,
-        inviting: any PartnershipInviting,
-        invitationLinks: AsyncStream<URL>,
-        notifications: any NudgeNotifying,
-        partnerNotifications: any PartnerActionNotifying,
-        knownState: any KnownStateKeeping,
-        makeCriteriaReviewing: @escaping () -> (any CriteriaReviewing)?,
-        makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
-    ) {
-        self.session = session
-        self.sharing = sharing
-        self.invitationLinks = invitationLinks
-        self.notifications = notifications
-        self.partnerNotifications = partnerNotifications
-        self.knownState = knownState
-        self.makeCriteriaReviewing = makeCriteriaReviewing
-        let savedPairing = sharing.savedShare()
-        _savedPairing = State(initialValue: savedPairing)
-        _isResuming = State(initialValue: savedPairing != nil)
-        _pairing = State(initialValue: NearbyPairing(sharing: sharing, makeChannel: makeNearbyChannel))
-        _remote = State(initialValue: RemotePairing(inviting: inviting))
-    }
 
     var body: some View {
         content
             .animation(.default, value: session.store == nil)
-            .animation(.default, value: pairing.phase == .idle)
-            .animation(.default, value: remote.phase == .idle)
+            .animation(.default, value: session.nearby.phase == .idle)
+            .animation(.default, value: session.remote.phase == .idle)
             .task {
                 for await link in invitationLinks {
-                    receive(link)
+                    accept(link)
                 }
             }
-            .task { await resumeRemainingPairing() }
+            .task { await session.resumeRemainingPairing() }
             .alert(linkRefusal?.title ?? "", isPresented: Binding(presenting: $linkRefusal)) {
                 Button(.commonOk) {}
             } message: {
                 Text(linkRefusal?.message ?? "")
             }
-            // 押すと画面が切り替わる操作では、押した画面ごと振動の指定が消えるので、ここで鳴らす
-            .environment(\.playingFeedback) { feedback = feedback.playing($0) }
-            .sensoryFeedback(trigger: feedback) { _, cue in cue.feedback }
             .scrollIndicators(.hidden)
     }
 }
@@ -91,82 +43,60 @@ struct ContentView: View {
 private extension ContentView {
     @ViewBuilder
     var content: some View {
-        if let store = session.store {
-            PartnershipTabs(store: store, makeCriteriaReviewing: makeCriteriaReviewing)
+        switch session.stage {
+        case .paired(let store):
+            paired(store)
+        case .connecting(let failure):
+            ReconnectingView(
+                failureMessage: failure?.message,
+                onRetry: { Task { await session.retryConnecting() } },
+                onStartOver: { Task { await session.startOver() } }
+            )
+            .task { await session.connect() }
+        case .pairingRemotely:
+            remoteScreen
+        case .choosingRole(let interruption):
+            rolePicker(interruption)
+        case .pairingNearby:
+            PairingView(phase: session.nearby.phase, onCancel: session.nearby.reset)
+                .task(id: session.nearby.phase) { await session.finishNearbyPairing() }
+        }
+    }
+
+    func paired(_ store: PartnershipStore) -> some View {
+        PartnershipTabs(session: session, store: store, makeCriteriaReviewing: makeCriteriaReviewing)
             .tint(store.role.accent)
             .task {
                 for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
                     try? await store.refresh()
                 }
             }
-            .environment(\.resettingPartnership) { await reset() }
-            .task(id: store.state) {
-                guard store.state.pairing != nil else {
-                    await returnToPicker(with: String(localized: .rootPartnershipEnded))
-                    return
-                }
-                let state = store.state
-                if scenePhase == .active {
-                    knownState.keep(state)
-                }
-                await notifications.post(for: store.role, in: state) { $0.message(in: state) }
-            }
+            .task(id: store.state) { await session.followStateChange(isActive: scenePhase == .active) }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
-                    knownState.keep(store.state)
+                    session.markCurrentStateSeen()
                 }
             }
-            .environment(\.achievingVision) { achievements += 1 }
-            .sensoryFeedback(.success, trigger: achievements)
-            .environment(\.presentingFailure) { operationFailure = $0 }
-            .sensoryFeedback(.error, trigger: operationFailure) { _, message in message != nil }
-            .alert(.rootOperationFailed, isPresented: Binding(presenting: $operationFailure)) {
+            .sensoryFeedback(.error, trigger: store.saveFailure) { _, failure in failure != nil }
+            .alert(
+                .rootOperationFailed,
+                isPresented: .init(get: { store.saveFailure != nil }, set: { _ in store.dismissSaveFailure() })
+            ) {
                 Button(.commonOk) {}
             } message: {
-                Text(operationFailure ?? "")
+                Text(store.saveFailure?.message ?? "")
             }
-        } else if pairing.phase == .idle, let saved = savedPairing {
-            ReconnectingView(
-                failureMessage: failureMessage,
-                onRetry: { failureMessage = nil },
-                onStartOver: {
-                    sharing.declineRemainingShare()
-                    Task { await returnToPicker(with: nil) }
-                }
-            )
-            .task(id: failureMessage == nil) {
-                guard failureMessage == nil else { return }
-                await enter(saved, resuming: isResuming)
-            }
-        } else if pairing.phase == .idle, remote.phase != .idle {
-            remoteScreen
-        } else if pairing.phase == .idle {
-            rolePicker
-        } else {
-            PairingView(phase: pairing.phase, onCancel: pairing.reset)
-                .task(id: pairing.phase) {
-                    guard pairing.phase == .done else { return }
-                    guard let outcome = pairing.outcome else {
-                        await returnToPicker(with: String(localized: .rootPairingResultMissing))
-                        return
-                    }
-                    outcome.save()
-                    savedPairing = outcome
-                    isResuming = false
-                    await enter(outcome, resuming: false)
-                }
-        }
     }
 
-    var rolePicker: some View {
+    func rolePicker(_ interruption: PartnershipSession.Interruption?) -> some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     ForEach(Role.allCases, id: \.self) { role in
                         Button {
-                            methodRole = role
+                            session.chosenRole = role
                         } label: {
-                            roleCard(role)
+                            ChoiceCard(symbol: role.symbol, title: role.label, summary: role.summary, accent: role.accent)
                         }
                         .buttonStyle(.choice)
                     }
@@ -176,159 +106,57 @@ private extension ContentView {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    FailureNote(message: failureMessage)
+                    FailureNote(message: interruption?.message)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 36)
             }
             .background(Backdrop())
             .navigationTitle(.rolePickerTitle)
-            .navigationDestination(item: $methodRole) { role in
+            .navigationDestination(item: Bindable(session).chosenRole) { role in
                 PairingMethodView(
                     role: role,
-                    onNearby: { begin(as: role) },
-                    onRemote: { invite(ownerRole: role) }
+                    onNearby: { session.pairNearby(as: role) },
+                    onRemote: { session.invite(ownerRole: role) }
                 )
             }
         }
-    }
-
-    func roleCard(_ role: Role) -> some View {
-        ChoiceCard(symbol: role.symbol, title: role.label, summary: role.summary, accent: role.accent)
     }
 
     var remoteScreen: some View {
         Group {
-            switch remote.phase {
+            switch session.remote.phase {
             case .inviting:
                 InvitationView(
-                    url: remote.invitationURL,
-                    partnerRole: remote.partnerRole,
-                    failureMessage: remote.failure?.message,
-                    isCreatingLink: remote.isCreatingLink,
-                    isCancelling: remote.isCancelling,
-                    onRetry: remote.retry,
-                    onCancel: { Task { await cancelRemote() } }
+                    url: session.remote.invitationURL,
+                    partnerRole: session.remote.partnerRole,
+                    failureMessage: session.remote.failure?.message,
+                    isCreatingLink: session.remote.isCreatingLink,
+                    isCancelling: session.remote.isCancelling,
+                    onRetry: session.remote.retry,
+                    onCancel: { Task { await session.cancelRemotePairing() } }
                 )
             case .joining, .idle:
                 JoiningView(
-                    failureMessage: remote.failure?.message,
-                    isCancelling: remote.isCancelling,
-                    onRetry: remote.retry,
-                    onCancel: { Task { await cancelRemote() } }
+                    failureMessage: session.remote.failure?.message,
+                    isCancelling: session.remote.isCancelling,
+                    onRetry: session.remote.retry,
+                    onCancel: { Task { await session.cancelRemotePairing() } }
                 )
             }
         }
-        .task(id: remote.failure == nil) {
-            guard remote.failure == nil else { return }
-            guard let outcome = await remote.run() else {
-                if remote.phase == .idle {
-                    await returnToPicker(with: nil)
-                }
-                return
-            }
-            outcome.save()
-            savedPairing = outcome
-            isResuming = false
-            remote.reset()
-        }
+        .task(id: session.remote.failure == nil) { await session.pairRemotely() }
     }
 
-    func begin(as role: Role) {
-        failureMessage = nil
-        methodRole = nil
-        pairing.start(as: role)
-    }
-
-    func invite(ownerRole: Role) {
-        failureMessage = nil
-        methodRole = nil
-        remote.invite(ownerRole: ownerRole)
-    }
-
-    func receive(_ link: URL) {
-        if session.store != nil || savedPairing != nil {
-            linkRefusal = .alreadyPaired
-        } else if remote.phase != .idle || pairing.phase != .idle {
-            linkRefusal = .pairingInProgress
-        } else {
-            failureMessage = nil
-            methodRole = nil
-            remote.receive(link)
-        }
-    }
-
-    var isChoosingRole: Bool {
-        session.store == nil && savedPairing == nil && pairing.phase == .idle && remote.phase == .idle && methodRole == nil
-    }
-
-    func resumeRemainingPairing() async {
-        guard isChoosingRole, let remaining = try? await sharing.remainingShare(), isChoosingRole else { return }
-        remaining.save()
-        failureMessage = nil
-        isResuming = true
-        savedPairing = remaining
-    }
-
-    func cancelRemote() async {
-        await remote.cancel()
-        guard remote.phase == .idle else { return }
-        await returnToPicker(with: nil)
-    }
-
-    func enter(_ outcome: any PairedShare, resuming: Bool) async {
-        let started: PartnershipStore?
-        do throws(SyncFailure) {
-            started = try await PartnershipStore(starting: outcome)
+    func accept(_ link: URL) {
+        do throws(PartnershipSession.LinkRefusal) {
+            try session.accept(link)
         } catch {
-            failureMessage = error.message
-            pairing.reset()
-            return
+            linkRefusal = error
         }
-        guard let started else {
-            await returnToPicker(with: resuming ? String(localized: .rootPartnershipEnded) : String(localized: .rootPartnerSetupMissing))
-            return
-        }
-        await notifications.requestPermission()
-        session.store = started
-    }
-
-    func reset() async -> String? {
-        guard let outcome = savedPairing else {
-            return String(localized: .rootSavedPairUnreadable)
-        }
-        do throws(PairingFailure) {
-            try await outcome.end()
-        } catch {
-            return error.message
-        }
-        await returnToPicker(with: nil)
-        return nil
-    }
-
-    func returnToPicker(with message: String?) async {
-        await notifications.withdrawAll()
-        await partnerNotifications.withdrawAll()
-        knownState.forget()
-        sharing.clearSavedShare()
-        savedPairing = nil
-        remote.reset()
-        failureMessage = message
-        session.store = nil
-        pairing.reset()
     }
 }
 
 #Preview("役割の選択") {
-    ContentView(
-        session: PartnershipSession(),
-        sharing: PreviewSharing(),
-        inviting: PreviewInviting(),
-        invitationLinks: AsyncStream { $0.finish() },
-        notifications: PreviewNudgeNotifications(),
-        partnerNotifications: PreviewPartnerActionNotifications(),
-        knownState: PreviewKnownState(),
-        makeCriteriaReviewing: { nil },
-        makeNearbyChannel: { PreviewNearbyChannel() }
-    )
+    ContentView(session: .preview, invitationLinks: AsyncStream { $0.finish() }, makeCriteriaReviewing: { nil })
 }

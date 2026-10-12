@@ -14,6 +14,8 @@ import Observation
 public final class PartnershipStore {
     public private(set) var state: PartnershipState
     public let role: Role
+    /// `send(_:)` で反映した変更を、保存できずに元へ戻したときの失敗。
+    public private(set) var saveFailure: SyncFailure?
 
     private let synchronizer: any PartnershipSyncing
     private var pending: Task<Void, Never>?
@@ -56,6 +58,30 @@ public final class PartnershipStore {
         if let failure {
             throw failure
         }
+    }
+
+    /// `perform(_:)` と同じく保存を待たずに反映するが、失敗は投げずに `saveFailure` に残す。
+    /// 反映した画面が保存の前に消える操作に使う。
+    /// - Returns: 保存できたかどうか。
+    @discardableResult
+    public func send<Rejection: Error>(
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+    ) async -> Bool {
+        do throws(PartnershipFailure<Rejection>) {
+            try await perform(transform)
+            return true
+        } catch {
+            switch error {
+            // 押せる状態で押した操作が成り立たないのは、押したあとに相手の変更が届いたとき。
+            case .rejected: saveFailure = .outdated(latest: state)
+            case .notSynchronized(let failure): saveFailure = failure
+            }
+            return false
+        }
+    }
+
+    public func dismissSaveFailure() {
+        saveFailure = nil
     }
 }
 
