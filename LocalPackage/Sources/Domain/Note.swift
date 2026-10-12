@@ -14,9 +14,14 @@ public struct Note: Identifiable, Sendable, Codable, Equatable {
         case reminder
         case feedback
 
-        /// `role` が書ける種類か。状況報告は挑む人だけが書ける。
+        /// `role` が、承認や差し戻しをせずに書ける種類か。状況報告は挑む人だけが書ける。
+        /// フィードバックは、見届ける人が承認か差し戻しをするときにだけ書ける。
         public func isWritable(by role: Role) -> Bool {
-            self != .report || role == .player
+            switch self {
+            case .report: role == .player
+            case .reminder: true
+            case .feedback: false
+            }
         }
     }
 

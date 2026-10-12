@@ -129,7 +129,7 @@ struct TaskLifecycleTests {
         let reported = try created.reportingTask(taskID, by: .player)
 
         // When
-        let state = try reported.returningTask(taskID, by: .manager)
+        let state = try reported.returningTask(taskID, feedback: "やり直し", by: .manager)
 
         // Then
         #expect(state.status(of: taskID) == .todo)

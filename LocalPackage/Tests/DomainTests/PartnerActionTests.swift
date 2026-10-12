@@ -114,7 +114,7 @@ struct PartnerActionTests {
         let actions = after.partnerActions(since: before, for: .player)
 
         // Then
-        #expect(actions == [.taskApproved(taskID)])
+        #expect(actions == [.taskApproved(taskID, feedback: nil)])
     }
 
     @Test("見届ける人がタスクを追加すると、挑む人に追加が知らされる")
@@ -130,18 +130,19 @@ struct PartnerActionTests {
         #expect(actions == [.taskAdded(taskID)])
     }
 
-    @Test("見届ける人が完了報告を差し戻すと、挑む人に差し戻しが知らされる")
-    func returnedReportIsToldToThePlayer() throws {
+    @Test("見届ける人が完了報告を差し戻すと、挑む人に差し戻しと理由が一緒に知らされる")
+    func returnedReportIsToldToThePlayerWithTheReason() throws {
         // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let before = try todo.reportingTask(taskID, by: .player)
-        let after = try before.returningTask(taskID, by: .manager)
+        let after = try before.returningTask(taskID, feedback: "写真も付けてほしい", by: .manager)
+        let noteID = try #require(after.notes.first?.id)
 
         // When
         let actions = after.partnerActions(since: before, for: .player)
 
         // Then
-        #expect(actions == [.taskReturned(taskID)])
+        #expect(actions == [.taskReturned(taskID, feedback: noteID)])
     }
 
     @Test("見届ける人がタスクを取り消すと、挑む人に取り消しが知らされる")

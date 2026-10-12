@@ -14,6 +14,7 @@ struct ManagerTaskActions: View {
     let task: TaskItem
 
     @State private var isConfirmingCancel = false
+    @State private var review: TaskReview?
 
     @Environment(\.presentingFailure) private var presentingFailure
     @Environment(\.playingFeedback) private var playingFeedback
@@ -27,6 +28,9 @@ struct ManagerTaskActions: View {
                 }
             } message: {
                 Text(.managerTaskCancelConfirmationMessage)
+            }
+            .sheet(item: $review) { review in
+                TaskReviewForm(review: review, taskTitle: task.title, role: store.role) { await submit(review, feedback: $0) }
             }
     }
 }
@@ -48,12 +52,12 @@ private extension ManagerTaskActions {
         case .reported:
             VStack(spacing: 10) {
                 Button(.commonApprove) {
-                    perform { state, role throws(DomainError) in try state.approvingTask(task.id, by: role) }
+                    review = .approval
                 }
                 .buttonStyle(.filled)
                 HStack(spacing: 10) {
                     Button(.managerTaskSendBack) {
-                        perform { state, role throws(DomainError) in try state.returningTask(task.id, by: role) }
+                        review = .sendingBack
                     }
                     .buttonStyle(.soft(feedback: .warning))
                     cancellation
@@ -71,6 +75,20 @@ private extension ManagerTaskActions {
             isConfirmingCancel = true
         }
         .buttonStyle(.soft(feedback: .impact(weight: .light)))
+    }
+
+    func submit(_ review: TaskReview, feedback: String) async -> String? {
+        do throws(PartnershipFailure) {
+            try await store.perform { state, role throws(DomainError) in
+                switch review {
+                case .approval: try state.approvingTask(task.id, feedback: feedback, by: role)
+                case .sendingBack: try state.returningTask(task.id, feedback: feedback, by: role)
+                }
+            }
+            return nil
+        } catch {
+            return error.message
+        }
     }
 
     func perform(_ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState) {

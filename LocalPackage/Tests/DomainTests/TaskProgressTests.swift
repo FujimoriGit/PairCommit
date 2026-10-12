@@ -85,6 +85,6 @@ struct TaskProgressTests {
         let actions = after.partnerActions(since: before, for: .player)
 
         // Then
-        #expect(actions == [.taskApproved(taskID)])
+        #expect(actions == [.taskApproved(taskID, feedback: nil)])
     }
 }

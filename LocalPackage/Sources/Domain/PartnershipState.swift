@@ -237,14 +237,31 @@ extension PartnershipState {
         return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported, at: now))
     }
 
-    public func approvingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
+    /// `feedback` が空白だけなら、フィードバックは残さない。
+    public func approvingTask(
+        _ id: TaskItem.ID,
+        feedback: String? = nil,
+        by role: Role,
+        noteID: UUID = UUID(),
+        now: Date = Date()
+    ) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.reported], to: .approved, at: now))
+        let approved = updating(tasks: try transitioningTask(id, from: [.reported], to: .approved, at: now))
+        guard let feedback = nonBlank(feedback) else { return approved }
+        return try approved.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
     }
 
-    public func returningTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
+    /// `feedback` は空白だけにはできない。
+    public func returningTask(
+        _ id: TaskItem.ID,
+        feedback: String,
+        by role: Role,
+        noteID: UUID = UUID(),
+        now: Date = Date()
+    ) throws(DomainError) -> Self {
         try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.reported], to: .todo, at: now))
+        let returned = updating(tasks: try transitioningTask(id, from: [.reported], to: .todo, at: now))
+        return try returned.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
     }
 
     public func cancellingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
@@ -287,7 +304,7 @@ extension PartnershipState {
 // MARK: - 書き込み
 
 extension PartnershipState {
-    /// 閉じていないビジョンか、進行中のビジョンのタスクに書き込む。
+    /// 閉じていないビジョンか、進行中のビジョンのタスクに、状況報告か催促を書き込む。
     public func writingNote(
         _ body: String,
         kind: Note.Kind,
@@ -296,19 +313,9 @@ extension PartnershipState {
         id: UUID = UUID(),
         now: Date = Date()
     ) throws(DomainError) -> Self {
+        guard kind != .feedback else { throw DomainError.feedbackOutsideReview }
         guard kind.isWritable(by: role) else { throw DomainError.roleForbidden(required: .player) }
-        let body = try requiringText(body)
-        try requiringOpen(subject)
-        let note = Note(
-            id: id,
-            subject: subject,
-            kind: kind,
-            author: role,
-            number: lastNoteNumber + 1,
-            body: body,
-            writtenAt: now
-        )
-        return updating(notes: notes + [note], lastNoteNumber: note.number)
+        return try appendingNote(body, kind: kind, on: subject, by: role, id: id, now: now)
     }
 }
 
@@ -350,11 +357,17 @@ extension PartnershipState {
         let visionActions = visions.compactMap { vision in
             action(on: vision, from: previous.visions.first { $0.id == vision.id }?.status)
         }
+        let added = notes.filter { note in !previous.notes.contains { $0.id == note.id } }
         let taskActions = tasks.flatMap { task in
-            actions(on: task, from: previous.tasks.first { $0.id == task.id })
+            actions(
+                on: task,
+                from: previous.tasks.first { $0.id == task.id },
+                feedback: added.last { $0.kind == .feedback && $0.subject == .task(task.id) }?.id
+            )
         }
-        let noteActions = notes
-            .filter { note in !previous.notes.contains { $0.id == note.id } }
+        let attached = Set(taskActions.compactMap(\.feedback))
+        let noteActions = added
+            .filter { !attached.contains($0.id) }
             .map { PartnerAction.noteWritten($0.id, author: $0.author) }
         return (visionActions + taskActions + noteActions).filter { $0.recipient == role }
     }
@@ -414,7 +427,7 @@ private extension PartnershipState {
         }
     }
 
-    func actions(on task: TaskItem, from previous: TaskItem?) -> [PartnerAction] {
+    func actions(on task: TaskItem, from previous: TaskItem?, feedback: Note.ID?) -> [PartnerAction] {
         let creation: PartnerAction? = switch (previous, task.createdBy) {
         case (nil, .manager): .taskAdded(task.id)
         case (nil, .player): .taskProposed(task.id)
@@ -423,16 +436,16 @@ private extension PartnershipState {
         let reaction = task.reaction.flatMap { $0 == previous?.reaction ? nil : PartnerAction.reactionChanged(task.id, $0) }
         let progress = task.progress.flatMap { $0 == previous?.progress ? nil : PartnerAction.progressChanged(task.id, $0) }
         let before = previous?.status ?? (task.createdBy == .manager ? .todo : .proposed)
-        return [creation, statusAction(on: task, from: before), reaction, progress].compactMap { $0 }
+        return [creation, statusAction(on: task, from: before, feedback: feedback), reaction, progress].compactMap { $0 }
     }
 
-    func statusAction(on task: TaskItem, from before: TaskItem.Status) -> PartnerAction? {
+    func statusAction(on task: TaskItem, from before: TaskItem.Status, feedback: Note.ID?) -> PartnerAction? {
         guard task.status != before else { return nil }
         switch (before, task.status) {
         case (.proposed, .todo): return .taskAdopted(task.id)
-        case (.reported, .todo): return .taskReturned(task.id)
+        case (.reported, .todo): return .taskReturned(task.id, feedback: feedback)
         case (_, .reported): return .taskReported(task.id)
-        case (_, .approved): return .taskApproved(task.id)
+        case (_, .approved): return .taskApproved(task.id, feedback: feedback)
         case (_, .cancelled): return task.visionID == activeVision?.id ? .taskCancelled(task.id) : nil
         case (_, .proposed), (_, .todo): return nil
         }
@@ -451,6 +464,28 @@ private extension PartnershipState {
             notes: notes ?? self.notes,
             lastNoteNumber: lastNoteNumber ?? self.lastNoteNumber
         )
+    }
+
+    func appendingNote(
+        _ body: String,
+        kind: Note.Kind,
+        on subject: Note.Subject,
+        by role: Role,
+        id: UUID,
+        now: Date
+    ) throws(DomainError) -> Self {
+        let body = try requiringText(body)
+        try requiringOpen(subject)
+        let note = Note(
+            id: id,
+            subject: subject,
+            kind: kind,
+            author: role,
+            number: lastNoteNumber + 1,
+            body: body,
+            writtenAt: now
+        )
+        return updating(notes: notes + [note], lastNoteNumber: note.number)
     }
 
     func requiringOpen(_ subject: Note.Subject) throws(DomainError) {
