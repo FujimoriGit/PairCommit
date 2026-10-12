@@ -3611,13 +3611,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Report"
+            "value" : "Report done"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "報告"
+            "value" : "完了報告"
           }
         }
       }
