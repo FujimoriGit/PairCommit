@@ -301,16 +301,14 @@ extension PartnershipState {
 // MARK: - 書き込み
 
 extension PartnershipState {
-    /// 閉じていないビジョンか、進行中のビジョンのタスクに書き込む。
+    /// 閉じていないビジョンか、進行中のビジョンのタスクに書き込む。挑む人の書き込みは状況報告に、見届ける人の書き込みは催促になる。
     public func writingNote(
         _ body: String,
-        kind: Note.StandaloneKind,
         on subject: Note.Subject,
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
     ) throws(NoteWritingError) -> Self {
-        guard kind.isWritable(by: role) else { throw .notPlayer }
         guard let body = nonBlank(body) else { throw .blankBody }
         switch subject {
         case .vision(let visionID):
@@ -320,7 +318,11 @@ extension PartnershipState {
             guard let task = self.task(taskID) else { throw .subjectNotFound }
             guard task.visionID == activeVision?.id else { throw .subjectClosed }
         }
-        return appendingNote(body, kind: kind.kind, on: subject, by: role, id: id, now: now)
+        let kind: Note.Kind = switch role {
+        case .player: .report
+        case .manager: .reminder
+        }
+        return appendingNote(body, kind: kind, on: subject, by: role, id: id, now: now)
     }
 }
 

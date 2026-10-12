@@ -17,21 +17,25 @@ struct NoteTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When
-        let written = try state.writingNote("2回目まで終わった", kind: .report, on: .task(taskID), by: .player)
+        let written = try state.writingNote("2回目まで終わった", on: .task(taskID), by: .player)
 
         // Then
         #expect(written.notes(on: .task(taskID)).map(\.body) == ["2回目まで終わった"])
     }
 
-    @Test("見届ける人は状況報告を書けない")
-    func managerCannotWriteAReport() throws {
+    @Test("挑む人の書き込みは状況報告に、見届ける人の書き込みは催促になる", arguments: [
+        (Role.player, Note.Kind.report),
+        (Role.manager, Note.Kind.reminder),
+    ])
+    func kindOfNoteFollowsTheWritersRole(role: Role, kind: Note.Kind) throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
-        // When / Then
-        #expect(throws: NoteWritingError.notPlayer) {
-            try state.writingNote("進んでる？", kind: .report, on: .task(taskID), by: .manager)
-        }
+        // When
+        let written = try state.writingNote("進めている", on: .task(taskID), by: role)
+
+        // Then
+        #expect(written.notes(on: .task(taskID)).map(\.kind) == [kind])
     }
 
     @Test("見届ける人が完了報告を差し戻すと、理由がフィードバックとしてタスクに残る")
@@ -90,10 +94,10 @@ struct NoteTests {
     func notesAreNumberedInTheOrderWritten() throws {
         // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
-        let first = try state.writingNote("進んでる？", kind: .reminder, on: .task(taskID), by: .manager)
+        let first = try state.writingNote("進んでる？", on: .task(taskID), by: .manager)
 
         // When
-        let second = try first.writingNote("半分まで来た", kind: .report, on: .task(taskID), by: .player)
+        let second = try first.writingNote("半分まで来た", on: .task(taskID), by: .player)
 
         // Then
         #expect(second.notes(on: .task(taskID)).map(\.number) == [1, 2])
@@ -120,7 +124,7 @@ struct NoteTests {
 
         // When / Then
         #expect(throws: NoteWritingError.blankBody) {
-            try state.writingNote("  \n", kind: .reminder, on: .task(taskID), by: .manager)
+            try state.writingNote("  \n", on: .task(taskID), by: .manager)
         }
     }
 
@@ -133,7 +137,7 @@ struct NoteTests {
 
         // When / Then
         #expect(throws: NoteWritingError.subjectClosed) {
-            try closed.writingNote("おつかれさま", kind: .reminder, on: .task(taskID), by: .manager)
+            try closed.writingNote("おつかれさま", on: .task(taskID), by: .manager)
         }
     }
 
@@ -145,7 +149,7 @@ struct NoteTests {
 
         // When / Then
         #expect(throws: NoteWritingError.subjectClosed) {
-            try closed.writingNote("おつかれさま", kind: .reminder, on: .vision(visionID), by: .manager)
+            try closed.writingNote("おつかれさま", on: .vision(visionID), by: .manager)
         }
     }
 
@@ -154,7 +158,7 @@ struct NoteTests {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
         let returned = try proposed.rejectingVision(visionID, by: .manager)
-        let written = try returned.writingNote("期限を決めてほしい", kind: .reminder, on: .vision(visionID), by: .manager)
+        let written = try returned.writingNote("期限を決めてほしい", on: .vision(visionID), by: .manager)
 
         // When
         let discarded = try written.discardingVision(visionID, by: .player)
@@ -167,7 +171,7 @@ struct NoteTests {
     func noteByThePlayerIsToldToTheManager() throws {
         // Given
         let (before, taskID) = try PartnershipState().activeVisionWithTask()
-        let after = try before.writingNote("今日は休む", kind: .report, on: .task(taskID), by: .player)
+        let after = try before.writingNote("今日は休む", on: .task(taskID), by: .player)
         let noteID = try #require(after.notes.first?.id)
 
         // When
@@ -181,7 +185,7 @@ struct NoteTests {
     func noteByTheManagerIsToldToThePlayer() throws {
         // Given
         let (before, taskID) = try PartnershipState().activeVisionWithTask()
-        let after = try before.writingNote("進んでる？", kind: .reminder, on: .task(taskID), by: .manager)
+        let after = try before.writingNote("進んでる？", on: .task(taskID), by: .manager)
         let noteID = try #require(after.notes.first?.id)
 
         // When
@@ -195,8 +199,8 @@ struct NoteTests {
     func onlyTheNewNoteIsToldToTheManager() throws {
         // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
-        let before = try todo.writingNote("1回目", kind: .report, on: .task(taskID), by: .player)
-        let after = try before.writingNote("2回目", kind: .report, on: .task(taskID), by: .player)
+        let before = try todo.writingNote("1回目", on: .task(taskID), by: .player)
+        let after = try before.writingNote("2回目", on: .task(taskID), by: .player)
         let noteID = try #require(after.notes.last?.id)
 
         // When
