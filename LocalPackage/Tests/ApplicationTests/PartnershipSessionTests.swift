@@ -49,16 +49,17 @@ struct PartnershipSessionTests {
         #expect(session.stage == .connecting(.unavailable))
     }
 
-    @Test("端末の外に前のペアが残っていれば、そのペアにつなぐ段階に入る")
-    func aRemainingPairIsReconnected() async throws {
+    @Test("端末の外に前のペアが残っていれば、つなぐと、そのペアの役割で使い始める")
+    func aRemainingPairStartsWithItsRole() async throws {
         // Given
         let session = try Self.session(remaining: Self.share())
-
-        // When
         await session.resumeRemainingPairing()
 
+        // When
+        await session.connect()
+
         // Then
-        #expect(session.stage == .connecting(nil))
+        #expect(session.store?.role == .manager)
     }
 
     @Test("役割を選んでペアの組み方を選んでいる間は、端末の外に前のペアが残っていても、そのペアにつながない")
