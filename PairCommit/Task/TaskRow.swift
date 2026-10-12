@@ -105,7 +105,7 @@ private extension TaskRow {
                 DeadlineText(task: task, now: now)
             case .timeline:
                 if task.status == .todo, task.due(at: now, in: .current) == .overdue {
-                    Text(.taskDueOverdue)
+                    Text(TaskItem.Due.overdue.label)
                         .marker(Color.red)
                 }
             }
