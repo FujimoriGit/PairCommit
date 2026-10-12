@@ -14,7 +14,7 @@ import Testing
 struct PartnershipSessionTests {
 
     @Test("前のペアが端末に残っていれば、つなぐと、そのペアの役割で使い始める")
-    func connectingStartsWithThePairLeftOnTheDevice() async throws {
+    func thePairLeftOnTheDeviceStartsWithItsRole() async throws {
         // Given
         let session = try Self.session(saved: Self.share())
 
@@ -26,7 +26,7 @@ struct PartnershipSessionTests {
     }
 
     @Test("前のペアが相手の側で終わっていたら、つなぐと、ペアが終わったことを伝えて役割の選択に戻る")
-    func connectingToAnEndedPairReturnsToTheRolePicker() async {
+    func anEndedPairLeftOnTheDeviceReturnsToTheRolePicker() async {
         // Given
         let session = Self.session(saved: StubShare(isOwner: true))
 
@@ -37,8 +37,8 @@ struct PartnershipSessionTests {
         #expect(session.stage == .choosingRole(.partnershipEnded))
     }
 
-    @Test("前のペアにつなげなかったら、ペアを残したまま、つなぎ直しを待つ")
-    func failingToConnectKeepsThePairForRetrying() async {
+    @Test("前のペアにつなげなかったら、つなげなかった理由を出して、つなぎ直しを待つ")
+    func failingToConnectWaitsForRetry() async {
         // Given
         let session = Self.session(saved: UnreachableShare())
 
@@ -47,6 +47,18 @@ struct PartnershipSessionTests {
 
         // Then
         #expect(session.stage == .connecting(.unavailable))
+    }
+
+    @Test("端末の外に前のペアが残っていれば、そのペアにつなぐ段階に入る")
+    func aRemainingPairIsReconnected() async throws {
+        // Given
+        let session = try Self.session(remaining: Self.share())
+
+        // When
+        await session.resumeRemainingPairing()
+
+        // Then
+        #expect(session.stage == .connecting(nil))
     }
 
     @Test("役割を選んでペアの組み方を選んでいる間は、端末の外に前のペアが残っていても、そのペアにつながない")
@@ -104,7 +116,7 @@ struct PartnershipSessionTests {
     }
 
     @Test("ペアリングをやり直すと、役割の選択に戻る")
-    func endingThePartnershipReturnsToTheRolePicker() async throws {
+    func redoingThePairingReturnsToTheRolePicker() async throws {
         // Given
         let session = try Self.session(saved: Self.share())
         await session.connect()

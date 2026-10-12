@@ -130,7 +130,7 @@ struct PartnershipStoreTests {
     }
 
     @Test("保存の結果を待たない操作が保存に失敗したら、エラーにはならず、手元の状態から取り消されて保存の失敗が残る")
-    func aSentActionThatFailsToSaveIsUndoneAndKept() async {
+    func anActionNotAwaitingItsSaveIsUndoneAndItsFailureKept() async {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         synchronizer.failure = .unavailable
@@ -144,6 +144,27 @@ struct PartnershipStoreTests {
         // Then
         #expect(store.state == PartnershipState())
         #expect(store.saveFailure == .unavailable)
+    }
+
+    @Test("保存の結果を待たない操作が、相手の先の操作で成り立たなくなったら、エラーにはならず、相手の操作を手元の状態に反映して競合の失敗が残る")
+    func anActionNotAwaitingItsSaveKeepsAConflictWhenThePartnerClosedItFirst() async throws {
+        // Given
+        let (shared, taskID) = try Self.reportedTask()
+        let synchronizer = InMemorySynchronizer(initialState: shared)
+        let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        try await first.perform { state, role throws(TaskApprovalError) in
+            try state.approvingTask(taskID, by: role)
+        }
+
+        // When
+        await second.send { state, role throws(TaskCancellationError) in
+            try state.cancellingTask(taskID, by: role)
+        }
+
+        // Then
+        #expect(second.state == first.state)
+        #expect(second.saveFailure == .outdated(latest: first.state))
     }
 
     @Test("相手の操作を取得する前に自分が操作しても、相手の操作は消えずに両方残る")

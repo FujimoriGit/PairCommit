@@ -80,12 +80,12 @@ public final class PartnershipSession {
         return store
     }
 
-    /// 端末に前のペアが残っていなければ、端末の外に残っているペアを探してつなぐ。
+    /// 端末に前のペアが残っていなければ、端末の外に残っているペアを探し、見つかればつなぐ段階に入る。
     /// 組み方を選んでいる途中や、探している間に組み始めたときは、見つかっても引き戻さない。
     public func resumeRemainingPairing() async {
         guard isChoosingRole, let remaining = try? await sharing.remainingShare(), isChoosingRole else { return }
         remaining.save()
-        await connect(to: remaining, isResumed: true)
+        connection = .connecting(remaining, isResumed: true, failure: nil)
     }
 
     /// つなぐ段階に入ったペアにつなぐ。つなげずに失敗しているときは何もしない。
