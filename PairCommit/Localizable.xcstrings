@@ -511,23 +511,6 @@
         }
       }
     },
-    "error.alreadyPaired" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You’re already paired."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すでにペアが成立しています。"
-          }
-        }
-      }
-    },
     "error.blankText" : {
       "extractionState" : "manual",
       "localizations" : {

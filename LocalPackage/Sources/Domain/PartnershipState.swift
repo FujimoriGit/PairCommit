@@ -158,9 +158,9 @@ extension PartnershipState {
 
     public func approvingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(VisionApprovalError) -> Self {
         guard role == .manager else { throw .notManager }
+        guard activeVision == nil else { throw .activeVisionExists }
         guard let vision = self.vision(id) else { throw .visionNotFound }
         guard vision.status == .proposed else { throw .notProposed }
-        guard activeVision == nil else { throw .activeVisionExists }
         guard isUpcoming(vision.deadline, at: now) else { throw .pastDeadline }
         return replacing(vision.with(status: .active))
     }
@@ -548,11 +548,11 @@ private extension PartnershipState {
         now: Date
     ) throws(VisionRevisionError) -> Self {
         guard role == .player else { throw .notPlayer }
-        guard let vision = self.vision(id) else { throw .visionNotFound }
-        guard vision.status == .draft else { throw .notDraft }
         guard let statement = nonBlank(content.statement) else { throw .blankStatement }
         guard let doneCriteria = nonBlank(content.doneCriteria) else { throw .blankDoneCriteria }
         guard isUpcoming(content.deadline, at: now) else { throw .pastDeadline }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .draft else { throw .notDraft }
         let revised = vision
             .with(statement: statement, doneCriteria: doneCriteria, deadline: content.deadline, why: nonBlank(content.why))
             .with(status: status)
