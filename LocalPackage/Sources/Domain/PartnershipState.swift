@@ -70,8 +70,8 @@ extension PartnershipState {
         ownerRole: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        guard pairing == nil else { throw DomainError.alreadyPaired }
+    ) throws(PairingEstablishmentError) -> Self {
+        guard pairing == nil else { throw .alreadyPaired }
         return .init(
             pairing: Pairing(id: id, ownerRole: ownerRole, createdAt: now),
             visions: visions,
@@ -82,10 +82,11 @@ extension PartnershipState {
     }
 
     /// 自分の名前を決める。決められるのは操作した本人の名前だけ。
-    public func naming(_ name: String, by role: Role) throws(DomainError) -> Self {
-        guard let pairing else { throw DomainError.notPaired }
+    public func naming(_ name: String, by role: Role) throws(NamingError) -> Self {
+        guard let pairing else { throw .notPaired }
+        guard let name = nonBlank(name) else { throw .blankName }
         return .init(
-            pairing: pairing.naming(role, as: try requiringText(name)),
+            pairing: pairing.naming(role, as: name),
             visions: visions,
             tasks: tasks,
             notes: notes,
@@ -102,17 +103,8 @@ extension PartnershipState {
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> (state: Self, visionID: Vision.ID) {
-        try requiring(role, is: .player)
-        let vision = Vision(
-            id: id,
-            statement: try requiringText(content.statement),
-            doneCriteria: try requiringText(content.doneCriteria),
-            deadline: try requiringUpcoming(content.deadline, at: now),
-            why: nonBlank(content.why),
-            status: .draft,
-            createdAt: now
-        )
+    ) throws(VisionDraftingError) -> (state: Self, visionID: Vision.ID) {
+        let vision = try newVision(content, by: role, id: id, status: .draft, now: now)
         return (updating(visions: visions + [vision]), vision.id)
     }
 
@@ -121,14 +113,8 @@ extension PartnershipState {
         to content: Vision.Content,
         by role: Role,
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        try requiring(role, is: .player)
-        let statement = try requiringText(content.statement)
-        let doneCriteria = try requiringText(content.doneCriteria)
-        let deadline = try requiringUpcoming(content.deadline, at: now)
-        let revised = try requiringDraft(id)
-            .with(statement: statement, doneCriteria: doneCriteria, deadline: deadline, why: nonBlank(content.why))
-        return updating(visions: visions.map { $0.id == id ? revised : $0 })
+    ) throws(VisionRevisionError) -> Self {
+        try revising(id, to: content, into: .draft, by: role, now: now)
     }
 
     /// 書いたビジョンを、下書きを経ずに管理者へ提出する。
@@ -137,9 +123,9 @@ extension PartnershipState {
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> (state: Self, visionID: Vision.ID) {
-        let drafted = try draftingVision(content, by: role, id: id, now: now)
-        return (try drafted.state.proposingVision(drafted.visionID, by: role, now: now), drafted.visionID)
+    ) throws(VisionDraftingError) -> (state: Self, visionID: Vision.ID) {
+        let vision = try newVision(content, by: role, id: id, status: .proposed, now: now)
+        return (updating(visions: visions + [vision]), vision.id)
     }
 
     /// 差し戻されたビジョンを書き直し、そのまま提出し直す。
@@ -148,37 +134,42 @@ extension PartnershipState {
         as content: Vision.Content,
         by role: Role,
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        try revisingVision(id, to: content, by: role, now: now).proposingVision(id, by: role, now: now)
+    ) throws(VisionRevisionError) -> Self {
+        try revising(id, to: content, into: .proposed, by: role, now: now)
     }
 
-    public func discardingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
-        try requiring(role, is: .player)
-        _ = try requiringDraft(id)
+    public func discardingVision(_ id: Vision.ID, by role: Role) throws(VisionDiscardingError) -> Self {
+        guard role == .player else { throw .notPlayer }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .draft else { throw .notDraft }
         return updating(
             visions: visions.filter { $0.id != id },
             notes: notes.filter { $0.subject != .vision(id) }
         )
     }
 
-    public func proposingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
-        try requiring(role, is: .player)
-        let proposed = try transitioningVision(id, from: [.draft], to: .proposed)
-        _ = try requiringUpcoming(visions.first { $0.id == id }?.deadline, at: now)
-        return updating(visions: proposed)
+    public func proposingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(VisionProposalError) -> Self {
+        guard role == .player else { throw .notPlayer }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .draft else { throw .notDraft }
+        guard isUpcoming(vision.deadline, at: now) else { throw .pastDeadline }
+        return replacing(vision.with(status: .proposed))
     }
 
-    public func approvingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        guard activeVision == nil else { throw DomainError.activeVisionAlreadyExists }
-        let approved = try transitioningVision(id, from: [.proposed], to: .active)
-        _ = try requiringUpcoming(visions.first { $0.id == id }?.deadline, at: now)
-        return updating(visions: approved)
+    public func approvingVision(_ id: Vision.ID, by role: Role, now: Date = Date()) throws(VisionApprovalError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .proposed else { throw .notProposed }
+        guard activeVision == nil else { throw .activeVisionExists }
+        guard isUpcoming(vision.deadline, at: now) else { throw .pastDeadline }
+        return replacing(vision.with(status: .active))
     }
 
-    public func rejectingVision(_ id: Vision.ID, by role: Role) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        return updating(visions: try transitioningVision(id, from: [.proposed], to: .draft))
+    public func rejectingVision(_ id: Vision.ID, by role: Role) throws(VisionRejectionError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .proposed else { throw .notProposed }
+        return replacing(vision.with(status: .draft))
     }
 
     public func closingVision(
@@ -186,13 +177,14 @@ extension PartnershipState {
         as outcome: Vision.Outcome,
         by role: Role,
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        let closed = try transitioningVision(id, from: [.active], to: outcome.status)
+    ) throws(VisionClosingError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .active else { throw .notActive }
         let cancelled = tasks.map { task in
             task.visionID == id && task.status.isOpen ? task.with(status: .cancelled, at: now) : task
         }
-        return updating(visions: closed, tasks: cancelled)
+        return replacing(vision.with(status: outcome.status)).updating(tasks: cancelled)
     }
 }
 
@@ -206,10 +198,10 @@ extension PartnershipState {
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> (state: Self, taskID: TaskItem.ID) {
-        guard let vision = activeVision else { throw DomainError.noActiveVision }
-        let title = try requiringText(title)
-        let deadline = try requiringUpcoming(deadline, at: now)
+    ) throws(TaskCreationError) -> (state: Self, taskID: TaskItem.ID) {
+        guard let vision = activeVision else { throw .noActiveVision }
+        guard let title = nonBlank(title) else { throw .blankTitle }
+        guard isUpcoming(deadline, at: now) else { throw .pastDeadline }
         let task = TaskItem(
             id: id,
             visionID: vision.id,
@@ -225,16 +217,19 @@ extension PartnershipState {
         return (updating(tasks: tasks + [task]), task.id)
     }
 
-    public func adoptingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        let adopted = try transitioningTask(id, from: [.proposed], to: .todo, at: now)
-        _ = try requiringUpcoming(tasks.first { $0.id == id }?.deadline, at: now)
-        return updating(tasks: adopted)
+    public func adoptingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(TaskAdoptionError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status == .proposed else { throw .notProposed }
+        guard isUpcoming(task.deadline, at: now) else { throw .pastDeadline }
+        return replacing(task.with(status: .todo, at: now))
     }
 
-    public func reportingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
-        try requiring(role, is: .player)
-        return updating(tasks: try transitioningTask(id, from: [.todo], to: .reported, at: now))
+    public func reportingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(TaskReportError) -> Self {
+        guard role == .player else { throw .notPlayer }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status == .todo else { throw .notTodo }
+        return replacing(task.with(status: .reported, at: now))
     }
 
     /// `feedback` が空白だけなら、フィードバックは残さない。
@@ -244,11 +239,13 @@ extension PartnershipState {
         by role: Role,
         noteID: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        let approved = updating(tasks: try transitioningTask(id, from: [.reported], to: .approved, at: now))
+    ) throws(TaskApprovalError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status == .reported else { throw .notReported }
+        let approved = replacing(task.with(status: .approved, at: now))
         guard let feedback = nonBlank(feedback) else { return approved }
-        return try approved.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
+        return approved.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
     }
 
     /// `feedback` は空白だけにはできない。
@@ -258,64 +255,72 @@ extension PartnershipState {
         by role: Role,
         noteID: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        let returned = updating(tasks: try transitioningTask(id, from: [.reported], to: .todo, at: now))
-        return try returned.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
+    ) throws(TaskReturnError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status == .reported else { throw .notReported }
+        guard let feedback = nonBlank(feedback) else { throw .blankFeedback }
+        return replacing(task.with(status: .todo, at: now))
+            .appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
     }
 
-    public func cancellingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        return updating(tasks: try transitioningTask(id, from: [.proposed, .todo, .reported], to: .cancelled, at: now))
+    public func cancellingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(TaskCancellationError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status.isOpen else { throw .alreadyClosed }
+        return replacing(task.with(status: .cancelled, at: now))
     }
 
     /// 取り消したタスクを、取り消す前の状態に戻す。戻せるのは、ビジョンが進行中の間だけ。
-    public func restoringTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
-        guard task.visionID == activeVision?.id, let previous = task.cancelledFrom, previous.isOpen else {
-            throw DomainError.invalidTaskTransition(from: task.status)
+    public func restoringTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(TaskRestorationError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status == .cancelled, task.visionID == activeVision?.id,
+              let previous = task.cancelledFrom, previous.isOpen else {
+            throw .notRestorable
         }
-        return updating(tasks: try transitioningTask(id, from: [.cancelled], to: previous, at: now))
+        return replacing(task.with(status: previous, at: now))
     }
 
-    public func settingReaction(
-        _ reaction: Reaction?,
-        on id: TaskItem.ID,
-        by role: Role
-    ) throws(DomainError) -> Self {
-        try requiring(role, is: .player)
-        guard tasks.contains(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
-        return updating(tasks: tasks.map { $0.id == id ? $0.with(reaction: reaction) : $0 })
+    public func settingReaction(_ reaction: Reaction?, on id: TaskItem.ID, by role: Role) throws(ReactionError) -> Self {
+        guard role == .player else { throw .notPlayer }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        return replacing(task.with(reaction: reaction))
     }
 
     /// タスクの進捗率（0〜100）を決める。決められるのは、採用してから承認するまでの間だけ。
-    public func settingProgress(_ percent: Int, on id: TaskItem.ID, by role: Role) throws(DomainError) -> Self {
-        try requiring(role, is: .manager)
-        guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
-        guard task.status == .todo || task.status == .reported else {
-            throw DomainError.invalidTaskTransition(from: task.status)
-        }
-        guard (0...100).contains(percent) else { throw DomainError.progressOutOfRange }
-        return updating(tasks: tasks.map { $0.id == id ? $0.with(progress: percent) : $0 })
+    public func settingProgress(_ percent: Int, on id: TaskItem.ID, by role: Role) throws(ProgressError) -> Self {
+        guard role == .manager else { throw .notManager }
+        guard let task = self.task(id) else { throw .taskNotFound }
+        guard task.status == .todo || task.status == .reported else { throw .notInProgress }
+        guard (0...100).contains(percent) else { throw .outOfRange }
+        return replacing(task.with(progress: percent))
     }
 }
 
 // MARK: - 書き込み
 
 extension PartnershipState {
-    /// 閉じていないビジョンか、進行中のビジョンのタスクに、状況報告か催促を書き込む。
+    /// 閉じていないビジョンか、進行中のビジョンのタスクに書き込む。
     public func writingNote(
         _ body: String,
-        kind: Note.Kind,
+        kind: Note.StandaloneKind,
         on subject: Note.Subject,
         by role: Role,
         id: UUID = UUID(),
         now: Date = Date()
-    ) throws(DomainError) -> Self {
-        guard kind != .feedback else { throw DomainError.feedbackOutsideReview }
-        guard kind.isWritable(by: role) else { throw DomainError.roleForbidden(required: .player) }
-        return try appendingNote(body, kind: kind, on: subject, by: role, id: id, now: now)
+    ) throws(NoteWritingError) -> Self {
+        guard kind.isWritable(by: role) else { throw .notPlayer }
+        guard let body = nonBlank(body) else { throw .blankBody }
+        switch subject {
+        case .vision(let visionID):
+            guard let vision = self.vision(visionID) else { throw .subjectNotFound }
+            guard vision.outcome == nil else { throw .subjectClosed }
+        case .task(let taskID):
+            guard let task = self.task(taskID) else { throw .subjectNotFound }
+            guard task.visionID == activeVision?.id else { throw .subjectClosed }
+        }
+        return appendingNote(body, kind: kind.kind, on: subject, by: role, id: id, now: now)
     }
 }
 
@@ -473,9 +478,7 @@ private extension PartnershipState {
         by role: Role,
         id: UUID,
         now: Date
-    ) throws(DomainError) -> Self {
-        let body = try requiringText(body)
-        try requiringOpen(subject)
+    ) -> Self {
         let note = Note(
             id: id,
             subject: subject,
@@ -488,24 +491,20 @@ private extension PartnershipState {
         return updating(notes: notes + [note], lastNoteNumber: note.number)
     }
 
-    func requiringOpen(_ subject: Note.Subject) throws(DomainError) {
-        switch subject {
-        case .vision(let id):
-            guard let vision = visions.first(where: { $0.id == id }) else { throw DomainError.visionNotFound(id) }
-            guard vision.outcome == nil else { throw DomainError.noteSubjectClosed }
-        case .task(let id):
-            guard let task = tasks.first(where: { $0.id == id }) else { throw DomainError.taskNotFound(id) }
-            guard task.visionID == activeVision?.id else { throw DomainError.noteSubjectClosed }
-        }
+    func vision(_ id: Vision.ID) -> Vision? {
+        visions.first { $0.id == id }
     }
 
-    func requiring(_ role: Role, is required: Role) throws(DomainError) {
-        guard role == required else { throw DomainError.roleForbidden(required: required) }
+    func task(_ id: TaskItem.ID) -> TaskItem? {
+        tasks.first { $0.id == id }
     }
 
-    func requiringText(_ text: String) throws(DomainError) -> String {
-        guard let text = nonBlank(text) else { throw DomainError.blankText }
-        return text
+    func replacing(_ vision: Vision) -> Self {
+        updating(visions: visions.map { $0.id == vision.id ? vision : $0 })
+    }
+
+    func replacing(_ task: TaskItem) -> Self {
+        updating(tasks: tasks.map { $0.id == task.id ? task : $0 })
     }
 
     func nonBlank(_ text: String?) -> String? {
@@ -515,47 +514,48 @@ private extension PartnershipState {
         return trimmed
     }
 
-    func requiringUpcoming(_ deadline: Date?, at now: Date) throws(DomainError) -> Date? {
-        if let deadline, deadline <= now { throw DomainError.pastDeadline }
-        return deadline
+    func isUpcoming(_ deadline: Date?, at now: Date) -> Bool {
+        deadline.map { $0 > now } ?? true
     }
 
-    func requiringDraft(_ id: Vision.ID) throws(DomainError) -> Vision {
-        guard let vision = visions.first(where: { $0.id == id }) else {
-            throw DomainError.visionNotFound(id)
-        }
-        guard vision.status == .draft else {
-            throw DomainError.invalidVisionTransition(from: vision.status)
-        }
-        return vision
+    func newVision(
+        _ content: Vision.Content,
+        by role: Role,
+        id: UUID,
+        status: Vision.Status,
+        now: Date
+    ) throws(VisionDraftingError) -> Vision {
+        guard role == .player else { throw .notPlayer }
+        guard let statement = nonBlank(content.statement) else { throw .blankStatement }
+        guard let doneCriteria = nonBlank(content.doneCriteria) else { throw .blankDoneCriteria }
+        guard isUpcoming(content.deadline, at: now) else { throw .pastDeadline }
+        return Vision(
+            id: id,
+            statement: statement,
+            doneCriteria: doneCriteria,
+            deadline: content.deadline,
+            why: nonBlank(content.why),
+            status: status,
+            createdAt: now
+        )
     }
 
-    func transitioningVision(
+    func revising(
         _ id: Vision.ID,
-        from allowed: Set<Vision.Status>,
-        to newStatus: Vision.Status
-    ) throws(DomainError) -> [Vision] {
-        guard let current = visions.first(where: { $0.id == id }) else {
-            throw DomainError.visionNotFound(id)
-        }
-        guard allowed.contains(current.status) else {
-            throw DomainError.invalidVisionTransition(from: current.status)
-        }
-        return visions.map { $0.id == id ? $0.with(status: newStatus) : $0 }
-    }
-
-    func transitioningTask(
-        _ id: TaskItem.ID,
-        from allowed: Set<TaskItem.Status>,
-        to newStatus: TaskItem.Status,
-        at changedAt: Date
-    ) throws(DomainError) -> [TaskItem] {
-        guard let current = tasks.first(where: { $0.id == id }) else {
-            throw DomainError.taskNotFound(id)
-        }
-        guard allowed.contains(current.status) else {
-            throw DomainError.invalidTaskTransition(from: current.status)
-        }
-        return tasks.map { $0.id == id ? $0.with(status: newStatus, at: changedAt) : $0 }
+        to content: Vision.Content,
+        into status: Vision.Status,
+        by role: Role,
+        now: Date
+    ) throws(VisionRevisionError) -> Self {
+        guard role == .player else { throw .notPlayer }
+        guard let vision = self.vision(id) else { throw .visionNotFound }
+        guard vision.status == .draft else { throw .notDraft }
+        guard let statement = nonBlank(content.statement) else { throw .blankStatement }
+        guard let doneCriteria = nonBlank(content.doneCriteria) else { throw .blankDoneCriteria }
+        guard isUpcoming(content.deadline, at: now) else { throw .pastDeadline }
+        let revised = vision
+            .with(statement: statement, doneCriteria: doneCriteria, deadline: content.deadline, why: nonBlank(content.why))
+            .with(status: status)
+        return replacing(revised)
     }
 }

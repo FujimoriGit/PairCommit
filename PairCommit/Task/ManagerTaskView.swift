@@ -150,14 +150,14 @@ private extension ManagerTaskView {
     }
 
     func close(as outcome: Vision.Outcome) {
-        perform(then: outcome == .achieved ? achievingVision : nil) { state, role throws(DomainError) in
+        perform(then: outcome == .achieved ? achievingVision : nil) { state, role throws(VisionClosingError) in
             try state.closingVision(vision.id, as: outcome, by: role)
         }
     }
 
     func create(_ entered: TaskInput) async -> String? {
-        do throws(PartnershipFailure) {
-            try await store.perform { state, role throws(DomainError) in
+        do throws(PartnershipFailure<TaskCreationError>) {
+            try await store.perform { state, role throws(TaskCreationError) in
                 try state.creatingTask(
                     title: entered.title,
                     detail: entered.detail,
@@ -172,12 +172,12 @@ private extension ManagerTaskView {
     }
 
     // ビジョンを閉じると、保存を待たずにこの画面ごと消える
-    func perform(
+    func perform<Rejection: PresentableError>(
         then succeeded: (@MainActor () -> Void)? = nil,
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(DomainError) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
     ) {
         Task {
-            do throws(PartnershipFailure) {
+            do throws(PartnershipFailure<Rejection>) {
                 try await store.perform(transform)
                 succeeded?()
             } catch {

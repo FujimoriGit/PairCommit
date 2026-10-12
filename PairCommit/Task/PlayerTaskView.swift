@@ -97,8 +97,8 @@ private extension PlayerTaskView {
     }
 
     func create(_ entered: TaskInput) async -> String? {
-        do throws(PartnershipFailure) {
-            try await store.perform { state, role throws(DomainError) in
+        do throws(PartnershipFailure<TaskCreationError>) {
+            try await store.perform { state, role throws(TaskCreationError) in
                 try state.creatingTask(
                     title: entered.title,
                     detail: entered.detail,

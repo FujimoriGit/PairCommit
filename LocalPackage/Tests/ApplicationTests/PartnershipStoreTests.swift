@@ -20,7 +20,7 @@ struct PartnershipStoreTests {
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When
-        try await store.perform { state, role throws(DomainError) in
+        try await store.perform { state, role throws(VisionDraftingError) in
             try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
         }
 
@@ -37,8 +37,8 @@ struct PartnershipStoreTests {
         let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: .init())
 
         // When / Then
-        await #expect(throws: PartnershipFailure.rejected(.roleForbidden(required: .player))) {
-            try await store.perform { state, role throws(DomainError) in
+        await #expect(throws: PartnershipFailure<VisionDraftingError>.rejected(.notPlayer)) {
+            try await store.perform { state, role throws(VisionDraftingError) in
                 try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
             }
         }
@@ -69,7 +69,7 @@ struct PartnershipStoreTests {
 
         // When
         let performing = Task {
-            try await store.perform { state, role throws(DomainError) in
+            try await store.perform { state, role throws(VisionDraftingError) in
                 try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
             }
         }
@@ -93,13 +93,13 @@ struct PartnershipStoreTests {
 
         // When
         let first = Task {
-            try await store.perform { state, role throws(DomainError) in
+            try await store.perform { state, role throws(VisionDraftingError) in
                 try state.draftingVision(.init(statement: "s1", doneCriteria: "c1", deadline: nil, why: nil), by: role).state
             }
         }
         await Task.yield()
         let second = Task {
-            try await store.perform { state, role throws(DomainError) in
+            try await store.perform { state, role throws(VisionDraftingError) in
                 try state.draftingVision(.init(statement: "s2", doneCriteria: "c2", deadline: nil, why: nil), by: role).state
             }
         }
@@ -121,8 +121,8 @@ struct PartnershipStoreTests {
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When / Then
-        await #expect(throws: PartnershipFailure.notSynchronized(.unavailable)) {
-            try await store.perform { state, role throws(DomainError) in
+        await #expect(throws: PartnershipFailure<VisionDraftingError>.notSynchronized(.unavailable)) {
+            try await store.perform { state, role throws(VisionDraftingError) in
                 try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
             }
         }
@@ -136,12 +136,12 @@ struct PartnershipStoreTests {
         let synchronizer = InMemorySynchronizer(initialState: shared)
         let player = PartnershipStore(role: .player, synchronizer: synchronizer, state: shared)
         let manager = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
-        try await player.perform { state, role throws(DomainError) in
+        try await player.perform { state, role throws(ReactionError) in
             try state.settingReaction(.happy, on: taskID, by: role)
         }
 
         // When
-        try await manager.perform { state, role throws(DomainError) in
+        try await manager.perform { state, role throws(TaskApprovalError) in
             try state.approvingTask(taskID, by: role)
         }
 
@@ -160,13 +160,13 @@ struct PartnershipStoreTests {
         let synchronizer = InMemorySynchronizer(initialState: shared)
         let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
         let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
-        try await first.perform { state, role throws(DomainError) in
+        try await first.perform { state, role throws(TaskApprovalError) in
             try state.approvingTask(taskID, by: role)
         }
 
         // When / Then
-        await #expect(throws: PartnershipFailure.rejected(.invalidTaskTransition(from: .approved))) {
-            try await second.perform { state, role throws(DomainError) in
+        await #expect(throws: PartnershipFailure<TaskCancellationError>.rejected(.alreadyClosed)) {
+            try await second.perform { state, role throws(TaskCancellationError) in
                 try state.cancellingTask(taskID, by: role)
             }
         }
@@ -182,8 +182,8 @@ struct PartnershipStoreTests {
         let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
 
         // When / Then
-        await #expect(throws: PartnershipFailure.notSynchronized(.outdated(latest: latest))) {
-            try await store.perform { state, role throws(DomainError) in
+        await #expect(throws: PartnershipFailure<VisionDraftingError>.notSynchronized(.outdated(latest: latest))) {
+            try await store.perform { state, role throws(VisionDraftingError) in
                 try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
             }
         }

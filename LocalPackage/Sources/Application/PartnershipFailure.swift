@@ -7,7 +7,9 @@
 
 import Domain
 
-public enum PartnershipFailure: Error, Equatable, Sendable {
-    case rejected(DomainError)
+public enum PartnershipFailure<Rejection: Error>: Error {
+    case rejected(Rejection)
     case notSynchronized(SyncFailure)
 }
+
+extension PartnershipFailure: Equatable where Rejection: Equatable {}

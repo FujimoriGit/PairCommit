@@ -19,7 +19,7 @@ struct PartnershipStateTests {
         let state = try PartnershipState().establishingPairing(ownerRole: .manager)
 
         // When / Then
-        #expect(throws: DomainError.alreadyPaired) {
+        #expect(throws: PairingEstablishmentError.alreadyPaired) {
             try state.establishingPairing(ownerRole: .player)
         }
     }
@@ -58,7 +58,7 @@ struct PartnershipStateTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .player)) {
+        #expect(throws: ReactionError.notPlayer) {
             try state.settingReaction(.angry, on: taskID, by: .manager)
         }
     }

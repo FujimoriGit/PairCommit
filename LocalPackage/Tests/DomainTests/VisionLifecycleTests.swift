@@ -62,7 +62,7 @@ struct VisionLifecycleTests {
         let (state, visionID) = try PartnershipState().proposedVision()
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .manager)) {
+        #expect(throws: VisionApprovalError.notManager) {
             try state.approvingVision(visionID, by: .player)
         }
     }
@@ -78,7 +78,7 @@ struct VisionLifecycleTests {
         let state = try drafted.proposingVision(visionID, by: .player, now: before)
 
         // When / Then
-        #expect(throws: DomainError.pastDeadline) {
+        #expect(throws: VisionApprovalError.pastDeadline) {
             try state.approvingVision(visionID, by: .manager, now: deadline)
         }
     }
@@ -90,7 +90,7 @@ struct VisionLifecycleTests {
         let (state, second) = try active.proposedVision()
 
         // When / Then
-        #expect(throws: DomainError.activeVisionAlreadyExists) {
+        #expect(throws: VisionApprovalError.activeVisionExists) {
             try state.approvingVision(second, by: .manager)
         }
     }
@@ -115,7 +115,7 @@ struct VisionLifecycleTests {
         )
 
         // When / Then
-        #expect(throws: DomainError.invalidVisionTransition(from: .draft)) {
+        #expect(throws: VisionApprovalError.notProposed) {
             try state.approvingVision(visionID, by: .manager)
         }
     }
@@ -152,7 +152,7 @@ struct VisionLifecycleTests {
         let (state, visionID) = try PartnershipState().activeVision()
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .manager)) {
+        #expect(throws: VisionClosingError.notManager) {
             try state.closingVision(visionID, as: .abandoned, by: .player)
         }
     }

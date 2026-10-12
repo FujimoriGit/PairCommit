@@ -29,19 +29,8 @@ struct NoteTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.roleForbidden(required: .player)) {
+        #expect(throws: NoteWritingError.notPlayer) {
             try state.writingNote("進んでる？", kind: .report, on: .task(taskID), by: .manager)
-        }
-    }
-
-    @Test("承認や差し戻しをせずに、フィードバックだけを書くことはできない", arguments: [Role.manager, .player])
-    func feedbackCannotBeWrittenWithoutAReview(role: Role) throws {
-        // Given
-        let (state, taskID) = try PartnershipState().activeVisionWithTask()
-
-        // When / Then
-        #expect(throws: DomainError.feedbackOutsideReview) {
-            try state.writingNote("いいね", kind: .feedback, on: .task(taskID), by: role)
         }
     }
 
@@ -66,7 +55,7 @@ struct NoteTests {
         let reported = try todo.reportingTask(taskID, by: .player)
 
         // When / Then
-        #expect(throws: DomainError.blankText) {
+        #expect(throws: TaskReturnError.blankFeedback) {
             try reported.returningTask(taskID, feedback: "  \n", by: .manager)
         }
     }
@@ -130,7 +119,7 @@ struct NoteTests {
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
         // When / Then
-        #expect(throws: DomainError.blankText) {
+        #expect(throws: NoteWritingError.blankBody) {
             try state.writingNote("  \n", kind: .reminder, on: .task(taskID), by: .manager)
         }
     }
@@ -143,7 +132,7 @@ struct NoteTests {
         let closed = try created.closingVision(visionID, as: .achieved, by: .manager)
 
         // When / Then
-        #expect(throws: DomainError.noteSubjectClosed) {
+        #expect(throws: NoteWritingError.subjectClosed) {
             try closed.writingNote("おつかれさま", kind: .reminder, on: .task(taskID), by: .manager)
         }
     }
@@ -155,7 +144,7 @@ struct NoteTests {
         let closed = try active.closingVision(visionID, as: .achieved, by: .manager)
 
         // When / Then
-        #expect(throws: DomainError.noteSubjectClosed) {
+        #expect(throws: NoteWritingError.subjectClosed) {
             try closed.writingNote("おつかれさま", kind: .reminder, on: .vision(visionID), by: .manager)
         }
     }

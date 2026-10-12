@@ -17,3 +17,7 @@ extension Note.Kind {
         }
     }
 }
+
+extension Note.StandaloneKind {
+    var label: String { kind.label }
+}

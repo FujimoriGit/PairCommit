@@ -80,7 +80,7 @@ private extension NearbyPairing {
     }
 
     static func initialState(ownerRole: Role) throws(PairingFailure) -> PartnershipState {
-        do throws(DomainError) {
+        do throws(PairingEstablishmentError) {
             return try PartnershipState().establishingPairing(ownerRole: ownerRole)
         } catch {
             throw .unexpected

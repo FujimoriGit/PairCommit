@@ -112,8 +112,8 @@ private extension TaskDetailView {
         }
         Task {
             defer { editingProgress = nil }
-            do throws(PartnershipFailure) {
-                try await store.perform { state, role throws(DomainError) in
+            do throws(PartnershipFailure<ProgressError>) {
+                try await store.perform { state, role throws(ProgressError) in
                     try state.settingProgress(percent, on: task.id, by: role)
                 }
             } catch {
