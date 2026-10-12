@@ -47,20 +47,15 @@ struct NoteComposer: View {
 // MARK: - Private
 
 private extension NoteComposer {
-    var kind: Note.StandaloneKind {
-        store.role == .player ? .report : .reminder
-    }
-
     func post() {
         let body = text
-        let kind = kind
         let subject = subject
         isPosting = true
         Task {
             defer { isPosting = false }
             do throws(PartnershipFailure<NoteWritingError>) {
                 try await store.perform { state, role throws(NoteWritingError) in
-                    try state.writingNote(body, kind: kind, on: subject, by: role)
+                    try state.writingNote(body, on: subject, by: role)
                 }
                 text = ""
                 failureMessage = nil
