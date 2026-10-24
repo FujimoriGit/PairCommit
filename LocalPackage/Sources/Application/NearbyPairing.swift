@@ -107,7 +107,9 @@ private extension NearbyPairing {
             case .done, .failed:
                 // 完了後や、失敗を知らせたあとの切断は正常。
                 tearDown()
-            case .idle, .searching:
+            case .searching:
+                channel?.start()
+            case .idle:
                 break
             }
         case .failed:
