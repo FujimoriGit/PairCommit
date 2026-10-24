@@ -22,7 +22,7 @@ public final class PartnershipSession {
     }
 
     /// 役割の選択に戻った理由。
-    public enum Interruption: Equatable, Sendable {
+    public enum Interruption: Error, Equatable, Sendable {
         case partnershipEnded
         case pairingResultMissing
         case partnerSetupMissing
@@ -42,6 +42,7 @@ public final class PartnershipSession {
     private let nudges: any NudgeNotifying
     private let partnerActions: any PartnerActionNotifying
     private let knownState: any KnownStateKeeping
+    private let failures: any FailureRecording
     private let nudgeMessage: @Sendable (Nudge, PartnershipState) -> String
     private var connection: Connection
 
@@ -51,6 +52,7 @@ public final class PartnershipSession {
         nudges: any NudgeNotifying,
         partnerActions: any PartnerActionNotifying,
         knownState: any KnownStateKeeping,
+        failures: any FailureRecording,
         nudgeMessage: @escaping @Sendable (Nudge, PartnershipState) -> String,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
@@ -58,9 +60,10 @@ public final class PartnershipSession {
         self.nudges = nudges
         self.partnerActions = partnerActions
         self.knownState = knownState
+        self.failures = failures
         self.nudgeMessage = nudgeMessage
-        nearby = NearbyPairing(sharing: sharing, makeChannel: makeNearbyChannel)
-        remote = RemotePairing(inviting: inviting)
+        nearby = NearbyPairing(sharing: sharing, failures: failures, makeChannel: makeNearbyChannel)
+        remote = RemotePairing(inviting: inviting, failures: failures)
         connection = sharing.savedShare().map { .connecting($0, isResumed: true, failure: nil) } ?? .unpaired(nil)
     }
 
@@ -83,7 +86,15 @@ public final class PartnershipSession {
     /// 端末に前のペアが残っていなければ、端末の外に残っているペアを探し、見つかればつなぐ段階に入る。
     /// 組み方を選んでいる途中や、探している間に組み始めたときは、見つかっても引き戻さない。
     public func resumeRemainingPairing() async {
-        guard isChoosingRole, let remaining = try? await sharing.remainingShare(), isChoosingRole else { return }
+        guard isChoosingRole else { return }
+        let found: (any PairedShare)?
+        do throws(PairingFailure) {
+            found = try await sharing.remainingShare()
+        } catch {
+            failures.record(error, during: "resumeRemainingPairing")
+            return
+        }
+        guard let remaining = found, isChoosingRole else { return }
         remaining.save()
         connection = .connecting(remaining, isResumed: true, failure: nil)
     }
@@ -126,15 +137,19 @@ public final class PartnershipSession {
     }
 
     public func accept(_ link: URL) throws(LinkRefusal) {
+        let refusal: LinkRefusal
         switch connection {
         case .connecting, .paired:
-            throw .alreadyPaired
+            refusal = .alreadyPaired
         case .unpaired where remote.phase != .idle || nearby.phase != .idle:
-            throw .pairingInProgress
+            refusal = .pairingInProgress
         case .unpaired:
             leaveRolePicker()
             remote.receive(link)
+            return
         }
+        failures.record(refusal, during: "accept")
+        throw refusal
     }
 
     public func pairRemotely() async {
@@ -181,9 +196,14 @@ public final class PartnershipSession {
     /// 相手の側でもペアを終わらせ、役割の選択に戻る。前に組んで残っているペアも終わらせる。
     public func endPartnership() async throws(PairingFailure) {
         guard case .paired(let share, _) = connection else { return }
-        // いまのペアを先に終わらせると、残りで失敗したときに、終わったペアを出したまま止まる。
-        try await share.endOtherPairs()
-        try await share.end()
+        do throws(PairingFailure) {
+            // いまのペアを先に終わらせると、残りで失敗したときに、終わったペアを出したまま止まる。
+            try await share.endOtherPairs()
+            try await share.end()
+        } catch {
+            failures.record(error, during: "endPartnership")
+            throw error
+        }
         await returnToRolePicker(with: nil)
     }
 }
@@ -223,7 +243,7 @@ private extension PartnershipSession {
         connection = .connecting(share, isResumed: isResumed, failure: nil)
         let started: PartnershipStore?
         do throws(SyncFailure) {
-            started = try await PartnershipStore(starting: share)
+            started = try await PartnershipStore(starting: share, failures: failures)
         } catch {
             connection = .connecting(share, isResumed: isResumed, failure: error)
             nearby.reset()
@@ -235,12 +255,18 @@ private extension PartnershipSession {
         }
         await nudges.requestPermission()
         connection = .paired(share, started)
-        if !isResumed {
-            try? await share.endOtherPairs()
+        guard !isResumed else { return }
+        do throws(PairingFailure) {
+            try await share.endOtherPairs()
+        } catch {
+            failures.record(error, during: "endOtherPairs")
         }
     }
 
     func returnToRolePicker(with interruption: Interruption?) async {
+        if let interruption {
+            failures.record(interruption, during: "returnToRolePicker")
+        }
         await nudges.withdrawAll()
         await partnerActions.withdrawAll()
         knownState.forget()

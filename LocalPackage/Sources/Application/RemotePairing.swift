@@ -24,12 +24,14 @@ public final class RemotePairing {
     public private(set) var isCancelling = false
 
     private let inviting: any PartnershipInviting
+    private let failures: any FailureRecording
     private var step: Step?
     private var polling: Task<(any PairedShare)?, Never>?
     private var withdrawal: Withdrawal?
 
-    public init(inviting: any PartnershipInviting) {
+    public init(inviting: any PartnershipInviting, failures: any FailureRecording) {
         self.inviting = inviting
+        self.failures = failures
         step = inviting.savedStage().map(Step.init)
         withdrawal = inviting.savedWithdrawal()
     }
@@ -108,7 +110,7 @@ public final class RemotePairing {
         do throws(PairingFailure) {
             try await perform(pending)
         } catch {
-            failure = error
+            failing(error)
             return
         }
         reset()
@@ -159,6 +161,11 @@ private extension RemotePairing {
         }
     }
 
+    func failing(_ error: PairingFailure, operation: String = #function) {
+        failures.record(error, during: "remote \(operation)")
+        failure = error
+    }
+
     func perform(_ withdrawal: Withdrawal) async throws(PairingFailure) {
         switch withdrawal {
         case .invitation:
@@ -183,7 +190,7 @@ private extension RemotePairing {
         } catch {
             // やめたり画面を離れたりして打ち切られたときは、失敗として出さない。
             if !Task.isCancelled {
-                failure = error
+                failing(error)
             }
             return nil
         }

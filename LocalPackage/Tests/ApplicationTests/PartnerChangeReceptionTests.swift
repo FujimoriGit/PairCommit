@@ -18,7 +18,7 @@ struct PartnerChangeReceptionTests {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before)
+        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
         let reception = Self.reception(known: before, notifying: notifications)
@@ -35,7 +35,7 @@ struct PartnerChangeReceptionTests {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before)
+        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
         let reception = Self.reception(known: before, notifying: notifications)
@@ -72,7 +72,7 @@ struct PartnerChangeReceptionTests {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before)
+        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
         let reception = Self.reception(known: before, notifying: notifications)
@@ -106,7 +106,8 @@ private extension PartnerChangeReceptionTests {
             nudges: SilentNudges(),
             partnerActions: notifications,
             nudgeMessage: { _, _ in "催促" },
-            partnerActionMessage: { _, _ in "操作" }
+            partnerActionMessage: { _, _ in "操作" },
+            failures: RecordedFailures()
         )
     }
 }

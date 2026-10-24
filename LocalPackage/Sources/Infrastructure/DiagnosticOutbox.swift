@@ -62,7 +62,7 @@ private extension DiagnosticOutbox {
 
     func write(_ event: DiagnosticEvent) {
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try prepareDirectory()
             guard try pendingFiles().count < Self.capacity else {
                 logger.error("write \(event.id, privacy: .public): 送れていない記録が上限に達している")
                 return
@@ -71,6 +71,14 @@ private extension DiagnosticOutbox {
         } catch {
             logger.error("write \(event.id, privacy: .public): \(error, privacy: .public)")
         }
+    }
+
+    func prepareDirectory() throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var excluded = directory
+        try excluded.setResourceValues(values)
     }
 
     // ファイル名の先頭を時刻にして、名前の順が起きた順になるようにする。

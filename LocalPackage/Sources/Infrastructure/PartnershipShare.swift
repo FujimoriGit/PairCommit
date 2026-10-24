@@ -50,7 +50,13 @@ enum PartnershipShare {
         // 相手が受け終えて ACK だけが届かなかったときに同じ共有へつなぎ直せるよう、役割が同じなら残す。
         // 読めないレコードは役割を確かめられないので、作り直す側に倒す。
         if let existing = try await fetchRoot(rootRecordID, from: database) {
-            let existingRole = try? PartnershipRootRecord.decoding(existing).pairing?.ownerRole
+            let existingRole: Role?
+            do {
+                existingRole = try PartnershipRootRecord.decoding(existing).pairing?.ownerRole
+            } catch {
+                Diagnostics.pairing.failed("makeShare decode", error)
+                existingRole = nil
+            }
             if existingRole == initialState.pairing?.ownerRole,
                let url = try await shareURL(of: existing, in: database) {
                 Diagnostics.pairing.decided("makeShare", "前の共有を使い直す")

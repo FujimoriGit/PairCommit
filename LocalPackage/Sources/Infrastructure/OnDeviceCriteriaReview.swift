@@ -34,6 +34,7 @@ public struct OnDeviceCriteriaReview: CriteriaReviewing {
             )
             return .init(isVerifiable: response.content.isVerifiable, advice: response.content.advice)
         } catch {
+            Diagnostics.review.failed("review", error)
             throw .failed
         }
     }

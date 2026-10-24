@@ -23,7 +23,7 @@ public final class NearbyPairing {
         case failed(Failure)
     }
 
-    public enum Failure: Equatable, Sendable {
+    public enum Failure: Error, Equatable, Sendable {
         case sameRole(Role)
         case partnerFailed
         case external(PairingFailure)
@@ -33,13 +33,19 @@ public final class NearbyPairing {
     public private(set) var outcome: (any PairedShare)?
 
     private let sharing: any PartnershipSharing
+    private let failures: any FailureRecording
     private let makeChannel: @MainActor () -> any NearbyChannel
     private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
     private var role: Role?
 
-    public init(sharing: any PartnershipSharing, makeChannel: @escaping @MainActor () -> any NearbyChannel) {
+    public init(
+        sharing: any PartnershipSharing,
+        failures: any FailureRecording,
+        makeChannel: @escaping @MainActor () -> any NearbyChannel
+    ) {
         self.sharing = sharing
+        self.failures = failures
         self.makeChannel = makeChannel
     }
 
@@ -96,7 +102,7 @@ private extension NearbyPairing {
         case .disconnected:
             switch phase {
             case .connected, .sharing, .handedOver:
-                phase = .failed(.external(.disconnected))
+                failing(.external(.disconnected))
                 tearDown()
             case .done, .failed:
                 // 完了後や、失敗を知らせたあとの切断は正常。
@@ -105,7 +111,7 @@ private extension NearbyPairing {
                 break
             }
         case .failed:
-            phase = .failed(.external(.nearbyUnavailable))
+            failing(.external(.nearbyUnavailable))
             tearDown()
         }
     }
@@ -128,7 +134,7 @@ private extension NearbyPairing {
         phase = .connected
         // 止めるときは、相手も同じ判定で止まるので知らせない。すぐ切ると、こちらの送信が届く前にセッションが落ちることがある。
         if role == partnerRole {
-            phase = .failed(.sameRole(role))
+            failing(.sameRole(role))
         } else if role == .manager {
             makeShare(ownerRole: role, handsOverOnRefusal: true)
         }
@@ -196,7 +202,7 @@ private extension NearbyPairing {
         case Self.failureMessage:
             guard phase == .connected || phase == .sharing || phase == .handedOver else { return }
             outcome = nil
-            phase = .failed(phase == .handedOver ? .external(.storageFull) : .partnerFailed)
+            failing(phase == .handedOver ? .external(.storageFull) : .partnerFailed)
             tearDown()
         case Self.ackMessage:
             guard phase == .sharing, outcome?.isOwner == true else { return }
@@ -212,9 +218,9 @@ private extension NearbyPairing {
         }
     }
 
-    func fail(with failure: PairingFailure) {
+    func fail(with failure: PairingFailure, operation: String = #function) {
         outcome = nil
-        phase = .failed(.external(failure))
+        failing(.external(failure), operation: operation)
         // 知らせないと、相手には接続が切れたとしか見えない。すぐ切ると届く前にセッションが落ちるので、
         // 切るのは相手が受け取って切断したとき。
         do throws(PairingFailure) {
@@ -222,6 +228,11 @@ private extension NearbyPairing {
         } catch {
             tearDown()
         }
+    }
+
+    func failing(_ failure: Failure, operation: String = #function) {
+        failures.record(failure, during: "nearby \(operation)")
+        phase = .failed(failure)
     }
 
     func tearDown() {

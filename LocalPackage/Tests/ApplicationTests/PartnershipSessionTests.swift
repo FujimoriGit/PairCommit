@@ -173,6 +173,22 @@ struct PartnershipSessionTests {
         #expect(session.store?.role == .manager)
     }
 
+    @Test("前に組んで残っていたペアを終わらせられないと、その理由が診断の記録に残る")
+    func failingToEndThePairsLeftBeforeIsRecorded() async throws {
+        // Given
+        let pairs = RemainingPairs(["新しいペア", "前のペア"])
+        let failures = RecordedFailures()
+        let session = try Self.session(joined: Self.leftoverKeepingShare("新しいペア", in: pairs), failures: failures)
+        try session.accept(Self.link)
+        await session.pairRemotely()
+
+        // When
+        await session.connect()
+
+        // Then
+        #expect(failures.recorded.contains { $0 as? PairingFailure == .offline })
+    }
+
     @Test("前に組んで残っていたペアを終わらせられないと、ペアリングをやり直してもエラーになり、いまのペアは相手の側でも続く")
     func redoingThePairingKeepsTheCurrentPairIfThePairsLeftBeforeCannotBeEnded() async throws {
         // Given
@@ -227,7 +243,8 @@ private extension PartnershipSessionTests {
     static func session(
         saved: (any PairedShare)? = nil,
         remaining: (any PairedShare)? = nil,
-        joined: (any PairedShare)? = nil
+        joined: (any PairedShare)? = nil,
+        failures: RecordedFailures = .init()
     ) -> PartnershipSession {
         .init(
             sharing: StubSharing(saved: saved, remaining: remaining),
@@ -235,6 +252,7 @@ private extension PartnershipSessionTests {
             nudges: SilentNudges(),
             partnerActions: SilentPartnerActions(),
             knownState: ForgetfulKnownState(),
+            failures: failures,
             nudgeMessage: { _, _ in "" },
             makeNearbyChannel: { SilentChannel() }
         )
