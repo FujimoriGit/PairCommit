@@ -254,7 +254,7 @@ private extension PartnershipSessionTests {
             knownState: ForgetfulKnownState(),
             failures: failures,
             nudgeMessage: { _, _ in "" },
-            makeNearbyChannel: { SilentChannel() }
+            nearbyChannels: SilentChannels()
         )
     }
 }
@@ -433,6 +433,12 @@ private struct ForgetfulKnownState: KnownStateKeeping {
     func keep(_ state: PartnershipState) {}
 
     func forget() {}
+}
+
+private struct SilentChannels: NearbyChannelOpening {
+    func openChannel() -> any NearbyChannel {
+        SilentChannel()
+    }
 }
 
 private final class SilentChannel: NearbyChannel {

@@ -114,7 +114,7 @@ private extension NearbyPairingTests {
     ) -> (NearbyPairing, FakeChannel, FakeSharing) {
         let channel = FakeChannel()
         let sharing = FakeSharing()
-        let pairing = NearbyPairing(sharing: sharing, failures: failures, makeChannel: { channel })
+        let pairing = NearbyPairing(sharing: sharing, failures: failures, channels: OpenedChannel(channel: channel))
         pairing.start(as: role)
         channel.receive(.connected)
         return (pairing, channel, sharing)
@@ -132,6 +132,14 @@ private enum Partner {
 
     static func handingOver(_ role: Role) -> String {
         "paircommit://hand-over/\(role.rawValue)"
+    }
+}
+
+private struct OpenedChannel: NearbyChannelOpening {
+    let channel: FakeChannel
+
+    func openChannel() -> any NearbyChannel {
+        channel
     }
 }
 

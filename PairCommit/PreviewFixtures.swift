@@ -169,7 +169,7 @@ extension PartnershipSession {
             knownState: PreviewKnownState(),
             failures: PreviewFailures(),
             nudgeMessage: { $0.message(in: $1) },
-            makeNearbyChannel: { PreviewNearbyChannel() }
+            nearbyChannels: PreviewNearbyChannels()
         )
     }
 }
@@ -272,6 +272,12 @@ struct PreviewInviting: PartnershipInviting {
     func save(_ withdrawal: Withdrawal) {}
 
     func clearSaved() {}
+}
+
+struct PreviewNearbyChannels: NearbyChannelOpening {
+    func openChannel() -> any NearbyChannel {
+        PreviewNearbyChannel()
+    }
 }
 
 final class PreviewNearbyChannel: NearbyChannel {

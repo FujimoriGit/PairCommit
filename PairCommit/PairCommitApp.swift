@@ -63,7 +63,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             knownState: knownState,
             failures: failures,
             nudgeMessage: { $0.message(in: $1) },
-            makeNearbyChannel: makeNearbyChannel
+            nearbyChannels: MultipeerChannels()
         )
         super.init()
     }

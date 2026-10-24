@@ -10,11 +10,14 @@ import Foundation
 import MultipeerConnectivity
 import UIKit
 
-/// 近くにいる相手の端末との通信路を開く。
-@MainActor
-public func makeNearbyChannel() -> any NearbyChannel {
-    // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
-    MultipeerSession(displayName: "\(UIDevice.current.name.prefix(24))#\(UUID().uuidString.prefix(4))")
+public struct MultipeerChannels: NearbyChannelOpening {
+    public init() {}
+
+    @MainActor
+    public func openChannel() -> any NearbyChannel {
+        // iOS 16 以降 UIDevice.name は汎用名を返し、2台とも "iPhone" で衝突しうる。
+        MultipeerSession(displayName: "\(UIDevice.current.name.prefix(24))#\(UUID().uuidString.prefix(4))")
+    }
 }
 
 // MC のデリゲートは任意のスレッドから呼ばれるため、イベントは AsyncStream に流す。

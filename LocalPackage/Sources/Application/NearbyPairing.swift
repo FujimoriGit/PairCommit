@@ -34,7 +34,7 @@ public final class NearbyPairing {
 
     private let sharing: any PartnershipSharing
     private let failures: any FailureRecording
-    private let makeChannel: @MainActor () -> any NearbyChannel
+    private let channels: any NearbyChannelOpening
     private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
     private var role: Role?
@@ -42,11 +42,11 @@ public final class NearbyPairing {
     public init(
         sharing: any PartnershipSharing,
         failures: any FailureRecording,
-        makeChannel: @escaping @MainActor () -> any NearbyChannel
+        channels: any NearbyChannelOpening
     ) {
         self.sharing = sharing
         self.failures = failures
-        self.makeChannel = makeChannel
+        self.channels = channels
     }
 
     public func start(as role: Role) {
@@ -54,7 +54,7 @@ public final class NearbyPairing {
         self.role = role
         phase = .searching
 
-        let channel = makeChannel()
+        let channel = channels.openChannel()
         self.channel = channel
         let events = channel.events
         eventTask = Task { [weak self] in

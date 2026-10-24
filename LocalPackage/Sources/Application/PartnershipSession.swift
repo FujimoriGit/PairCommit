@@ -54,7 +54,7 @@ public final class PartnershipSession {
         knownState: any KnownStateKeeping,
         failures: any FailureRecording,
         nudgeMessage: @escaping @Sendable (Nudge, PartnershipState) -> String,
-        makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
+        nearbyChannels: any NearbyChannelOpening
     ) {
         self.sharing = sharing
         self.nudges = nudges
@@ -62,7 +62,7 @@ public final class PartnershipSession {
         self.knownState = knownState
         self.failures = failures
         self.nudgeMessage = nudgeMessage
-        nearby = NearbyPairing(sharing: sharing, failures: failures, makeChannel: makeNearbyChannel)
+        nearby = NearbyPairing(sharing: sharing, failures: failures, channels: nearbyChannels)
         remote = RemotePairing(inviting: inviting, failures: failures)
         connection = sharing.savedShare().map { .connecting($0, isResumed: true, failure: nil) } ?? .unpaired(nil)
     }
