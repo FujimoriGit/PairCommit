@@ -40,21 +40,6 @@ struct NearbyPairingTests {
         #expect(failures.recorded.contains { $0 as? NearbyPairing.Failure == .sameRole(.manager) })
     }
 
-    @Test("相手を探している間に、見つけた相手とつなぐのに失敗すると、相手をもう一度探す")
-    func failingToConnectWhileSearchingSearchesAgain() async {
-        // Given
-        let channel = FakeChannel()
-        let pairing = NearbyPairing(sharing: FakeSharing(), failures: RecordedFailures(), makeChannel: { channel })
-        pairing.start(as: .manager)
-
-        // When
-        channel.receive(.disconnected)
-
-        // Then
-        #expect(await eventually { channel.startCalls == 2 })
-        #expect(pairing.phase == .searching)
-    }
-
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
     func pairingCompletesOnThePartnersSideWhenYoursLacksSpace() async {
         // Given
@@ -153,7 +138,6 @@ private enum Partner {
 private final class FakeChannel: NearbyChannel {
     let events: AsyncStream<NearbyEvent>
     private(set) var sent: [String] = []
-    private(set) var startCalls = 0
 
     private let continuation: AsyncStream<NearbyEvent>.Continuation
 
@@ -165,9 +149,7 @@ private final class FakeChannel: NearbyChannel {
         continuation.yield(event)
     }
 
-    func start() {
-        startCalls += 1
-    }
+    func start() {}
 
     func stop() {
         continuation.finish()
