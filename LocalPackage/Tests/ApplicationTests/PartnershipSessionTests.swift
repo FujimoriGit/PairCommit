@@ -128,6 +128,49 @@ struct PartnershipSessionTests {
         // Then
         #expect(session.stage == .choosingRole(nil))
     }
+
+    @Test("ペアリングをやり直すと、いまのペアも、前に組んで残っていたペアも終わる")
+    func redoingThePairingEndsEveryRemainingPair() async throws {
+        // Given
+        let pairs = RemainingPairs(["いまのペア", "前のペア"])
+        let session = try Self.session(saved: Self.share("いまのペア", in: pairs))
+        await session.connect()
+
+        // When
+        try await session.endPartnership()
+
+        // Then
+        #expect(await pairs.names.isEmpty)
+    }
+
+    @Test("招待リンクで新しくペアを組むと、前に組んで残っていたペアが終わる")
+    func pairingAnewEndsThePairsLeftBefore() async throws {
+        // Given
+        let pairs = RemainingPairs(["新しいペア", "前のペア"])
+        let session = try Self.session(joined: Self.share("新しいペア", in: pairs))
+        try session.accept(Self.link)
+        await session.pairRemotely()
+
+        // When
+        await session.connect()
+
+        // Then
+        #expect(await pairs.names == ["新しいペア"])
+    }
+
+    @Test("端末の外に残っていたペアにつなぎ直しても、ほかに残っていたペアは終わらない")
+    func resumingARemainingPairKeepsTheOthers() async throws {
+        // Given
+        let pairs = RemainingPairs(["つなぎ直したペア", "ほかのペア"])
+        let session = try Self.session(remaining: Self.share("つなぎ直したペア", in: pairs))
+        await session.resumeRemainingPairing()
+
+        // When
+        await session.connect()
+
+        // Then
+        #expect(await pairs.names == ["つなぎ直したペア", "ほかのペア"])
+    }
 }
 
 // MARK: - Private
@@ -140,10 +183,19 @@ private extension PartnershipSessionTests {
         return StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired))
     }
 
-    static func session(saved: (any PairedShare)? = nil, remaining: (any PairedShare)? = nil) -> PartnershipSession {
+    static func share(_ name: String, in pairs: RemainingPairs) throws -> RemainingPairShare {
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        return RemainingPairShare(name: name, pairs: pairs, stored: InMemorySynchronizer(initialState: paired))
+    }
+
+    static func session(
+        saved: (any PairedShare)? = nil,
+        remaining: (any PairedShare)? = nil,
+        joined: (any PairedShare)? = nil
+    ) -> PartnershipSession {
         .init(
             sharing: StubSharing(saved: saved, remaining: remaining),
-            inviting: IdleInviting(),
+            inviting: IdleInviting(joined: joined),
             nudges: SilentNudges(),
             partnerActions: SilentPartnerActions(),
             knownState: ForgetfulKnownState(),
@@ -163,6 +215,45 @@ private struct UnreachableShare: PairedShare {
     func save() {}
 
     func end() async throws(PairingFailure) {}
+
+    func endOtherPairs() async throws(PairingFailure) {}
+}
+
+private actor RemainingPairs {
+    private(set) var names: Set<String>
+
+    init(_ names: Set<String>) {
+        self.names = names
+    }
+
+    func end(_ name: String) {
+        names.remove(name)
+    }
+
+    func end(allBut name: String) {
+        names = names.filter { $0 == name }
+    }
+}
+
+private struct RemainingPairShare: PairedShare {
+    let name: String
+    let pairs: RemainingPairs
+    let stored: InMemorySynchronizer
+    let isOwner = true
+
+    func synchronizer() -> any PartnershipSyncing {
+        stored
+    }
+
+    func save() {}
+
+    func end() async throws(PairingFailure) {
+        await pairs.end(name)
+    }
+
+    func endOtherPairs() async throws(PairingFailure) {
+        await pairs.end(allBut: name)
+    }
 }
 
 private struct UnreachableSynchronizer: PartnershipSyncing {
@@ -205,6 +296,8 @@ private struct StubSharing: PartnershipSharing {
 }
 
 private struct IdleInviting: PartnershipInviting {
+    let joined: (any PairedShare)?
+
     func send() async throws(PairingFailure) -> URL {
         throw .unexpected
     }
@@ -216,11 +309,12 @@ private struct IdleInviting: PartnershipInviting {
     func withdraw() async throws(PairingFailure) {}
 
     func join(_ link: URL) async throws(PairingFailure) {
-        throw .unexpected
+        guard joined != nil else { throw .unexpected }
     }
 
     func advanceJoining() async throws(PairingFailure) -> (any PairedShare)? {
-        throw .unexpected
+        guard let joined else { throw .unexpected }
+        return joined
     }
 
     func leave() async throws(PairingFailure) {}

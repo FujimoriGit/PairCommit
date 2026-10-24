@@ -178,10 +178,11 @@ public final class PartnershipSession {
         knownState.keep(store.state)
     }
 
-    /// 相手の側でもペアを終わらせ、役割の選択に戻る。
+    /// 相手の側でもペアを終わらせ、役割の選択に戻る。前に組んで残っているペアも終わらせる。
     public func endPartnership() async throws(PairingFailure) {
         guard case .paired(let share, _) = connection else { return }
         try await share.end()
+        try await share.endOtherPairs()
         await returnToRolePicker(with: nil)
     }
 }
@@ -233,6 +234,9 @@ private extension PartnershipSession {
         }
         await nudges.requestPermission()
         connection = .paired(share, started)
+        if !isResumed {
+            try? await share.endOtherPairs()
+        }
     }
 
     func returnToRolePicker(with interruption: Interruption?) async {

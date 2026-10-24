@@ -80,6 +80,16 @@ struct CloudPairedShare: PairedShare {
             throw PairingFailure(error)
         }
     }
+
+    func endOtherPairs() async throws(PairingFailure) {
+        do {
+            for other in try await PartnershipShare.findEveryRoot() where !isSamePair(as: other) {
+                try await PartnershipShare.teardown(rootRecordID: other.rootRecordID, isOwner: other.isOwner)
+            }
+        } catch {
+            throw PairingFailure(error)
+        }
+    }
 }
 
 extension PairingFailure {
@@ -90,6 +100,13 @@ extension PairingFailure {
 }
 
 // MARK: - Private
+
+private extension CloudPairedShare {
+    // 作る側のペアはゾーン名とレコード名が固定で、1人に1つしかない。
+    func isSamePair(as other: (rootRecordID: CKRecord.ID, isOwner: Bool)) -> Bool {
+        other.isOwner == isOwner && (isOwner || other.rootRecordID == rootRecordID)
+    }
+}
 
 private extension PairingFailure {
     static func classifying(_ error: any Error) -> Self {
