@@ -181,8 +181,9 @@ public final class PartnershipSession {
     /// 相手の側でもペアを終わらせ、役割の選択に戻る。前に組んで残っているペアも終わらせる。
     public func endPartnership() async throws(PairingFailure) {
         guard case .paired(let share, _) = connection else { return }
-        try await share.end()
+        // いまのペアを先に終わらせると、残りで失敗したときに、終わったペアを出したまま止まる。
         try await share.endOtherPairs()
+        try await share.end()
         await returnToRolePicker(with: nil)
     }
 }

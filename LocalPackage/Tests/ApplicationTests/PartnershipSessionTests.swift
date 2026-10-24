@@ -158,6 +158,35 @@ struct PartnershipSessionTests {
         #expect(await pairs.names == ["新しいペア"])
     }
 
+    @Test("前に組んで残っていたペアを終わらせられなくても、招待リンクで組んだペアを使い始める")
+    func pairingAnewStartsEvenIfThePairsLeftBeforeCannotBeEnded() async throws {
+        // Given
+        let session = try Self.session(joined: Self.leftoverKeepingShare())
+        try session.accept(Self.link)
+        await session.pairRemotely()
+
+        // When
+        await session.connect()
+
+        // Then
+        #expect(session.store?.role == .manager)
+    }
+
+    @Test("前に組んで残っていたペアを終わらせられないと、ペアリングをやり直してもエラーになり、いまのペアを使い続ける")
+    func redoingThePairingKeepsTheCurrentPairIfThePairsLeftBeforeCannotBeEnded() async throws {
+        // Given
+        let session = try Self.session(saved: Self.leftoverKeepingShare())
+        await session.connect()
+
+        // When
+        await #expect(throws: PairingFailure.offline) {
+            try await session.endPartnership()
+        }
+
+        // Then
+        #expect(session.store?.role == .manager)
+    }
+
     @Test("端末の外に残っていたペアにつなぎ直しても、ほかに残っていたペアは終わらない")
     func resumingARemainingPairKeepsTheOthers() async throws {
         // Given
@@ -181,6 +210,11 @@ private extension PartnershipSessionTests {
     static func share() throws -> StubShare {
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         return StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired))
+    }
+
+    static func leftoverKeepingShare() throws -> LeftoverKeepingShare {
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        return LeftoverKeepingShare(stored: InMemorySynchronizer(initialState: paired))
     }
 
     static func share(_ name: String, in pairs: RemainingPairs) throws -> RemainingPairShare {
@@ -253,6 +287,23 @@ private struct RemainingPairShare: PairedShare {
 
     func endOtherPairs() async throws(PairingFailure) {
         await pairs.end(allBut: name)
+    }
+}
+
+private struct LeftoverKeepingShare: PairedShare {
+    let stored: InMemorySynchronizer
+    let isOwner = true
+
+    func synchronizer() -> any PartnershipSyncing {
+        stored
+    }
+
+    func save() {}
+
+    func end() async throws(PairingFailure) {}
+
+    func endOtherPairs() async throws(PairingFailure) {
+        throw .offline
     }
 }
 
