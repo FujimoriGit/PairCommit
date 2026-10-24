@@ -32,6 +32,12 @@ struct Diagnostics: Sendable {
         logger.notice("\(operation, privacy: .public): \(detail, privacy: .public)")
         keep(event(.decision, operation, detail))
     }
+
+    /// 端末のログと端末の記録にだけ残し、iCloud には送らない。何度も繰り返し起きる進み具合に使う。
+    func progressed(_ operation: String, _ detail: String) {
+        logger.info("\(operation, privacy: .public): \(detail, privacy: .public)")
+        DiagnosticJournal().keep(event(.progress, operation, detail))
+    }
 }
 
 extension Logger {

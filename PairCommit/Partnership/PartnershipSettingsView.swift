@@ -22,7 +22,7 @@ struct PartnershipSettingsView: View {
                 NamingForm(store: store)
             }
             NavigationLink {
-                DiagnosticsView(entries: session.recentDiagnostics())
+                DiagnosticsView(session: session)
             } label: {
                 Text(.diagnosticsTitle)
             }

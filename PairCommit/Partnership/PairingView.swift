@@ -48,7 +48,7 @@ struct PairingView: View {
         .animation(.default, value: phase)
         .sheet(isPresented: $showingDiagnostics) {
             NavigationStack {
-                DiagnosticsView(entries: session.recentDiagnostics())
+                DiagnosticsView(session: session)
             }
         }
         .sensoryFeedback(trigger: phase) { _, phase in

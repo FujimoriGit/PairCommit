@@ -5,10 +5,22 @@
 //  Created by Daiki Fujimori on 2026/10/24
 //
 
+import Application
 import Domain
 import SwiftUI
 
 struct DiagnosticsView: View {
+    let session: PartnershipSession
+
+    @State private var entries: [DiagnosticEntry] = []
+
+    var body: some View {
+        DiagnosticsList(entries: entries)
+            .task { entries = session.recentDiagnostics() }
+    }
+}
+
+struct DiagnosticsList: View {
     let entries: [DiagnosticEntry]
 
     var body: some View {
@@ -19,7 +31,7 @@ struct DiagnosticsView: View {
             }
             ForEach(entries) { entry in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.occurredAt, format: .monthDayTimeSeconds)
+                    Text(entry.occurredAt, format: Date.FormatStyle.monthDayTimeSeconds)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Label(entry.operation, systemImage: entry.isFailure ? "exclamationmark.triangle" : "info.circle")
@@ -39,7 +51,7 @@ struct DiagnosticsView: View {
 
 // MARK: - Private
 
-private extension DiagnosticsView {
+private extension DiagnosticsList {
     var sharedText: String {
         entries.map { entry in
             "\(entry.occurredAt.formatted(.iso8601)) \(entry.isFailure ? "failure" : "decision") \(entry.operation): \(entry.detail)"
@@ -50,12 +62,12 @@ private extension DiagnosticsView {
 
 #Preview("診断の記録") {
     NavigationStack {
-        DiagnosticsView(entries: DiagnosticEntry.previews)
+        DiagnosticsList(entries: DiagnosticEntry.previews)
     }
 }
 
 #Preview("診断の記録が空") {
     NavigationStack {
-        DiagnosticsView(entries: [])
+        DiagnosticsList(entries: [])
     }
 }

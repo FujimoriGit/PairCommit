@@ -12,6 +12,7 @@ struct DiagnosticEvent: Codable, Sendable {
     enum Kind: String, Codable, Sendable {
         case failure
         case decision
+        case progress
     }
 
     let id: UUID
