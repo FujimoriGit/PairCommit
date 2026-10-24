@@ -8,7 +8,6 @@
 import CloudKit
 import Domain
 import Foundation
-import OSLog
 
 /// iCloud の共有でペアを作る。
 public struct CloudSharing: PartnershipSharing {
@@ -84,7 +83,7 @@ struct CloudPairedShare: PairedShare {
 
 extension PairingFailure {
     init(_ error: any Error, during operation: String = #function) {
-        Logger.pairing.error("\(operation, privacy: .public): \(error, privacy: .public)")
+        Diagnostics.pairing.failed(operation, error)
         self = Self.classifying(error)
     }
 }

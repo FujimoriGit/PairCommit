@@ -6,7 +6,6 @@
 //
 
 import CloudKit
-import OSLog
 import UIKit
 
 /// 招待リンクを開いたときに OS が渡してくる参加の情報から、招待リンクを取り出して `links` に流す。
@@ -42,7 +41,7 @@ private extension InvitationSceneDelegate {
 
     static func receive(_ metadata: CKShare.Metadata) {
         guard let link = metadata.share.url else {
-            Logger.pairing.error("invitation link: 共有の URL が入っていない")
+            Diagnostics.pairing.failed("invitation link", because: "共有の URL が入っていない")
             return
         }
         received.continuation.yield(link)

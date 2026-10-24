@@ -8,12 +8,11 @@
 import CloudKit
 import Domain
 import Foundation
-import OSLog
 
 struct CloudKitSynchronizer {
     private let database: CKDatabase
     private let rootRecordID: CKRecord.ID
-    private let logger = Logger.sync
+    private let diagnostics = Diagnostics.sync
 
     init(rootRecordID: CKRecord.ID, isOwner: Bool, container: CKContainer) {
         self.rootRecordID = rootRecordID
@@ -53,7 +52,7 @@ extension CloudKitSynchronizer: PartnershipSyncing {
                 atomically: true
             ).saveResults
         } catch {
-            logger.error("save: \(error, privacy: .public)")
+            diagnostics.failed("save", error)
             throw .unavailable
         }
         switch results[rootRecordID] {
@@ -61,15 +60,15 @@ extension CloudKitSynchronizer: PartnershipSyncing {
             return
         case .failure(let error as CKError) where error.code == .serverRecordChanged:
             guard let latest = error.serverRecord else {
-                logger.error("save: 衝突したレコードが返っていない")
+                diagnostics.failed("save", because: "衝突したレコードが返っていない")
                 throw .unavailable
             }
             throw .outdated(latest: try await decoding(latest))
         case .failure(let error):
-            logger.error("save: \(error, privacy: .public)")
+            diagnostics.failed("save", error)
             throw .unavailable
         case nil:
-            logger.error("save: 保存したレコードの結果が返っていない")
+            diagnostics.failed("save", because: "保存したレコードの結果が返っていない")
             throw .unavailable
         }
     }
@@ -85,7 +84,7 @@ private extension CloudKitSynchronizer {
         do {
             return try PartnershipRootRecord.decoding(record, notes: notes)
         } catch {
-            logger.error("decode: \(error, privacy: .public)")
+            diagnostics.failed("decode", error)
             throw .unavailable
         }
     }
@@ -106,7 +105,7 @@ private extension CloudKitSynchronizer {
             let records = try changes.modificationResultsByID.values.map { try $0.get().record }
             return (records, changes.changeToken, changes.moreComing)
         } catch {
-            logger.error("fetch notes: \(error, privacy: .public)")
+            diagnostics.failed("fetch notes", error)
             throw .unavailable
         }
     }
@@ -115,7 +114,7 @@ private extension CloudKitSynchronizer {
         do {
             return try NoteRecord.decoding(record)
         } catch {
-            logger.error("decode note: \(error, privacy: .public)")
+            diagnostics.failed("decode note", error)
             throw .unavailable
         }
     }
@@ -131,7 +130,7 @@ private extension CloudKitSynchronizer {
         do {
             _ = try await database.modifySubscriptions(saving: [subscription], deleting: [])
         } catch {
-            logger.error("subscribe: \(error, privacy: .public)")
+            diagnostics.failed("subscribe", error)
             throw .unavailable
         }
     }
@@ -143,7 +142,7 @@ private extension CloudKitSynchronizer {
         } catch let error as CKError where error.code == .unknownItem {
             return false
         } catch {
-            logger.error("subscription: \(error, privacy: .public)")
+            diagnostics.failed("subscription", error)
             throw .unavailable
         }
     }
@@ -154,9 +153,10 @@ private extension CloudKitSynchronizer {
             results = try await database.records(for: [rootRecordID])
         } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
             // ゾーンごと消えたときは、レコード単位ではなく取得そのものが失敗する。
+            diagnostics.decided("fetch", "ペアのゾーンが無い \(rootRecordID.diagnosticDescription): \(error)")
             return nil
         } catch {
-            logger.error("fetch: \(error, privacy: .public)")
+            diagnostics.failed("fetch", error)
             throw .unavailable
         }
         switch results[rootRecordID] {
@@ -165,12 +165,13 @@ private extension CloudKitSynchronizer {
         case .failure(let error):
             // 不在は終了の合図なので、読めなかっただけの失敗と同じ値にはできない。
             guard (error as? CKError)?.code == .unknownItem else {
-                logger.error("fetch: \(error, privacy: .public)")
+                diagnostics.failed("fetch", error)
                 throw .unavailable
             }
+            diagnostics.decided("fetch", "ペアのレコードが無い \(rootRecordID.diagnosticDescription)")
             return nil
         case nil:
-            logger.error("fetch: 要求したレコードの結果が返っていない")
+            diagnostics.failed("fetch", because: "要求したレコードの結果が返っていない")
             throw .unavailable
         }
     }

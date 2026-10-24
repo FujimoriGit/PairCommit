@@ -8,7 +8,6 @@
 import Domain
 import Foundation
 import MultipeerConnectivity
-import OSLog
 import UIKit
 
 /// 近くにいる相手の端末との通信路を開く。
@@ -70,7 +69,7 @@ final class MultipeerSession: NSObject, NearbyChannel {
         do {
             try session.send(Data(text.utf8), toPeers: session.connectedPeers, with: .reliable)
         } catch {
-            Logger.pairing.error("send: \(error, privacy: .public)")
+            Diagnostics.pairing.failed("send", error)
             throw .unexpected
         }
     }
@@ -117,7 +116,7 @@ extension MultipeerSession: MCNearbyServiceAdvertiserDelegate {
     }
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) {
-        Logger.pairing.error("advertise: \(error, privacy: .public)")
+        Diagnostics.pairing.failed("advertise", error)
         eventContinuation.yield(.failed)
     }
 }
@@ -134,7 +133,7 @@ extension MultipeerSession: MCNearbyServiceBrowserDelegate {
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}
 
     func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
-        Logger.pairing.error("browse: \(error, privacy: .public)")
+        Diagnostics.pairing.failed("browse", error)
         eventContinuation.yield(.failed)
     }
 }

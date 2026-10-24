@@ -8,7 +8,6 @@
 import CloudKit
 import Domain
 import Foundation
-import OSLog
 
 enum PartnershipShareError: LocalizedError {
     case shareURLUnavailable
@@ -54,6 +53,7 @@ enum PartnershipShare {
             let existingRole = try? PartnershipRootRecord.decoding(existing).pairing?.ownerRole
             if existingRole == initialState.pairing?.ownerRole,
                let url = try await shareURL(of: existing, in: database) {
+                Diagnostics.pairing.decided("makeShare", "前の共有を使い直す")
                 return (url, rootRecordID)
             }
             let deleted = try await database.modifyRecordZones(saving: [], deleting: [zoneID])
@@ -70,6 +70,7 @@ enum PartnershipShare {
         share.publicPermission = .readWrite
 
         let url = try await saveSharing(pairing, with: share, in: database)
+        Diagnostics.pairing.decided("makeShare", "共有を作った")
         return (url, rootRecordID)
     }
 
@@ -105,24 +106,26 @@ enum PartnershipShare {
     // MARK: 両者共通
 
     static func teardown(rootRecordID: CKRecord.ID, isOwner: Bool) async throws {
+        let target = "\(isOwner ? "作ったペア" : "参加したペア") \(rootRecordID.diagnosticDescription)"
         do {
-            guard isOwner else {
+            if isOwner {
+                let results = try await container.privateCloudDatabase.modifyRecordZones(
+                    saving: [],
+                    deleting: [rootRecordID.zoneID]
+                )
+                try confirmDeleted(results.deleteResults[rootRecordID.zoneID])
+            } else {
                 let results = try await container.sharedCloudDatabase.modifyRecords(
                     saving: [],
                     deleting: [rootRecordID]
                 )
                 try confirmDeleted(results.deleteResults[rootRecordID])
-                return
             }
-            let results = try await container.privateCloudDatabase.modifyRecordZones(
-                saving: [],
-                deleting: [rootRecordID.zoneID]
-            )
-            try confirmDeleted(results.deleteResults[rootRecordID.zoneID])
+            Diagnostics.pairing.decided("teardown", "\(target) を終わらせた")
         } catch let error as CKError where absent.contains(error.code) {
-            return
+            Diagnostics.pairing.decided("teardown", "\(target) はもう無い: \(error)")
         } catch {
-            Logger.pairing.error("teardown: \(error, privacy: .public)")
+            Diagnostics.pairing.failed("teardown \(target)", error)
             throw error
         }
     }
@@ -132,9 +135,19 @@ enum PartnershipShare {
         typealias Candidate = (root: CKRecord, isOwner: Bool)
         let owned: [Candidate] = try await fetchOwnedRootWithGuest().map { [(root: $0, isOwner: true)] } ?? []
         let joined: [Candidate] = try await fetchJoinedRoots().map { (root: $0, isOwner: false) }
-        return (owned + joined)
+        let candidates = owned + joined
+        let chosen = candidates
             .max { ($0.root.modificationDate ?? .distantPast) < ($1.root.modificationDate ?? .distantPast) }
-            .map { (rootRecordID: $0.root.recordID, isOwner: $0.isOwner) }
+        let described = candidates.map { candidate in
+            let side = candidate.isOwner ? "作った" : "参加した"
+            let modified = candidate.root.modificationDate.map { "\($0)" } ?? "?"
+            return "\(side) \(candidate.root.recordID.diagnosticDescription) 更新 \(modified)"
+        }
+        Diagnostics.pairing.decided(
+            "findRemainingRoot",
+            "候補 \(described)、選んだもの \(chosen.map { $0.root.recordID.diagnosticDescription } ?? "なし")"
+        )
+        return chosen.map { (rootRecordID: $0.root.recordID, isOwner: $0.isOwner) }
     }
 
     // MARK: Participant 側
@@ -146,11 +159,19 @@ enum PartnershipShare {
         guard let rootRecordID = metadata.hierarchicalRootRecordID else {
             throw PartnershipShareError.metadataMissing
         }
+        Diagnostics.pairing.decided("acceptShare", rootRecordID.diagnosticDescription)
         return rootRecordID
     }
 }
 
 // MARK: - CloudKit の操作
+
+extension CKRecord.ID {
+    /// 2台の記録を突き合わせるための、ゾーンの持ち主とレコードの名前。
+    var diagnosticDescription: String {
+        "\(zoneID.ownerName)/\(zoneID.zoneName)/\(recordName)"
+    }
+}
 
 extension PartnershipShare {
     static let absent: Set<CKError.Code> = [.zoneNotFound, .userDeletedZone, .unknownItem]
