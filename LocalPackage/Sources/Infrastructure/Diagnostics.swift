@@ -33,7 +33,6 @@ struct Diagnostics: Sendable {
 }
 
 extension Logger {
-    // 記録を送る仕組みそのものの失敗は、送ろうとすると同じ失敗を繰り返すので、端末のログにだけ残す。
     static let diagnostics = Logger(subsystem: subsystemName, category: "diagnostics")
 }
 

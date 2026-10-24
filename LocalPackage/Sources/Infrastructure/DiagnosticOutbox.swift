@@ -58,8 +58,6 @@ struct DiagnosticOutbox: Sendable {
 // MARK: - Private
 
 private extension DiagnosticOutbox {
-    // 送れないまま溜まり続けないように、上限を超えた記録は書き置かない。
-    // 古いほうを残すのは、原因に近いのは最初の失敗だから。
     static let capacity = 200
 
     func write(_ event: DiagnosticEvent) {
