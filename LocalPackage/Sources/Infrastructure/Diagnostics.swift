@@ -8,7 +8,7 @@
 import Foundation
 import OSLog
 
-/// アプリで起きた失敗と、どのペアを選んだか・終わらせたかの判断を、端末のログと iCloud に残す。
+/// アプリで起きた失敗と、どのペアを選んだか・終わらせたかの判断を、端末のログ・端末の記録・iCloud に残す。
 struct Diagnostics: Sendable {
     static let pairing = Self(category: "pairing")
     static let sync = Self(category: "sync")
@@ -25,12 +25,12 @@ struct Diagnostics: Sendable {
 
     func failed(_ operation: String, because reason: String) {
         logger.error("\(operation, privacy: .public): \(reason, privacy: .public)")
-        DiagnosticOutbox.shared.post(event(.failure, operation, reason))
+        keep(event(.failure, operation, reason))
     }
 
     func decided(_ operation: String, _ detail: String) {
         logger.notice("\(operation, privacy: .public): \(detail, privacy: .public)")
-        DiagnosticOutbox.shared.post(event(.decision, operation, detail))
+        keep(event(.decision, operation, detail))
     }
 }
 
@@ -44,6 +44,11 @@ private extension Diagnostics {
     init(category: String) {
         self.category = category
         logger = Logger(subsystem: Logger.subsystemName, category: category)
+    }
+
+    func keep(_ event: DiagnosticEvent) {
+        DiagnosticJournal().keep(event)
+        DiagnosticOutbox.shared.post(event)
     }
 
     func event(_ kind: DiagnosticEvent.Kind, _ operation: String, _ detail: String) -> DiagnosticEvent {

@@ -253,6 +253,7 @@ private extension PartnershipSessionTests {
             partnerActions: SilentPartnerActions(),
             knownState: ForgetfulKnownState(),
             failures: failures,
+            diagnostics: EmptyDiagnostics(),
             nudgeMessage: { _, _ in "" },
             makeNearbyChannel: { SilentChannel() }
         )
@@ -328,6 +329,12 @@ private struct LeftoverKeepingShare: PairedShare {
 
     func endOtherPairs() async throws(PairingFailure) {
         throw .offline
+    }
+}
+
+private struct EmptyDiagnostics: DiagnosticHistory {
+    func recentEntries() -> [DiagnosticEntry] {
+        []
     }
 }
 

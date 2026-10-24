@@ -62,6 +62,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             partnerActions: partnerNotifications,
             knownState: knownState,
             failures: failures,
+            diagnostics: DiagnosticJournal(),
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: makeNearbyChannel
         )

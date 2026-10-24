@@ -58,7 +58,7 @@ private extension ContentView {
         case .choosingRole(let interruption):
             rolePicker(interruption)
         case .pairingNearby:
-            PairingView(phase: session.nearby.phase, onCancel: session.nearby.reset)
+            PairingView(phase: session.nearby.phase, session: session, onCancel: session.nearby.reset)
                 .task(id: session.nearby.phase) { await session.finishNearbyPairing() }
         }
     }

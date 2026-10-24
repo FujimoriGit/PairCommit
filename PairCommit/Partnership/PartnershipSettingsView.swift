@@ -21,6 +21,12 @@ struct PartnershipSettingsView: View {
             Panel(title: String(localized: .settingsName)) {
                 NamingForm(store: store)
             }
+            NavigationLink {
+                DiagnosticsView(entries: session.recentDiagnostics())
+            } label: {
+                Text(.diagnosticsTitle)
+            }
+            .buttonStyle(.soft)
             Button(.settingsRepair, role: .destructive) {
                 confirming = true
             }

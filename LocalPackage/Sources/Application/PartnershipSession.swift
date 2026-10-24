@@ -43,6 +43,7 @@ public final class PartnershipSession {
     private let partnerActions: any PartnerActionNotifying
     private let knownState: any KnownStateKeeping
     private let failures: any FailureRecording
+    private let diagnostics: any DiagnosticHistory
     private let nudgeMessage: @Sendable (Nudge, PartnershipState) -> String
     private var connection: Connection
 
@@ -53,6 +54,7 @@ public final class PartnershipSession {
         partnerActions: any PartnerActionNotifying,
         knownState: any KnownStateKeeping,
         failures: any FailureRecording,
+        diagnostics: any DiagnosticHistory,
         nudgeMessage: @escaping @Sendable (Nudge, PartnershipState) -> String,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
@@ -61,6 +63,7 @@ public final class PartnershipSession {
         self.partnerActions = partnerActions
         self.knownState = knownState
         self.failures = failures
+        self.diagnostics = diagnostics
         self.nudgeMessage = nudgeMessage
         nearby = NearbyPairing(sharing: sharing, failures: failures, makeChannel: makeNearbyChannel)
         remote = RemotePairing(inviting: inviting, failures: failures)
@@ -76,6 +79,11 @@ public final class PartnershipSession {
         case .unpaired where remote.phase != .idle: .pairingRemotely
         case .unpaired(let interruption): .choosingRole(interruption)
         }
+    }
+
+    /// 端末に残した最近の失敗と判断。新しい順。
+    public func recentDiagnostics() -> [DiagnosticEntry] {
+        diagnostics.recentEntries()
     }
 
     public var store: PartnershipStore? {

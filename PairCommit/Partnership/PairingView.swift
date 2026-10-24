@@ -11,7 +11,10 @@ import SwiftUI
 
 struct PairingView: View {
     let phase: NearbyPairing.Phase
+    let session: PartnershipSession
     let onCancel: () -> Void
+
+    @State private var showingDiagnostics = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -32,6 +35,10 @@ struct PairingView: View {
             .multilineTextAlignment(.center)
 
             Spacer()
+            Button(.diagnosticsTitle) {
+                showingDiagnostics = true
+            }
+            .font(.footnote)
             Button(failure == nil ? .commonCancel : .commonBack, action: onCancel)
                 .buttonStyle(.soft)
         }
@@ -39,6 +46,11 @@ struct PairingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Backdrop())
         .animation(.default, value: phase)
+        .sheet(isPresented: $showingDiagnostics) {
+            NavigationStack {
+                DiagnosticsView(entries: session.recentDiagnostics())
+            }
+        }
         .sensoryFeedback(trigger: phase) { _, phase in
             switch phase {
             case .connected: .impact
@@ -84,11 +96,11 @@ private extension PairingView {
 }
 
 #Preview("ペアリングの相手待ち") {
-    PairingView(phase: .searching, onCancel: {})
+    PairingView(phase: .searching, session: .preview, onCancel: {})
         // 動いている途中を撮ると、撮るたびに画像が変わる
         .symbolEffectsRemoved()
 }
 
 #Preview("ペアリングの失敗") {
-    PairingView(phase: .failed(.external(.signedOut)), onCancel: {})
+    PairingView(phase: .failed(.external(.signedOut)), session: .preview, onCancel: {})
 }

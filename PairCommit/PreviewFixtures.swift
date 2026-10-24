@@ -168,10 +168,43 @@ extension PartnershipSession {
             partnerActions: PreviewPartnerActionNotifications(),
             knownState: PreviewKnownState(),
             failures: PreviewFailures(),
+            diagnostics: PreviewDiagnosticHistory(),
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: { PreviewNearbyChannel() }
         )
     }
+}
+
+struct PreviewDiagnosticHistory: DiagnosticHistory {
+    func recentEntries() -> [DiagnosticEntry] {
+        DiagnosticEntry.previews
+    }
+}
+
+extension DiagnosticEntry {
+    static let previews: [Self] = [
+        .init(
+            id: UUID(),
+            occurredAt: .preview.addingTimeInterval(65),
+            isFailure: true,
+            operation: "pairing nearby fail(with:)",
+            detail: "external(Domain.PairingFailure.disconnected)"
+        ),
+        .init(
+            id: UUID(),
+            occurredAt: .preview.addingTimeInterval(32),
+            isFailure: false,
+            operation: "pairing nearby session",
+            detail: "iPhone#3F2A notConnected"
+        ),
+        .init(
+            id: UUID(),
+            occurredAt: .preview,
+            isFailure: false,
+            operation: "pairing nearby found",
+            detail: "iPhone#3F2A 招待する"
+        ),
+    ]
 }
 
 struct PreviewFailures: FailureRecording {

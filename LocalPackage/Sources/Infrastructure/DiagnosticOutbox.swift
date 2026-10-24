@@ -62,35 +62,19 @@ private extension DiagnosticOutbox {
 
     func write(_ event: DiagnosticEvent) {
         do {
-            try prepareDirectory()
+            try DiagnosticDirectory.prepare(directory)
             guard try pendingFiles().count < Self.capacity else {
                 logger.error("write \(event.id, privacy: .public): 送れていない記録が上限に達している")
                 return
             }
-            try JSONEncoder().encode(event).write(to: file(for: event), options: .atomic)
+            try JSONEncoder().encode(event).write(to: DiagnosticDirectory.file(for: event, in: directory), options: .atomic)
         } catch {
             logger.error("write \(event.id, privacy: .public): \(error, privacy: .public)")
         }
     }
 
-    func prepareDirectory() throws {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        var excluded = directory
-        try excluded.setResourceValues(values)
-    }
-
-    // ファイル名の先頭を時刻にして、名前の順が起きた順になるようにする。
-    func file(for event: DiagnosticEvent) -> URL {
-        let milliseconds = Int(event.occurredAt.timeIntervalSince1970 * 1000)
-        return directory.appending(path: "\(milliseconds)-\(event.id.uuidString).json")
-    }
-
     func pendingFiles() throws -> [URL] {
-        try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        try DiagnosticDirectory.files(in: directory)
     }
 
     func pendingEvents() -> [(file: URL, event: DiagnosticEvent)] {
@@ -123,5 +107,29 @@ private extension DiagnosticOutbox {
         } catch {
             logger.error("remove \(file.lastPathComponent, privacy: .public): \(error, privacy: .public)")
         }
+    }
+}
+
+/// 記録を1件ずつファイルにして置くフォルダ。
+enum DiagnosticDirectory {
+    static func prepare(_ directory: URL) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var excluded = directory
+        try excluded.setResourceValues(values)
+    }
+
+    // ファイル名の先頭を時刻にして、名前の順が起きた順になるようにする。
+    static func file(for event: DiagnosticEvent, in directory: URL) -> URL {
+        let milliseconds = Int(event.occurredAt.timeIntervalSince1970 * 1000)
+        return directory.appending(path: "\(milliseconds)-\(event.id.uuidString).json")
+    }
+
+    /// - Returns: 古い順。
+    static func files(in directory: URL) throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 }
