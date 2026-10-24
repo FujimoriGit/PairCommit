@@ -161,7 +161,8 @@ struct PartnershipSessionTests {
     @Test("前に組んで残っていたペアを終わらせられなくても、招待リンクで組んだペアを使い始める")
     func pairingAnewStartsEvenIfThePairsLeftBeforeCannotBeEnded() async throws {
         // Given
-        let session = try Self.session(joined: Self.leftoverKeepingShare())
+        let pairs = RemainingPairs(["新しいペア", "前のペア"])
+        let session = try Self.session(joined: Self.leftoverKeepingShare("新しいペア", in: pairs))
         try session.accept(Self.link)
         await session.pairRemotely()
 
@@ -172,10 +173,11 @@ struct PartnershipSessionTests {
         #expect(session.store?.role == .manager)
     }
 
-    @Test("前に組んで残っていたペアを終わらせられないと、ペアリングをやり直してもエラーになり、いまのペアを使い続ける")
+    @Test("前に組んで残っていたペアを終わらせられないと、ペアリングをやり直してもエラーになり、いまのペアは相手の側でも続く")
     func redoingThePairingKeepsTheCurrentPairIfThePairsLeftBeforeCannotBeEnded() async throws {
         // Given
-        let session = try Self.session(saved: Self.leftoverKeepingShare())
+        let pairs = RemainingPairs(["いまのペア", "前のペア"])
+        let session = try Self.session(saved: Self.leftoverKeepingShare("いまのペア", in: pairs))
         await session.connect()
 
         // When
@@ -184,7 +186,7 @@ struct PartnershipSessionTests {
         }
 
         // Then
-        #expect(session.store?.role == .manager)
+        #expect(await pairs.names.contains("いまのペア"))
     }
 
     @Test("端末の外に残っていたペアにつなぎ直しても、ほかに残っていたペアは終わらない")
@@ -212,9 +214,9 @@ private extension PartnershipSessionTests {
         return StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired))
     }
 
-    static func leftoverKeepingShare() throws -> LeftoverKeepingShare {
+    static func leftoverKeepingShare(_ name: String, in pairs: RemainingPairs) throws -> LeftoverKeepingShare {
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
-        return LeftoverKeepingShare(stored: InMemorySynchronizer(initialState: paired))
+        return LeftoverKeepingShare(name: name, pairs: pairs, stored: InMemorySynchronizer(initialState: paired))
     }
 
     static func share(_ name: String, in pairs: RemainingPairs) throws -> RemainingPairShare {
@@ -291,6 +293,8 @@ private struct RemainingPairShare: PairedShare {
 }
 
 private struct LeftoverKeepingShare: PairedShare {
+    let name: String
+    let pairs: RemainingPairs
     let stored: InMemorySynchronizer
     let isOwner = true
 
@@ -300,7 +304,9 @@ private struct LeftoverKeepingShare: PairedShare {
 
     func save() {}
 
-    func end() async throws(PairingFailure) {}
+    func end() async throws(PairingFailure) {
+        await pairs.end(name)
+    }
 
     func endOtherPairs() async throws(PairingFailure) {
         throw .offline
