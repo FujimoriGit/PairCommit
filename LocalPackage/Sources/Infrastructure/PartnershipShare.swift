@@ -206,7 +206,7 @@ extension PartnershipShare {
         do {
             let results = try await database.modifyRecords(saving: [], deleting: [rootRecordID])
             try confirmDeleted(results.deleteResults[rootRecordID])
-        } catch {
+        } catch let error as CKError where !absent.contains(error.code) {
             Diagnostics.pairing.failed("teardown delete \(rootRecordID.diagnosticDescription)", error)
         }
         guard let remaining = try await fetchRoot(rootRecordID, from: database) else { return }
