@@ -70,6 +70,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()
+        Task { await PendingDiagnostics.send() }
         return true
     }
 
