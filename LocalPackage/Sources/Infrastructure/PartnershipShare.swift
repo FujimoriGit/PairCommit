@@ -208,6 +208,8 @@ extension PartnershipShare {
             try confirmDeleted(results.deleteResults[rootRecordID])
         } catch let error as CKError where !absent.contains(error.code) {
             Diagnostics.pairing.failed("teardown delete \(rootRecordID.diagnosticDescription)", error)
+        } catch PartnershipShareError.deleteResultMissing {
+            Diagnostics.pairing.failed("teardown delete \(rootRecordID.diagnosticDescription)", because: "削除の結果が返っていない")
         }
         guard let remaining = try await fetchRoot(rootRecordID, from: database) else { return }
         Diagnostics.pairing.decided("teardown", "参加したペア \(rootRecordID.diagnosticDescription) が残っているので、ペアを外す")
