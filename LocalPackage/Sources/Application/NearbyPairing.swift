@@ -113,6 +113,14 @@ private extension NearbyPairing {
         case .failed:
             failing(.external(.nearbyUnavailable))
             tearDown()
+        case .notPermitted:
+            switch phase {
+            case .idle, .searching, .connected, .sharing, .handedOver:
+                failing(.external(.localNetworkDenied))
+                tearDown()
+            case .done, .failed:
+                break
+            }
         }
     }
 

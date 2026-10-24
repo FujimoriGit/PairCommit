@@ -19,4 +19,5 @@ public enum NearbyEvent: Sendable {
     case received(String)
     case disconnected
     case failed
+    case notPermitted
 }

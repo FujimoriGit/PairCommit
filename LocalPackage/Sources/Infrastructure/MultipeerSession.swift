@@ -5,9 +5,11 @@
 //  Created by Daiki Fujimori on 2026/06/20
 //
 
+import dnssd
 import Domain
 import Foundation
 import MultipeerConnectivity
+import Network
 import UIKit
 
 /// 近くにいる相手の端末との通信路を開く。
@@ -30,6 +32,7 @@ final class MultipeerSession: NSObject, NearbyChannel {
     private let session: MCSession
     private let advertiser: MCNearbyServiceAdvertiser
     private let browser: MCNearbyServiceBrowser
+    private let permissionProbe: NWBrowser
 
     /// - Parameter displayName: 招待のタイブレークに使うため、端末間で一意な名前を渡すこと。
     init(displayName: String) {
@@ -46,18 +49,27 @@ final class MultipeerSession: NSObject, NearbyChannel {
             serviceType: Self.serviceType
         )
         browser = MCNearbyServiceBrowser(peer: myPeerID, serviceType: Self.serviceType)
+        permissionProbe = NWBrowser(for: .bonjour(type: "_\(Self.serviceType)._tcp", domain: nil), using: .tcp)
         super.init()
         session.delegate = self
         advertiser.delegate = self
         browser.delegate = self
+        // ローカルネットワークの許可がないことを返す API はなく、Bonjour の検索がこのエラーで待ち状態になることで分かる（TN3179）。
+        // MC の検索は、許可がなくてもエラーを返さず、見つからないまま続く。
+        permissionProbe.stateUpdateHandler = { [eventContinuation] state in
+            guard case .waiting(.dns(let code)) = state, Int(code) == kDNSServiceErr_PolicyDenied else { return }
+            eventContinuation.yield(.notPermitted)
+        }
     }
 
     func start() {
         advertiser.startAdvertisingPeer()
         browser.startBrowsingForPeers()
+        permissionProbe.start(queue: .main)
     }
 
     func stop() {
+        permissionProbe.cancel()
         advertiser.stopAdvertisingPeer()
         browser.stopBrowsingForPeers()
         session.disconnect()

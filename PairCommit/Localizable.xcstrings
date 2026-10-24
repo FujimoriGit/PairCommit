@@ -613,6 +613,23 @@
         }
       }
     },
+    "error.localNetworkDenied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app isn’t allowed to look for nearby devices. In the Settings app, go to Privacy & Security > Local Network, turn on Two at the Mast, then try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近くの端末を探す許可がありません。設定アプリの「プライバシーとセキュリティ」→「ローカルネットワーク」で「ふたりの帆柱」をオンにしてから、もう一度お試しください。"
+          }
+        }
+      }
+    },
     "error.nearbyUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {
