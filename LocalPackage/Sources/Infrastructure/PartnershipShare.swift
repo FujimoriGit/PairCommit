@@ -121,11 +121,7 @@ enum PartnershipShare {
                 )
                 try confirmDeleted(results.deleteResults[rootRecordID.zoneID])
             } else {
-                let results = try await container.sharedCloudDatabase.modifyRecords(
-                    saving: [],
-                    deleting: [rootRecordID]
-                )
-                try confirmDeleted(results.deleteResults[rootRecordID])
+                try await endJoinedPair(rootRecordID)
             }
             Diagnostics.pairing.decided("teardown", "\(target) を終わらせた")
         } catch let error as CKError where absent.contains(error.code) {
@@ -141,7 +137,7 @@ enum PartnershipShare {
         typealias Candidate = (root: CKRecord, isOwner: Bool)
         let owned: [Candidate] = try await fetchOwnedRootWithGuest().map { [(root: $0, isOwner: true)] } ?? []
         let joined: [Candidate] = try await fetchJoinedRoots().map { (root: $0, isOwner: false) }
-        let candidates = owned + joined
+        let candidates = (owned + joined).filter { hasPairing($0.root) }
         let chosen = candidates
             .max { ($0.root.modificationDate ?? .distantPast) < ($1.root.modificationDate ?? .distantPast) }
         let described = candidates.map { candidate in
@@ -202,6 +198,30 @@ extension PartnershipShare {
             return try await database.record(for: id)
         } catch let error as CKError where absent.contains(error.code) {
             return nil
+        }
+    }
+
+    static func endJoinedPair(_ rootRecordID: CKRecord.ID) async throws {
+        let database = container.sharedCloudDatabase
+        do {
+            let results = try await database.modifyRecords(saving: [], deleting: [rootRecordID])
+            try confirmDeleted(results.deleteResults[rootRecordID])
+        } catch let error as CKError where !absent.contains(error.code) {
+            Diagnostics.pairing.failed("teardown delete \(rootRecordID.diagnosticDescription)", error)
+        } catch PartnershipShareError.deleteResultMissing {
+            Diagnostics.pairing.failed("teardown delete \(rootRecordID.diagnosticDescription)", because: "削除の結果が返っていない")
+        }
+        guard let remaining = try await fetchRoot(rootRecordID, from: database) else { return }
+        Diagnostics.pairing.decided("teardown", "参加したペア \(rootRecordID.diagnosticDescription) が残っているので、ペアを外す")
+        _ = try await database.save(PartnershipRootRecord.encoding(PartnershipState(), into: remaining))
+    }
+
+    static func hasPairing(_ root: CKRecord) -> Bool {
+        do {
+            return try PartnershipRootRecord.decoding(root).pairing != nil
+        } catch {
+            Diagnostics.pairing.failed("decode remaining \(root.recordID.diagnosticDescription)", error)
+            return false
         }
     }
 
