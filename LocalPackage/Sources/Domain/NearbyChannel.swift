@@ -9,6 +9,7 @@
 public protocol NearbyChannel: AnyObject {
     var events: AsyncStream<NearbyEvent> { get }
 
+    /// 相手を探し始める。探している間に呼び直すと、すでに見つけた相手も改めて見つけ直す。
     func start()
     func stop()
     func send(_ text: String) throws(PairingFailure)

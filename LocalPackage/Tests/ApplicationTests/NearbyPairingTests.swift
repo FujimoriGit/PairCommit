@@ -52,6 +52,7 @@ struct NearbyPairingTests {
 
         // Then
         #expect(await eventually { channel.startCalls == 2 })
+        #expect(pairing.phase == .searching)
     }
 
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
