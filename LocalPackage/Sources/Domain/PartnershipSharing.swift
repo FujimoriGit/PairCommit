@@ -28,4 +28,6 @@ public protocol PairedShare: Sendable {
     func save()
     /// 相手の側でもペアが終わる。
     func end() async throws(PairingFailure)
+    /// このペアのほかに、利用者が前に組んで残っているペアを、相手の側でも終わらせる。
+    func endOtherPairs() async throws(PairingFailure)
 }

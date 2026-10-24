@@ -23,4 +23,6 @@ struct StubShare: PairedShare {
     func save() {}
 
     func end() async throws(PairingFailure) {}
+
+    func endOtherPairs() async throws(PairingFailure) {}
 }

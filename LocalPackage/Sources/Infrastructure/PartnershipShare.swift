@@ -137,6 +137,14 @@ enum PartnershipShare {
             .map { (rootRecordID: $0.root.recordID, isOwner: $0.isOwner) }
     }
 
+    /// - Returns: 作ったペアと参加したペアのすべて。相手が参加しているかは問わない。
+    static func findEveryRoot() async throws -> [(rootRecordID: CKRecord.ID, isOwner: Bool)] {
+        let owned = try await fetchRoot(ownedRootRecordID, from: container.privateCloudDatabase)
+            .map { _ in [(rootRecordID: ownedRootRecordID, isOwner: true)] } ?? []
+        let joined = try await fetchJoinedRoots().map { (rootRecordID: $0.recordID, isOwner: false) }
+        return owned + joined
+    }
+
     // MARK: Participant 側
 
     static func acceptShare(from url: URL) async throws -> CKRecord.ID {
