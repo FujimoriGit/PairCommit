@@ -53,6 +53,9 @@ final class MultipeerSession: NSObject, NearbyChannel {
     }
 
     func start() {
+        // 探し続けている間に一度見つけた相手は、探し直さないと二度目は知らされない。
+        advertiser.stopAdvertisingPeer()
+        browser.stopBrowsingForPeers()
         advertiser.startAdvertisingPeer()
         browser.startBrowsingForPeers()
     }
