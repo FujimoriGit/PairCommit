@@ -26,19 +26,18 @@ struct NearbyPairingTests {
         #expect(sharing.makeShareCalls == 0)
     }
 
-    @Test("2台とも同じ役割を選ぶと、役割の重複が診断の記録に残る")
+    @Test("2台とも同じ役割を選ぶと、ペアリングが失敗し、役割の重複が診断の記録に残る")
     func choosingTheSameRoleOnBothDevicesIsRecorded() async {
         // Given
         let failures = RecordedFailures()
-        let (_, channel, _) = Self.started(as: .manager, failures: failures)
+        let (pairing, channel, _) = Self.started(as: .manager, failures: failures)
 
         // When
         channel.receive(.received(Partner.choosing(.manager)))
 
         // Then
-        #expect(await eventually {
-            failures.recorded.contains { $0 as? NearbyPairing.Failure == .sameRole(.manager) }
-        })
+        #expect(await eventually { pairing.phase == .failed(.sameRole(.manager)) })
+        #expect(failures.recorded.contains { $0 as? NearbyPairing.Failure == .sameRole(.manager) })
     }
 
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")

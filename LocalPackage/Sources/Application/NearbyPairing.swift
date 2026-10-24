@@ -218,9 +218,9 @@ private extension NearbyPairing {
         }
     }
 
-    func fail(with failure: PairingFailure) {
+    func fail(with failure: PairingFailure, operation: String = #function) {
         outcome = nil
-        failing(.external(failure))
+        failing(.external(failure), operation: operation)
         // 知らせないと、相手には接続が切れたとしか見えない。すぐ切ると届く前にセッションが落ちるので、
         // 切るのは相手が受け取って切断したとき。
         do throws(PairingFailure) {

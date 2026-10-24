@@ -8,7 +8,7 @@
 import Foundation
 import OSLog
 
-/// 外界とのやりとりで起きた失敗と、どのペアを選んだか・終わらせたかの判断を、端末のログと iCloud に残す。
+/// アプリで起きた失敗と、どのペアを選んだか・終わらせたかの判断を、端末のログと iCloud に残す。
 struct Diagnostics: Sendable {
     static let pairing = Self(category: "pairing")
     static let sync = Self(category: "sync")
