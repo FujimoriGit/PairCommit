@@ -40,8 +40,8 @@ struct NearbyPairingTests {
         #expect(failures.recorded.contains { $0 as? NearbyPairing.Failure == .sameRole(.manager) })
     }
 
-    @Test("近くの端末を探すことが許可されていないと、ローカルネットワークの許可が要るとしてペアリングが失敗する")
-    func pairingFailsWithoutLocalNetworkPermission() async {
+    @Test("近くの端末を探すことが許可されていないと、許可が要るとしてペアリングが失敗する")
+    func pairingFailsWithoutPermissionToSearchNearby() async {
         // Given
         let (pairing, channel, _) = Self.started(as: .manager)
 
@@ -49,7 +49,7 @@ struct NearbyPairingTests {
         channel.receive(.notPermitted)
 
         // Then
-        #expect(await eventually { pairing.phase == .failed(.external(.localNetworkDenied)) })
+        #expect(await eventually { pairing.phase == .failed(.external(.nearbyNotPermitted)) })
     }
 
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")

@@ -218,7 +218,7 @@ extension PairingFailure {
         case .offline: String(localized: .errorOffline)
         case .nearbyUnavailable:
             String(localized: .errorNearbyUnavailable)
-        case .localNetworkDenied: String(localized: .errorLocalNetworkDenied)
+        case .nearbyNotPermitted: String(localized: .errorNearbyNotPermitted)
         case .disconnected: String(localized: .errorDisconnected)
         case .invitationWithdrawn: String(localized: .errorInvitationWithdrawn)
         case .unexpected: String(localized: .errorUnexpected)
