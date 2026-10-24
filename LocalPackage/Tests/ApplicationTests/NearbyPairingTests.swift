@@ -26,6 +26,21 @@ struct NearbyPairingTests {
         #expect(sharing.makeShareCalls == 0)
     }
 
+    @Test("2台とも同じ役割を選ぶと、役割の重複が診断の記録に残る")
+    func choosingTheSameRoleOnBothDevicesIsRecorded() async {
+        // Given
+        let failures = RecordedFailures()
+        let (_, channel, _) = Self.started(as: .manager, failures: failures)
+
+        // When
+        channel.receive(.received(Partner.choosing(.manager)))
+
+        // Then
+        #expect(await eventually {
+            failures.recorded.contains { $0 as? NearbyPairing.Failure == .sameRole(.manager) }
+        })
+    }
+
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
     func pairingCompletesOnThePartnersSideWhenYoursLacksSpace() async {
         // Given
@@ -94,10 +109,13 @@ struct NearbyPairingTests {
 // MARK: - Private
 
 private extension NearbyPairingTests {
-    static func started(as role: Role) -> (NearbyPairing, FakeChannel, FakeSharing) {
+    static func started(
+        as role: Role,
+        failures: RecordedFailures = .init()
+    ) -> (NearbyPairing, FakeChannel, FakeSharing) {
         let channel = FakeChannel()
         let sharing = FakeSharing()
-        let pairing = NearbyPairing(sharing: sharing, makeChannel: { channel })
+        let pairing = NearbyPairing(sharing: sharing, failures: failures, makeChannel: { channel })
         pairing.start(as: role)
         channel.receive(.connected)
         return (pairing, channel, sharing)

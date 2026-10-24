@@ -41,6 +41,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     let notifications: NudgeNotifications
     let partnerNotifications: PartnerActionNotifications
     let knownState: SavedKnownState
+    let failures: FailureDiagnostics
     let session: PartnershipSession
 
     override init() {
@@ -48,16 +49,19 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         let notifications = NudgeNotifications()
         let partnerNotifications = PartnerActionNotifications()
         let knownState = SavedKnownState()
+        let failures = FailureDiagnostics()
         self.sharing = sharing
         self.notifications = notifications
         self.partnerNotifications = partnerNotifications
         self.knownState = knownState
+        self.failures = failures
         session = PartnershipSession(
             sharing: sharing,
             inviting: CloudInviting(shareTitle: PairCommitApp.shareTitle),
             nudges: notifications,
             partnerActions: partnerNotifications,
             knownState: knownState,
+            failures: failures,
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: makeNearbyChannel
         )
@@ -94,7 +98,8 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             nudges: notifications,
             partnerActions: partnerNotifications,
             nudgeMessage: { $0.message(in: $1) },
-            partnerActionMessage: { $0.message(in: $1) }
+            partnerActionMessage: { $0.message(in: $1) },
+            failures: failures
         )
         do throws(SyncFailure) {
             let received = try await reception.receive(

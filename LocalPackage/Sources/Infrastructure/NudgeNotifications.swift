@@ -13,7 +13,11 @@ public struct NudgeNotifications: NudgeNotifying {
     public init() {}
 
     public func requestPermission() async {
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        do {
+            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        } catch {
+            Diagnostics.notification.failed("requestAuthorization", error)
+        }
     }
 
     public func replace(with notices: [NudgeNotice], now: Date) async {
@@ -31,7 +35,11 @@ public struct NudgeNotifications: NudgeNotifying {
 
         // 配信済みの催促は出し直さない。同じ識別子で add し直すと、差し替わると同時にもう一度鳴る。
         for (id, notice) in current where !delivered.contains(id) {
-            try? await center.add(Self.request(for: notice, trigger: nil))
+            do {
+                try await center.add(Self.request(for: notice, trigger: nil))
+            } catch {
+                Diagnostics.notification.failed("add nudge \(id)", error)
+            }
         }
 
         // 誰も操作しなければプッシュは来ないので、期限が過ぎるだけの催促は先に予約しておく。
@@ -41,7 +49,11 @@ public struct NudgeNotifications: NudgeNotifying {
         let upcoming = notices.compactMap { notice in notice.startsAt.map { (notice, $0) } }
         await Self.withdrawPending(keeping: Set(upcoming.map { Self.identifier(of: $0.0.nudge) }))
         for (notice, startsAt) in upcoming {
-            try? await center.add(Self.request(for: notice, trigger: Self.trigger(at: startsAt, after: now)))
+            do {
+                try await center.add(Self.request(for: notice, trigger: Self.trigger(at: startsAt, after: now)))
+            } catch {
+                Diagnostics.notification.failed("schedule nudge \(Self.identifier(of: notice.nudge))", error)
+            }
         }
     }
 

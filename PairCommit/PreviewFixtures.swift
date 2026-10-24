@@ -139,7 +139,8 @@ extension PartnershipStore {
                 tasks: tasks,
                 notes: notes,
                 lastNoteNumber: notes.map(\.number).max() ?? 0
-            )
+            ),
+            failures: PreviewFailures()
         )
     }
 }
@@ -166,10 +167,15 @@ extension PartnershipSession {
             nudges: PreviewNudgeNotifications(),
             partnerActions: PreviewPartnerActionNotifications(),
             knownState: PreviewKnownState(),
+            failures: PreviewFailures(),
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: { PreviewNearbyChannel() }
         )
     }
+}
+
+struct PreviewFailures: FailureRecording {
+    func record(_ failure: any Error, during operation: String) {}
 }
 
 struct PreviewSynchronizer: PartnershipSyncing {

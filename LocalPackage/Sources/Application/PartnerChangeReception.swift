@@ -15,19 +15,22 @@ public struct PartnerChangeReception: Sendable {
     private let partnerActions: any PartnerActionNotifying
     private let nudgeMessage: @Sendable (Nudge, PartnershipState) -> String
     private let partnerActionMessage: @Sendable (PartnerAction, PartnershipState) -> String
+    private let failures: any FailureRecording
 
     public init(
         knownState: any KnownStateKeeping,
         nudges: any NudgeNotifying,
         partnerActions: any PartnerActionNotifying,
         nudgeMessage: @escaping @Sendable (Nudge, PartnershipState) -> String,
-        partnerActionMessage: @escaping @Sendable (PartnerAction, PartnershipState) -> String
+        partnerActionMessage: @escaping @Sendable (PartnerAction, PartnershipState) -> String,
+        failures: any FailureRecording
     ) {
         self.knownState = knownState
         self.nudges = nudges
         self.partnerActions = partnerActions
         self.nudgeMessage = nudgeMessage
         self.partnerActionMessage = partnerActionMessage
+        self.failures = failures
     }
 
     /// 状態を取り直し、前面にいなければ、催促と、相手がこの端末の役割に向けて行った操作を通知する。
@@ -42,7 +45,7 @@ public struct PartnerChangeReception: Sendable {
         if let current {
             try await current.refresh()
             store = current
-        } else if let saved, let started = try await PartnershipStore(starting: saved) {
+        } else if let saved, let started = try await PartnershipStore(starting: saved, failures: failures) {
             store = started
         } else {
             return false

@@ -18,7 +18,7 @@ struct RemotePairingTests {
         // Given
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
         pairing.invite(ownerRole: .manager)
         _ = await pairing.run()
 
@@ -35,7 +35,7 @@ struct RemotePairingTests {
     func cancellationStaysVisibleUntilItFinishes() async {
         // Given
         let inviting = FakeInviting()
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
         pairing.invite(ownerRole: .manager)
         inviting.hold()
         let cancelling = Task { await pairing.cancel() }
@@ -55,7 +55,7 @@ struct RemotePairingTests {
         // Given
         let inviting = FakeInviting()
         inviting.sendFailure = .offline
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
         pairing.invite(ownerRole: .manager)
 
         // When
@@ -66,12 +66,28 @@ struct RemotePairingTests {
         #expect(pairing.isCreatingLink)
     }
 
+    @Test("招待リンクの作成に失敗したら、その理由が診断の記録に残る")
+    func failingToSendIsRecorded() async {
+        // Given
+        let inviting = FakeInviting()
+        inviting.sendFailure = .offline
+        let failures = RecordedFailures()
+        let pairing = RemotePairing(inviting: inviting, failures: failures)
+        pairing.invite(ownerRole: .manager)
+
+        // When
+        _ = await pairing.run()
+
+        // Then
+        #expect(failures.recorded.contains { $0 as? PairingFailure == .offline })
+    }
+
     @Test("招待リンクの作成中に取りやめて、その取りやめに失敗したら、招待リンクの作成段階のエラーにはならない")
     func failingToCancelIsNotAFailureWhileCreatingTheLink() async {
         // Given
         let inviting = FakeInviting()
         inviting.cleanupFailure = .offline
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
         pairing.invite(ownerRole: .manager)
 
         // When
@@ -88,7 +104,7 @@ struct RemotePairingTests {
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
         inviting.cleanupFailure = .offline
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
         pairing.invite(ownerRole: .manager)
         await pairing.cancel()
         inviting.cleanupFailure = nil
@@ -109,7 +125,7 @@ struct RemotePairingTests {
         // Given
         let inviting = FakeInviting(savedWithdrawal: .invitation)
         inviting.progress = .paired(StubShare(isOwner: true))
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
 
         // When
         let paired = await pairing.run()
@@ -126,7 +142,7 @@ struct RemotePairingTests {
         // Given
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
         inviting.progress = .paired(StubShare(isOwner: true))
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
 
         // When
         let paired = await pairing.run()
@@ -143,7 +159,7 @@ struct RemotePairingTests {
         let inviting = FakeInviting(savedStage: .sent(ownerRole: .manager))
 
         // When
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
 
         // Then
         #expect(pairing.partnerRole == .player)
@@ -154,7 +170,7 @@ struct RemotePairingTests {
         // Given
         let inviting = FakeInviting(savedStage: .joined)
         inviting.joinedShare = StubShare(isOwner: false)
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
 
         // When
         let paired = await pairing.run()
@@ -171,7 +187,7 @@ struct RemotePairingTests {
         let inviting = FakeInviting()
         inviting.progress = .paired(StubShare(isOwner: true))
         inviting.hold()
-        let pairing = RemotePairing(inviting: inviting)
+        let pairing = RemotePairing(inviting: inviting, failures: RecordedFailures())
         pairing.invite(ownerRole: .manager)
         let running = Task { await pairing.run() }
         #expect(await eventually { inviting.isHeld })

@@ -18,7 +18,12 @@ public struct PartnerActionNotifications: PartnerActionNotifying {
             let content = UNMutableNotificationContent()
             content.body = notice.message
             content.sound = .default
-            try? await center.add(.init(identifier: Self.identifier(of: notice.action), content: content, trigger: nil))
+            let identifier = Self.identifier(of: notice.action)
+            do {
+                try await center.add(.init(identifier: identifier, content: content, trigger: nil))
+            } catch {
+                Diagnostics.notification.failed("add partner action \(identifier)", error)
+            }
         }
     }
 

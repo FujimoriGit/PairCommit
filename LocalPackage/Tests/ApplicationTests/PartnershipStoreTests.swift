@@ -17,7 +17,7 @@ struct PartnershipStoreTests {
     func anActionAppliesLocallyRightAwayAndIsSaved() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
 
         // When
         try await store.perform { state, role throws(VisionDraftingError) in
@@ -34,7 +34,7 @@ struct PartnershipStoreTests {
     func aForbiddenActionChangesNothing() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
 
         // When / Then
         await #expect(throws: PartnershipFailure<VisionDraftingError>.rejected(.notPlayer)) {
@@ -49,7 +49,7 @@ struct PartnershipStoreTests {
     func partnersChangeAppearsAfterReloading() async throws {
         // Given
         let synchronizer = InMemorySynchronizer()
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
         let remote = try PartnershipState().establishingPairing(ownerRole: .player)
         try await synchronizer.save(remote, replacing: .init())
 
@@ -64,7 +64,7 @@ struct PartnershipStoreTests {
     func reloadingWhileSavingKeepsTheSavedAction() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
         synchronizer.hold()
 
         // When
@@ -88,7 +88,7 @@ struct PartnershipStoreTests {
     func overlappingActionsAreBothKept() async throws {
         // Given
         let synchronizer = InterruptibleSynchronizer()
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
         synchronizer.hold()
 
         // When
@@ -118,7 +118,7 @@ struct PartnershipStoreTests {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         synchronizer.failure = .unavailable
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
 
         // When / Then
         await #expect(throws: PartnershipFailure<VisionDraftingError>.notSynchronized(.unavailable)) {
@@ -134,7 +134,7 @@ struct PartnershipStoreTests {
         // Given
         let synchronizer = InterruptibleSynchronizer()
         synchronizer.failure = .unavailable
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
 
         // When
         await store.send { state, role throws(VisionDraftingError) in
@@ -151,8 +151,8 @@ struct PartnershipStoreTests {
         // Given
         let (shared, taskID) = try Self.reportedTask()
         let synchronizer = InMemorySynchronizer(initialState: shared)
-        let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
-        let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared, failures: RecordedFailures())
+        let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared, failures: RecordedFailures())
         try await first.perform { state, role throws(TaskApprovalError) in
             try state.approvingTask(taskID, by: role)
         }
@@ -172,8 +172,8 @@ struct PartnershipStoreTests {
         // Given
         let (shared, taskID) = try Self.reportedTask()
         let synchronizer = InMemorySynchronizer(initialState: shared)
-        let player = PartnershipStore(role: .player, synchronizer: synchronizer, state: shared)
-        let manager = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        let player = PartnershipStore(role: .player, synchronizer: synchronizer, state: shared, failures: RecordedFailures())
+        let manager = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared, failures: RecordedFailures())
         try await player.perform { state, role throws(ReactionError) in
             try state.settingReaction(.happy, on: taskID, by: role)
         }
@@ -196,8 +196,8 @@ struct PartnershipStoreTests {
         // Given
         let (shared, taskID) = try Self.reportedTask()
         let synchronizer = InMemorySynchronizer(initialState: shared)
-        let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
-        let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared)
+        let first = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared, failures: RecordedFailures())
+        let second = PartnershipStore(role: .manager, synchronizer: synchronizer, state: shared, failures: RecordedFailures())
         try await first.perform { state, role throws(TaskApprovalError) in
             try state.approvingTask(taskID, by: role)
         }
@@ -217,7 +217,7 @@ struct PartnershipStoreTests {
         let latest = try PartnershipState().establishingPairing(ownerRole: .manager)
         let synchronizer = InterruptibleSynchronizer()
         synchronizer.failure = .outdated(latest: latest)
-        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init())
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: RecordedFailures())
 
         // When / Then
         await #expect(throws: PartnershipFailure<VisionDraftingError>.notSynchronized(.outdated(latest: latest))) {
@@ -228,6 +228,40 @@ struct PartnershipStoreTests {
         #expect(store.state == latest)
     }
 
+    @Test("役割やルールで許されない操作を断られると、断られた理由が診断の記録に残る")
+    func aForbiddenActionIsRecorded() async {
+        // Given
+        let failures = RecordedFailures()
+        let store = PartnershipStore(role: .manager, synchronizer: InMemorySynchronizer(), state: .init(), failures: failures)
+
+        // When
+        _ = await store.send { state, role throws(VisionDraftingError) in
+            try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
+        }
+
+        // Then
+        #expect(failures.recorded.contains { $0 as? PartnershipFailure<VisionDraftingError> == .rejected(.notPlayer) })
+    }
+
+    @Test("保存できなかった操作は、保存できなかったことが診断の記録に残る")
+    func anActionThatFailsToSaveIsRecorded() async {
+        // Given
+        let synchronizer = InterruptibleSynchronizer()
+        synchronizer.failure = .unavailable
+        let failures = RecordedFailures()
+        let store = PartnershipStore(role: .player, synchronizer: synchronizer, state: .init(), failures: failures)
+
+        // When
+        _ = await store.send { state, role throws(VisionDraftingError) in
+            try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
+        }
+
+        // Then
+        #expect(failures.recorded.contains {
+            $0 as? PartnershipFailure<VisionDraftingError> == .notSynchronized(.unavailable)
+        })
+    }
+
     @Test("ペアリングが完了したら、保存されたペアの状態から使い始める")
     func usageStartsWithTheSavedPair() async throws {
         // Given
@@ -235,7 +269,7 @@ struct PartnershipStoreTests {
         let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
 
         // When
-        let store = try await PartnershipStore(starting: share)
+        let store = try await PartnershipStore(starting: share, failures: RecordedFailures())
 
         // Then
         #expect(store?.state == paired)
@@ -248,7 +282,7 @@ struct PartnershipStoreTests {
         let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired))
 
         // When
-        let store = try await PartnershipStore(starting: share)
+        let store = try await PartnershipStore(starting: share, failures: RecordedFailures())
 
         // Then
         #expect(store?.role == chosen)
@@ -261,7 +295,7 @@ struct PartnershipStoreTests {
         let share = StubShare(isOwner: false, synchronizer: InMemorySynchronizer(initialState: paired))
 
         // When
-        let store = try await PartnershipStore(starting: share)
+        let store = try await PartnershipStore(starting: share, failures: RecordedFailures())
 
         // Then
         let role = try #require(store?.role)
@@ -274,7 +308,7 @@ struct PartnershipStoreTests {
         let share = StubShare(isOwner: true, synchronizer: InMemorySynchronizer())
 
         // When
-        let store = try await PartnershipStore(starting: share)
+        let store = try await PartnershipStore(starting: share, failures: RecordedFailures())
 
         // Then
         #expect(store == nil)

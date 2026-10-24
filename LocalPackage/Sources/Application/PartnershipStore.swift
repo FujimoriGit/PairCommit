@@ -18,21 +18,29 @@ public final class PartnershipStore {
     public private(set) var saveFailure: SyncFailure?
 
     private let synchronizer: any PartnershipSyncing
+    private let failures: any FailureRecording
     private var pending: Task<Void, Never>?
 
-    public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState) {
+    public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState, failures: any FailureRecording) {
         self.role = role
         self.synchronizer = synchronizer
         self.state = state
+        self.failures = failures
     }
 
     /// 共有から同期を始め、ペアでの役割を決める。共有にまだペアが入っていないか、もう終わっていれば nil。
-    public convenience init?(starting share: any PairedShare) async throws(SyncFailure) {
+    public convenience init?(starting share: any PairedShare, failures: any FailureRecording) async throws(SyncFailure) {
         let synchronizer = share.synchronizer()
-        let state = try await synchronizer.start()
+        let state: PartnershipState
+        do throws(SyncFailure) {
+            state = try await synchronizer.start()
+        } catch {
+            failures.record(error, during: "start")
+            throw error
+        }
         guard let ownerRole = state.pairing?.ownerRole else { return nil }
         let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: share.isOwner)
-        self.init(role: agreement.role, synchronizer: synchronizer, state: state)
+        self.init(role: agreement.role, synchronizer: synchronizer, state: state, failures: failures)
     }
 
     public func refresh() async throws(SyncFailure) {
@@ -45,17 +53,22 @@ public final class PartnershipStore {
             }
         }
         if let failure {
+            failures.record(failure, during: "refresh")
             throw failure
         }
     }
 
+    /// 失敗したときは、`file` と `function` を操作した場所として記録する。
     public func perform<Rejection: Error>(
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState,
+        file: String = #fileID,
+        function: String = #function
     ) async throws(PartnershipFailure<Rejection>) {
         let failure = await serialized { [self] in
             await apply(transform, to: state, remaining: Self.attempts)
         }
         if let failure {
+            failures.record(failure, during: "\(file) \(function)")
             throw failure
         }
     }
@@ -65,10 +78,12 @@ public final class PartnershipStore {
     /// - Returns: 保存できたかどうか。
     @discardableResult
     public func send<Rejection: Error>(
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
+        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState,
+        file: String = #fileID,
+        function: String = #function
     ) async -> Bool {
         do throws(PartnershipFailure<Rejection>) {
-            try await perform(transform)
+            try await perform(transform, file: file, function: function)
             return true
         } catch {
             switch error {
