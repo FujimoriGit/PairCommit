@@ -55,13 +55,14 @@ struct NearbyPairingTests {
     @Test("相手とつながったあとで近くの端末を探すことが許可されていないと分かると、相手にペアリングの失敗を知らせる")
     func partnerIsToldOfTheFailureWhenPermissionIsMissingAfterConnecting() async {
         // Given
-        let (_, channel, _) = Self.started(as: .manager)
+        let (pairing, channel, _) = Self.started(as: .manager)
 
         // When
         channel.receive(.notPermitted)
 
         // Then
         #expect(await eventually { channel.sent.contains(Partner.failure) })
+        withExtendedLifetime(pairing) {}
     }
 
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
