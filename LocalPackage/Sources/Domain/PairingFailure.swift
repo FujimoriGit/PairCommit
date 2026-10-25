@@ -13,6 +13,7 @@ public enum PairingFailure: Error, Equatable, Sendable {
     case serverBusy
     case offline
     case nearbyUnavailable
+    case nearbyNotPermitted
     case disconnected
     case invitationWithdrawn
     case unexpected
