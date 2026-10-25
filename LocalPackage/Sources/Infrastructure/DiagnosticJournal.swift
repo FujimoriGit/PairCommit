@@ -47,12 +47,11 @@ public struct DiagnosticJournal: DiagnosticHistory {
         do {
             try DiagnosticDirectory.prepare(directory)
             try JSONEncoder().encode(event).write(to: DiagnosticDirectory.file(for: event, in: directory), options: .atomic)
-            for old in try keptFiles().dropLast(Self.capacity) {
-                try FileManager.default.removeItem(at: old)
-            }
         } catch {
             logger.error("journal write \(event.id, privacy: .public): \(error, privacy: .public)")
+            return
         }
+        removeOverflow()
     }
 }
 
@@ -63,5 +62,28 @@ private extension DiagnosticJournal {
 
     func keptFiles() throws -> [URL] {
         try DiagnosticDirectory.files(in: directory)
+    }
+
+    func removeOverflow() {
+        let files: [URL]
+        do {
+            files = try keptFiles()
+        } catch {
+            logger.error("journal list: \(error, privacy: .public)")
+            return
+        }
+        for old in files.dropLast(Self.capacity) {
+            remove(old)
+        }
+    }
+
+    func remove(_ file: URL) {
+        do {
+            try FileManager.default.removeItem(at: file)
+        } catch CocoaError.fileNoSuchFile {
+            // 並んで書いたほうが、先に消している。
+        } catch {
+            logger.error("journal remove \(file.lastPathComponent, privacy: .public): \(error, privacy: .public)")
+        }
     }
 }
