@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 端末に残した、失敗・判断・進み具合の記録。
+/// 端末に残した記録。
 public protocol DiagnosticHistory: Sendable {
     /// - Returns: 新しい順。
     func recentEntries() -> [DiagnosticEntry]

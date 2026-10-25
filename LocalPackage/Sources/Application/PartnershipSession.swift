@@ -81,7 +81,7 @@ public final class PartnershipSession {
         }
     }
 
-    /// 端末に残した最近の失敗と判断。新しい順。
+    /// 端末に残した最近の記録。新しい順。
     public func recentDiagnostics() -> [DiagnosticEntry] {
         diagnostics.recentEntries()
     }
