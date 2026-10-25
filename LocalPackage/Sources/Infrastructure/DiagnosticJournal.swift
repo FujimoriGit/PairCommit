@@ -32,7 +32,7 @@ public struct DiagnosticJournal: DiagnosticHistory {
                 return .init(
                     id: event.id,
                     occurredAt: event.occurredAt,
-                    isFailure: event.kind == .failure,
+                    kind: event.kind.entryKind,
                     operation: "\(event.category) \(event.operation)",
                     detail: event.detail
                 )

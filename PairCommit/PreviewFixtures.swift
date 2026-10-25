@@ -186,21 +186,21 @@ extension DiagnosticEntry {
         .init(
             id: UUID(),
             occurredAt: .preview.addingTimeInterval(65),
-            isFailure: true,
+            kind: .failure,
             operation: "pairing nearby fail(with:)",
             detail: "external(Domain.PairingFailure.disconnected)"
         ),
         .init(
             id: UUID(),
             occurredAt: .preview.addingTimeInterval(32),
-            isFailure: false,
+            kind: .progress,
             operation: "pairing nearby session",
             detail: "iPhone#3F2A notConnected"
         ),
         .init(
             id: UUID(),
             occurredAt: .preview,
-            isFailure: false,
+            kind: .progress,
             operation: "pairing nearby found",
             detail: "iPhone#3F2A 招待する"
         ),

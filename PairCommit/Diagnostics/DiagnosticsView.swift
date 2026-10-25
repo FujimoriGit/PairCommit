@@ -34,7 +34,7 @@ struct DiagnosticsList: View {
                     Text(entry.occurredAt, format: Date.FormatStyle.monthDayTimeSeconds)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Label(entry.operation, systemImage: entry.isFailure ? "exclamationmark.triangle" : "info.circle")
+                    Label(entry.operation, systemImage: entry.kind == .failure ? "exclamationmark.triangle" : "info.circle")
                         .font(.subheadline.weight(.semibold))
                     Text(entry.detail)
                         .font(.caption.monospaced())
@@ -54,7 +54,7 @@ struct DiagnosticsList: View {
 private extension DiagnosticsList {
     var sharedText: String {
         entries.map { entry in
-            "\(entry.occurredAt.formatted(.iso8601)) \(entry.isFailure ? "failure" : "decision") \(entry.operation): \(entry.detail)"
+            "\(entry.occurredAt.formatted(.iso8601)) \(entry.kind) \(entry.operation): \(entry.detail)"
         }
         .joined(separator: "\n")
     }

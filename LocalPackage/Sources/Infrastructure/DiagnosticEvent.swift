@@ -6,6 +6,7 @@
 //
 
 import CloudKit
+import Domain
 import Foundation
 
 struct DiagnosticEvent: Codable, Sendable {
@@ -24,6 +25,16 @@ struct DiagnosticEvent: Codable, Sendable {
     let appVersion: String
     let system: String
     let device: String
+}
+
+extension DiagnosticEvent.Kind {
+    var entryKind: DiagnosticEntry.Kind {
+        switch self {
+        case .failure: .failure
+        case .decision: .decision
+        case .progress: .progress
+        }
+    }
 }
 
 extension DiagnosticEvent {
