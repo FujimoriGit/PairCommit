@@ -116,8 +116,7 @@ private extension NearbyPairing {
         case .notPermitted:
             switch phase {
             case .idle, .searching, .connected, .sharing, .handedOver:
-                failing(.external(.nearbyNotPermitted))
-                tearDown()
+                fail(with: .nearbyNotPermitted)
             case .done, .failed:
                 break
             }

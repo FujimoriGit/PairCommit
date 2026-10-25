@@ -52,6 +52,18 @@ struct NearbyPairingTests {
         #expect(await eventually { pairing.phase == .failed(.external(.nearbyNotPermitted)) })
     }
 
+    @Test("相手とつながったあとで近くの端末を探すことが許可されていないと分かると、相手にペアリングの失敗を知らせる")
+    func partnerIsToldOfTheFailureWhenPermissionIsMissingAfterConnecting() async {
+        // Given
+        let (_, channel, _) = Self.started(as: .manager)
+
+        // When
+        channel.receive(.notPermitted)
+
+        // Then
+        #expect(await eventually { channel.sent.contains(Partner.failure) })
+    }
+
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
     func pairingCompletesOnThePartnersSideWhenYoursLacksSpace() async {
         // Given
@@ -136,6 +148,7 @@ private extension NearbyPairingTests {
 /// 相手の端末が送ってくる文字列。
 private enum Partner {
     static let acknowledgement = "paircommit://ack"
+    static let failure = "paircommit://failed"
     static let savedPair = "file:///partners-pair"
 
     static func choosing(_ role: Role) -> String {
