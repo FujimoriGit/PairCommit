@@ -44,7 +44,7 @@ struct NearbyPairingTests {
         // Given
         let sharing = FakeSharing()
         sharing.failure = .offline
-        let (_, channel, _) = Self.started(as: .manager, sharing: sharing)
+        let (pairing, channel, _) = Self.started(as: .manager, sharing: sharing)
         #expect(await eventually { sharing.returnedCount == 1 })
         sharing.failure = nil
 
@@ -53,6 +53,7 @@ struct NearbyPairingTests {
 
         // Then
         #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
+        withExtendedLifetime(pairing) {}
     }
 
     @Test("相手を探している間に、見つけた相手とつなぐのに失敗しても、探し直してペアリングが完了する")

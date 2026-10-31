@@ -193,6 +193,7 @@ private extension NearbyPairing {
                 var prepared = await preparing.value
                 if preparedEarly != nil, case .failure(let failure) = prepared, failure != .storageFull {
                     guard isSharing(on: channel) else { return }
+                    failures.record(failure, during: "nearby makeShare(ownerRole:handsOverOnRefusal:) prepared early")
                     // 探し始めたときには通らなかった通信が、いまは通ることがある。
                     prepared = await prepareShare(ownerRole: ownerRole).value
                 }
