@@ -72,6 +72,14 @@ struct CloudPairedShare: PairedShare {
         SavedPairing.save(self)
     }
 
+    func hasPartnerJoined() async throws(PairingFailure) -> Bool {
+        do {
+            return try await PartnershipShare.fetchOwnedRootWithGuest() != nil
+        } catch {
+            throw PairingFailure(error)
+        }
+    }
+
     func end() async throws(PairingFailure) {
         do {
             try await PartnershipShare.teardown(rootRecordID: rootRecordID, isOwner: isOwner)

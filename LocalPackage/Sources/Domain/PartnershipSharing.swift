@@ -26,6 +26,8 @@ public protocol PairedShare: Sendable {
 
     func synchronizer() -> any PartnershipSyncing
     func save()
+    /// 作った側で呼ぶ。
+    func hasPartnerJoined() async throws(PairingFailure) -> Bool
     /// 相手の側でもペアが終わる。
     func end() async throws(PairingFailure)
     /// このペアのほかに、利用者が前に組んで残っているペアを、相手の側でも終わらせる。

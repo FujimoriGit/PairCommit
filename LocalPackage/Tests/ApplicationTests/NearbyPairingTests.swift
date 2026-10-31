@@ -109,6 +109,56 @@ struct NearbyPairingTests {
         #expect(await eventually { pairing.phase == .done })
     }
 
+    @Test("挑む人は、相手が保存したペアに参加している途中で近くの通信が切れても、参加を終えてペアリングが完了する")
+    func playerCompletesPairingWhenDisconnectedWhileJoining() async {
+        // Given
+        let failures = RecordedFailures()
+        let (pairing, channel, sharing) = Self.started(as: .player, failures: failures)
+        channel.receive(.received(Partner.choosing(.manager)))
+        sharing.hold()
+        channel.receive(.received(sharing.url.absoluteString))
+        #expect(await eventually { sharing.isHeld })
+        channel.receive(.disconnected)
+        #expect(await eventually { failures.recorded.contains { $0 as? NearbyPairing.Failure == .external(.disconnected) } })
+
+        // When
+        sharing.release()
+
+        // Then
+        #expect(await eventually { pairing.phase == .done })
+    }
+
+    @Test("見届ける人は、保存したペアを相手に送ったあとで近くの通信が切れても、相手がそのペアに参加していればペアリングが完了する")
+    func managerCompletesPairingWhenDisconnectedAfterThePartnerJoins() async {
+        // Given
+        let (pairing, channel, sharing) = Self.started(as: .manager)
+        channel.receive(.received(Partner.choosing(.player)))
+        #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
+
+        // When
+        channel.receive(.disconnected)
+
+        // Then
+        #expect(await eventually { pairing.phase == .done })
+        #expect(pairing.outcome?.isOwner == true)
+    }
+
+    @Test("見届ける人が保存したペアを相手に送ったあとで近くの通信が切れ、相手がそのペアに参加しないままなら、切断でペアリングが失敗する")
+    func managerFailsPairingWhenDisconnectedAndThePartnerNeverJoins() async {
+        // Given
+        let (pairing, channel, sharing) = Self.started(as: .manager)
+        sharing.partnerJoined = false
+        channel.receive(.received(Partner.choosing(.player)))
+        #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
+
+        // When
+        channel.receive(.disconnected)
+
+        // Then
+        #expect(await eventually(within: .seconds(2)) { pairing.phase == .failed(.external(.disconnected)) })
+        #expect(pairing.outcome == nil)
+    }
+
     @Test("ペアを保存している途中でやめたら、ペアリングは完了せず、保存したペアは相手に送られない")
     func cancellingWhileSavingThePairNeitherCompletesPairingNorSendsThePair() async {
         // Given
@@ -139,7 +189,12 @@ private extension NearbyPairingTests {
     ) -> (NearbyPairing, FakeChannel, FakeSharing) {
         let channel = FakeChannel()
         let sharing = FakeSharing()
-        let pairing = NearbyPairing(sharing: sharing, failures: failures, makeChannel: { channel })
+        let pairing = NearbyPairing(
+            sharing: sharing,
+            failures: failures,
+            makeChannel: { channel },
+            partnerJoinCheckInterval: .milliseconds(1)
+        )
         pairing.start(as: role)
         channel.receive(.connected)
         return (pairing, channel, sharing)
@@ -186,11 +241,12 @@ private final class FakeChannel: NearbyChannel {
     }
 }
 
-/// 共有を作るのを止めておける。作っている間にやめた状況を作るために使う。
+/// 共有を作るのと参加するのを止めておける。その途中でやめたり、通信が切れたりした状況を作るために使う。
 @MainActor
 private final class FakeSharing: PartnershipSharing {
     nonisolated let url = URL(fileURLWithPath: "/share")
     var failure: PairingFailure?
+    var partnerJoined = true
     private(set) var makeShareCalls = 0
     private(set) var returnedCount = 0
 
@@ -220,11 +276,14 @@ private final class FakeSharing: PartnershipSharing {
         if let failure {
             throw failure
         }
-        return (url, StubShare(isOwner: true))
+        return (url, StubShare(isOwner: true, partnerJoined: partnerJoined))
     }
 
     func acceptShare(from url: URL) async throws(PairingFailure) -> any PairedShare {
-        StubShare(isOwner: false)
+        if held {
+            await withCheckedContinuation { waiting = $0 }
+        }
+        return StubShare(isOwner: false)
     }
 
     nonisolated func savedShare() -> (any PairedShare)? {

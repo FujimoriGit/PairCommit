@@ -268,6 +268,10 @@ private struct UnreachableShare: PairedShare {
 
     func save() {}
 
+    func hasPartnerJoined() async throws(PairingFailure) -> Bool {
+        true
+    }
+
     func end() async throws(PairingFailure) {}
 
     func endOtherPairs() async throws(PairingFailure) {}
@@ -301,6 +305,10 @@ private struct RemainingPairShare: PairedShare {
 
     func save() {}
 
+    func hasPartnerJoined() async throws(PairingFailure) -> Bool {
+        true
+    }
+
     func end() async throws(PairingFailure) {
         await pairs.end(name)
     }
@@ -321,6 +329,10 @@ private struct LeftoverKeepingShare: PairedShare {
     }
 
     func save() {}
+
+    func hasPartnerJoined() async throws(PairingFailure) -> Bool {
+        true
+    }
 
     func end() async throws(PairingFailure) {
         await pairs.end(name)
