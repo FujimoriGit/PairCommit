@@ -35,19 +35,23 @@ public final class NearbyPairing {
     private let sharing: any PartnershipSharing
     private let failures: any FailureRecording
     private let makeChannel: @MainActor () -> any NearbyChannel
+    private let partnerJoinCheckInterval: Duration
     private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
     private var shareTask: Task<Void, Never>?
     private var role: Role?
 
+    /// - Parameter partnerJoinCheckInterval: 招待の URL を渡したあとに近くの通信が切れたとき、相手が参加したかを確かめ直す間隔。
     public init(
         sharing: any PartnershipSharing,
         failures: any FailureRecording,
-        makeChannel: @escaping @MainActor () -> any NearbyChannel
+        makeChannel: @escaping @MainActor () -> any NearbyChannel,
+        partnerJoinCheckInterval: Duration = .seconds(3)
     ) {
         self.sharing = sharing
         self.failures = failures
         self.makeChannel = makeChannel
+        self.partnerJoinCheckInterval = partnerJoinCheckInterval
     }
 
     public func start(as role: Role) {
@@ -80,6 +84,7 @@ private extension NearbyPairing {
     static let failureMessage = "paircommit://failed"
     static let rolePrefix = "paircommit://role/"
     static let handOverPrefix = "paircommit://hand-over/"
+    static let partnerJoinChecks = 5
 
     static func role(from message: String) -> Role? {
         guard message.hasPrefix(rolePrefix) else { return nil }
@@ -102,9 +107,14 @@ private extension NearbyPairing {
             handleReceived(text)
         case .disconnected:
             switch phase {
-            case .connected, .sharing, .handedOver:
+            case .connected, .handedOver:
                 failing(.external(.disconnected))
                 tearDown()
+            case .sharing:
+                failures.record(Failure.external(.disconnected), during: "nearby handle(_:) sharing")
+                // 共有を作っている途中と参加している途中は、その結果で決まる。
+                guard let share = outcome, share.isOwner else { return }
+                confirmPartnerJoined(share)
             case .done, .failed:
                 // 完了後や、失敗を知らせたあとの切断は正常。
                 tearDown()
@@ -174,6 +184,35 @@ private extension NearbyPairing {
         self.channel === channel && phase == .sharing
     }
 
+    func confirmPartnerJoined(_ share: any PairedShare) {
+        let channel = channel
+        Task {
+            var failure = PairingFailure.disconnected
+            for check in 1...Self.partnerJoinChecks {
+                do throws(PairingFailure) {
+                    let joined = try await share.hasPartnerJoined()
+                    guard isSharing(on: channel) else { return }
+                    if joined {
+                        phase = .done
+                        tearDown()
+                        return
+                    }
+                    failure = .disconnected
+                } catch {
+                    guard isSharing(on: channel) else { return }
+                    failure = error
+                }
+                if check < Self.partnerJoinChecks {
+                    try? await Task.sleep(for: partnerJoinCheckInterval)
+                }
+            }
+            guard isSharing(on: channel) else { return }
+            outcome = nil
+            failing(.external(failure))
+            tearDown()
+        }
+    }
+
     func handOver(_ role: Role) {
         do throws(PairingFailure) {
             try channel?.send(Self.handOverPrefix + role.rawValue)
@@ -191,9 +230,13 @@ private extension NearbyPairing {
                 let share = try await sharing.acceptShare(from: url)
                 guard isSharing(on: channel) else { return }
                 outcome = share
-                try channel?.send(Self.ackMessage)
-                // すぐ切断すると ACK が届く前にセッションが落ちることがある。
                 phase = .done
+                // すぐ切断すると ACK が届く前にセッションが落ちることがある。
+                do throws(PairingFailure) {
+                    try channel?.send(Self.ackMessage)
+                } catch {
+                    tearDown()
+                }
             } catch {
                 guard isSharing(on: channel) else { return }
                 fail(with: error)
