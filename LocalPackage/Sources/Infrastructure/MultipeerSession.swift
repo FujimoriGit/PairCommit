@@ -101,7 +101,7 @@ extension MultipeerSession: MCSessionDelegate {
             browser.stopBrowsingForPeers()
             eventContinuation.yield(.connected)
         case .notConnected:
-            Diagnostics.pairing.failed("nearby session", because: "\(peerID.displayName) とつながっていない状態になった")
+            Diagnostics.pairing.decided("nearby session", "\(peerID.displayName) とつながっていない状態になった")
             eventContinuation.yield(.disconnected)
         case .connecting:
             Diagnostics.pairing.decided("nearby session", "\(peerID.displayName) とつなぎ始めた")
