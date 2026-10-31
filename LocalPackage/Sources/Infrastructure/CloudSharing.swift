@@ -102,16 +102,7 @@ extension PairingFailure {
     }
 }
 
-// MARK: - Private
-
-private extension CloudPairedShare {
-    // 作る側のペアはゾーン名とレコード名が固定で、1人に1つしかない。
-    func isSamePair(as other: (rootRecordID: CKRecord.ID, isOwner: Bool)) -> Bool {
-        other.isOwner == isOwner && (isOwner || other.rootRecordID == rootRecordID)
-    }
-}
-
-private extension PairingFailure {
+extension PairingFailure {
     static func classifying(_ error: any Error) -> Self {
         if case .invitationWithdrawn? = error as? PartnershipShareError {
             return .invitationWithdrawn
@@ -134,5 +125,14 @@ private extension PairingFailure {
         default:
             return .unexpected
         }
+    }
+}
+
+// MARK: - Private
+
+private extension CloudPairedShare {
+    // 作る側のペアはゾーン名とレコード名が固定で、1人に1つしかない。
+    func isSamePair(as other: (rootRecordID: CKRecord.ID, isOwner: Bool)) -> Bool {
+        other.isOwner == isOwner && (isOwner || other.rootRecordID == rootRecordID)
     }
 }

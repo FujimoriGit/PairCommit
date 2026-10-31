@@ -128,6 +128,23 @@ struct NearbyPairingTests {
         #expect(pairing.phase == .idle)
         #expect(!channel.sent.contains(sharing.url.absoluteString))
     }
+
+    @Test("挑む人が相手の保存したペアに参加している途中でやめたら、そのペアへの参加は取り消される")
+    func cancellingWhileJoiningThePartnersPairCancelsTheJoin() async {
+        // Given
+        let (pairing, channel, sharing) = Self.started(as: .player)
+        channel.receive(.received(Partner.choosing(.manager)))
+        sharing.hold()
+        channel.receive(.received(sharing.url.absoluteString))
+        #expect(await eventually { sharing.isHeld })
+
+        // When
+        pairing.reset()
+        sharing.release()
+
+        // Then
+        #expect(await eventually { sharing.cancelledAccepts == 1 })
+    }
 }
 
 // MARK: - Private
@@ -186,13 +203,14 @@ private final class FakeChannel: NearbyChannel {
     }
 }
 
-/// 共有を作るのを止めておける。作っている間にやめた状況を作るために使う。
+/// 共有を作るのと参加するのを止めておける。その途中でやめた状況を作るために使う。
 @MainActor
 private final class FakeSharing: PartnershipSharing {
     nonisolated let url = URL(fileURLWithPath: "/share")
     var failure: PairingFailure?
     private(set) var makeShareCalls = 0
     private(set) var returnedCount = 0
+    private(set) var cancelledAccepts = 0
 
     private var held = false
     private var waiting: CheckedContinuation<Void, Never>?
@@ -224,7 +242,13 @@ private final class FakeSharing: PartnershipSharing {
     }
 
     func acceptShare(from url: URL) async throws(PairingFailure) -> any PairedShare {
-        StubShare(isOwner: false)
+        if held {
+            await withCheckedContinuation { waiting = $0 }
+        }
+        if Task.isCancelled {
+            cancelledAccepts += 1
+        }
+        return StubShare(isOwner: false)
     }
 
     nonisolated func savedShare() -> (any PairedShare)? {
