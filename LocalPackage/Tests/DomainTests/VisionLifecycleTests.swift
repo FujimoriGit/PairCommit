@@ -41,7 +41,7 @@ struct VisionLifecycleTests {
     func resubmittedVisionAwaitsManagersApprovalAsRevised() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
-        let returned = try proposed.rejectingVision(visionID, by: .manager)
+        let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
 
         // When
         let state = try returned.resubmittingVision(
@@ -101,7 +101,7 @@ struct VisionLifecycleTests {
         let (proposed, visionID) = try PartnershipState().proposedVision()
 
         // When
-        let state = try proposed.rejectingVision(visionID, by: .manager)
+        let state = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
 
         // Then
         #expect(state.visions.first?.status == .draft)

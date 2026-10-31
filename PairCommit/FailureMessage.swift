@@ -92,6 +92,7 @@ extension VisionRejectionError: PresentableError {
         case .notManager: .onlyManager
         case .visionNotFound: String(localized: .errorVisionNotFound)
         case .notProposed: String(localized: .errorInvalidVisionTransition)
+        case .blankFeedback: String(localized: .errorBlankText)
         }
     }
 }

@@ -94,6 +94,7 @@ private extension PlayerVisionView {
 
     @ViewBuilder
     func revisionForm(_ vision: Vision) -> some View {
+        notes(on: vision)
         fields
         VStack(spacing: 10) {
             Button(.playerVisionReviseAndSubmit) { revise(vision) }
@@ -171,6 +172,7 @@ private extension PlayerVisionView {
     @ViewBuilder
     func draftDetail(_ vision: Vision) -> some View {
         VisionDetail(vision: vision, note: String(localized: .playerVisionSentBack(Role.manager.label)))
+        notes(on: vision)
         VStack(spacing: 10) {
             Button(.playerVisionSubmit(Role.manager.label)) {
                 perform { state, role throws(VisionProposalError) in try state.proposingVision(vision.id, by: role) }
@@ -197,6 +199,10 @@ private extension PlayerVisionView {
             Text(.playerVisionWithdrawConfirmationMessage)
         }
         FailureNote(message: failureMessage)
+    }
+
+    func notes(on vision: Vision) -> some View {
+        NoteTimeline(notes: store.state.notes(on: .vision(vision.id)), pairing: store.state.pairing, role: store.role)
     }
 
     @ViewBuilder
@@ -277,9 +283,10 @@ private extension PlayerVisionView {
 }
 
 #Preview("プレイヤーの提出待ち") {
+    let draft = Vision.preview(status: .draft, deadline: .preview)
     NavigationStack {
         PlayerVisionView(
-            store: .preview(role: .player, visions: [.preview(status: .draft, deadline: .preview)]),
+            store: .preview(role: .player, visions: [draft], notes: [.previewSendingBack(draft)]),
             now: .preview
         )
     }
@@ -292,14 +299,22 @@ private extension PlayerVisionView {
         why: "次の健康診断で再検査を言い渡されたくない"
     )
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft, now: .preview)
+        PlayerVisionView(
+            store: .preview(role: .player, visions: [draft], notes: [.previewSendingBack(draft)]),
+            revising: draft,
+            now: .preview
+        )
     }
 }
 
 #Preview("プレイヤーの期限が過ぎた起案の書き直し") {
     let draft = Vision.preview(status: .draft, deadline: .preview(daysLater: -3))
     NavigationStack {
-        PlayerVisionView(store: .preview(role: .player, visions: [draft]), revising: draft, now: .preview)
+        PlayerVisionView(
+            store: .preview(role: .player, visions: [draft], notes: [.previewSendingBack(draft)]),
+            revising: draft,
+            now: .preview
+        )
     }
 }
 

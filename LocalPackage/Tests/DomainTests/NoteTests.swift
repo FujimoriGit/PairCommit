@@ -64,6 +64,30 @@ struct NoteTests {
         }
     }
 
+    @Test("見届ける人がビジョンを差し戻すと、理由がフィードバックとしてビジョンに残る")
+    func reasonForSendingBackAVisionRemainsAsFeedback() throws {
+        // Given
+        let (proposed, visionID) = try PartnershipState().proposedVision()
+
+        // When
+        let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
+
+        // Then
+        let note = try #require(returned.notes(on: .vision(visionID)).first)
+        #expect(note.kind == .feedback && note.author == .manager && note.body == "期限を決めてほしい")
+    }
+
+    @Test("理由が空白だけでは、ビジョンを差し戻せない")
+    func visionCannotBeSentBackWithoutAReason() throws {
+        // Given
+        let (proposed, visionID) = try PartnershipState().proposedVision()
+
+        // When / Then
+        #expect(throws: VisionRejectionError.blankFeedback) {
+            try proposed.rejectingVision(visionID, feedback: "  \n", by: .manager)
+        }
+    }
+
     @Test("見届ける人が承認するときに書いたフィードバックは、タスクに残る")
     func feedbackWrittenOnApprovalRemainsOnTheTask() throws {
         // Given
@@ -157,7 +181,7 @@ struct NoteTests {
     func notesOnADiscardedDraftAreRemoved() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
-        let returned = try proposed.rejectingVision(visionID, by: .manager)
+        let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
         let written = try returned.writingNote("期限を決めてほしい", on: .vision(visionID), by: .manager)
 
         // When
