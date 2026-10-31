@@ -71,7 +71,7 @@ xcodebuild \
 # 入っていない版を上げると、TestFlight の版で iCloud が使えなくなるので、上げる前に止める。
 rm -rf build/Export/Payload
 unzip -q build/Export/*.ipa -d build/Export
-ENTITLEMENTS=$(codesign -d --entitlements - --xml build/Export/Payload/*.app 2>/dev/null | plutil -convert json -o - -)
+ENTITLEMENTS=$(codesign -d --entitlements - --xml build/Export/Payload/*.app | plutil -convert json -o - - || echo '{}')
 echo "$ENTITLEMENTS"
 jq -e --arg container "$CONTAINER" '
   (."com.apple.developer.icloud-container-identifiers" | index($container)) != null
