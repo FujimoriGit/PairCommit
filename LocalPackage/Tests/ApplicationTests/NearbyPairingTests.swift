@@ -13,17 +13,67 @@ import Testing
 @MainActor
 struct NearbyPairingTests {
 
-    @Test("2台とも同じ役割を選ぶと、ペアは保存されず、役割の重複でペアリングが失敗する", arguments: Role.allCases)
-    func choosingTheSameRoleOnBothDevicesSavesNoPair(chosen: Role) async {
+    @Test("2台とも同じ役割を選ぶと、役割の重複でペアリングが失敗する", arguments: Role.allCases)
+    func choosingTheSameRoleOnBothDevicesFailsPairing(chosen: Role) async {
         // Given
-        let (pairing, channel, sharing) = Self.started(as: chosen)
+        let (pairing, channel, _) = Self.started(as: chosen)
 
         // When
         channel.receive(.received(Partner.choosing(chosen)))
 
         // Then
         #expect(await eventually { pairing.phase == .failed(.sameRole(chosen)) })
-        #expect(sharing.makeShareCalls == 0)
+    }
+
+    @Test("見届ける人が相手を探し始めると、相手とつながる前にペアが保存される")
+    func managerSavesThePairBeforeConnecting() async {
+        // Given
+        let sharing = FakeSharing()
+        let pairing = Self.pairing(sharing: sharing, channels: FakeChannels())
+
+        // When
+        pairing.start(as: .manager)
+
+        // Then
+        #expect(await eventually { sharing.makeShareCalls == 1 })
+        #expect(pairing.phase == .searching)
+    }
+
+    @Test("見届ける人が探し始めたときにペアを保存できなくても、つながったあとに保存できれば、そのペアを相手に送る")
+    func managerSendsThePairSavedAfterConnectingWhenTheEarlySaveFailed() async {
+        // Given
+        let sharing = FakeSharing()
+        sharing.failure = .offline
+        let (pairing, channel, _) = Self.started(as: .manager, sharing: sharing)
+        #expect(await eventually { sharing.returnedCount == 1 })
+        sharing.failure = nil
+
+        // When
+        channel.receive(.received(Partner.choosing(.player)))
+
+        // Then
+        #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
+        withExtendedLifetime(pairing) {}
+    }
+
+    @Test("相手を探している間に、見つけた相手とつなぐのに失敗しても、探し直してペアリングが完了する")
+    func pairingCompletesAfterAFailedConnectionWhileSearching() async throws {
+        // Given
+        let sharing = FakeSharing()
+        let channels = FakeChannels()
+        let pairing = Self.pairing(sharing: sharing, channels: channels)
+        pairing.start(as: .player)
+        channels.made.first?.receive(.disconnected)
+        #expect(await eventually { channels.made.count == 2 })
+        let reopened = try #require(channels.made.dropFirst().first)
+        reopened.receive(.connected)
+        reopened.receive(.received(Partner.choosing(.manager)))
+
+        // When
+        reopened.receive(.received(sharing.url.absoluteString))
+
+        // Then
+        #expect(await eventually { pairing.phase == .done })
     }
 
     @Test("2台とも同じ役割を選ぶと、ペアリングが失敗し、役割の重複が診断の記録に残る")
@@ -68,8 +118,9 @@ struct NearbyPairingTests {
     @Test("自分の側でペアを保存する容量が足りなくても、相手の側でペアを保存して、ペアリングが完了する")
     func pairingCompletesOnThePartnersSideWhenYoursLacksSpace() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(as: .manager)
+        let sharing = FakeSharing()
         sharing.failure = .storageFull
+        let (pairing, channel, _) = Self.started(as: .manager, sharing: sharing)
         channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { channel.sent.contains(Partner.handingOver(.manager)) })
 
@@ -132,8 +183,9 @@ struct NearbyPairingTests {
     func managerFailsPairingWhenDisconnectedWhileSavingThePair() async {
         // Given
         let failures = RecordedFailures()
-        let (pairing, channel, sharing) = Self.started(as: .manager, failures: failures)
+        let sharing = FakeSharing()
         sharing.hold()
+        let (pairing, channel, _) = Self.started(as: .manager, failures: failures, sharing: sharing)
         channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { sharing.isHeld })
         channel.receive(.disconnected)
@@ -165,8 +217,9 @@ struct NearbyPairingTests {
     @Test("見届ける人が保存したペアを相手に送ったあとで近くの通信が切れ、相手がそのペアに参加しないままなら、切断でペアリングが失敗する")
     func managerFailsPairingWhenDisconnectedAndThePartnerNeverJoins() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(as: .manager)
+        let sharing = FakeSharing()
         sharing.partnerJoined = false
+        let (pairing, channel, _) = Self.started(as: .manager, sharing: sharing)
         channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
 
@@ -181,8 +234,9 @@ struct NearbyPairingTests {
     @Test("ペアを保存している途中でやめたら、ペアリングは完了せず、保存したペアは相手に送られない")
     func cancellingWhileSavingThePairNeitherCompletesPairingNorSendsThePair() async {
         // Given
-        let (pairing, channel, sharing) = Self.started(as: .manager)
+        let sharing = FakeSharing()
         sharing.hold()
+        let (pairing, channel, _) = Self.started(as: .manager, sharing: sharing)
         channel.receive(.received(Partner.choosing(.player)))
         #expect(await eventually { sharing.isHeld })
 
@@ -219,19 +273,29 @@ struct NearbyPairingTests {
 // MARK: - Private
 
 private extension NearbyPairingTests {
-    static func started(
-        as role: Role,
-        failures: RecordedFailures = .init()
-    ) -> (NearbyPairing, FakeChannel, FakeSharing) {
-        let channel = FakeChannel()
-        let sharing = FakeSharing()
-        let pairing = NearbyPairing(
+    static func pairing(
+        sharing: FakeSharing,
+        failures: RecordedFailures = .init(),
+        channels: FakeChannels
+    ) -> NearbyPairing {
+        NearbyPairing(
             sharing: sharing,
             failures: failures,
-            makeChannel: { channel },
+            makeChannel: { channels.make() },
             partnerJoinCheckInterval: .milliseconds(1)
         )
+    }
+
+    /// 相手とつながったところまで進める。
+    static func started(
+        as role: Role,
+        failures: RecordedFailures = .init(),
+        sharing: FakeSharing = .init()
+    ) -> (NearbyPairing, FakeChannel, FakeSharing) {
+        let channels = FakeChannels()
+        let pairing = pairing(sharing: sharing, failures: failures, channels: channels)
         pairing.start(as: role)
+        let channel = channels.made[0]
         channel.receive(.connected)
         return (pairing, channel, sharing)
     }
@@ -249,6 +313,17 @@ private enum Partner {
 
     static func handingOver(_ role: Role) -> String {
         "paircommit://hand-over/\(role.rawValue)"
+    }
+}
+
+/// 開き直すたびに、新しい通信路を作る。
+private final class FakeChannels {
+    private(set) var made: [FakeChannel] = []
+
+    func make() -> FakeChannel {
+        let channel = FakeChannel()
+        made.append(channel)
+        return channel
     }
 }
 
