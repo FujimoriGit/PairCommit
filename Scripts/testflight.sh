@@ -9,8 +9,8 @@ cd "$(dirname "$0")/.."
 : "${ASC_KEY_PATH:?App Store Connect の API キー（.p8）のパスを渡すこと}"
 
 ARCHIVE=build/PairCommit.xcarchive
-EXPORT_OPTIONS=build/ExportOptions.plist
 SOURCE_PACKAGES=build/SourcePackages
+CONTAINER=iCloud.com.fujimori.PairCommit
 
 AUTH=(
   -allowProvisioningUpdates
@@ -19,8 +19,10 @@ AUTH=(
   -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 )
 
-rm -rf "$ARCHIVE" build/Export
+rm -rf "$ARCHIVE" build/Export build/Upload
 
+# アーカイブでは署名しない。署名すると、証明書のない CI では毎回開発用の証明書が新しく作られ、アカウントの上限に達する。
+# 署名は書き出しのときに、Apple が預かる配布用の証明書で行う（WWDC21「Distribute apps in Xcode with cloud signing」）。
 # -skipPackagePluginValidation / -skipMacroValidation: CLI では、パッケージのプラグインとマクロを信頼する確認に答えられない
 xcodebuild \
   -scheme PairCommit \
@@ -30,11 +32,14 @@ xcodebuild \
   -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
   -skipPackagePluginValidation \
   -skipMacroValidation \
-  "${AUTH[@]}" \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY="" \
   archive
 
 # manageAppVersionAndBuildNumber: ビルド番号は、App Store Connect に上がっている最大の番号の次を Xcode がつける
-cat > "$EXPORT_OPTIONS" <<'PLIST'
+export_options() {
+  cat <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -42,7 +47,7 @@ cat > "$EXPORT_OPTIONS" <<'PLIST'
 	<key>method</key>
 	<string>app-store-connect</string>
 	<key>destination</key>
-	<string>upload</string>
+	<string>$1</string>
 	<key>signingStyle</key>
 	<string>automatic</string>
 	<key>manageAppVersionAndBuildNumber</key>
@@ -52,11 +57,35 @@ cat > "$EXPORT_OPTIONS" <<'PLIST'
 </dict>
 </plist>
 PLIST
+}
 
+export_options export > build/ExportOptions-export.plist
 xcodebuild \
   -exportArchive \
   -archivePath "$ARCHIVE" \
-  -exportOptionsPlist "$EXPORT_OPTIONS" \
+  -exportOptionsPlist build/ExportOptions-export.plist \
   -exportPath build/Export \
   "${AUTH[@]}"
 
+# 署名せずにアーカイブすると、書き出したアプリに iCloud と通知の権限が入るかは文書で確かめられていない。
+# 入っていない版を上げると、TestFlight の版で iCloud が使えなくなるので、上げる前に止める。
+rm -rf build/Export/Payload
+unzip -q build/Export/*.ipa -d build/Export
+ENTITLEMENTS=$(codesign -d --entitlements - --xml build/Export/Payload/*.app 2>/dev/null | plutil -convert json -o - -)
+echo "$ENTITLEMENTS"
+jq -e --arg container "$CONTAINER" '
+  (."com.apple.developer.icloud-container-identifiers" | index($container)) != null
+  and (."com.apple.developer.icloud-services" | index("CloudKit")) != null
+  and ."aps-environment" == "production"
+' <<<"$ENTITLEMENTS" >/dev/null || {
+  echo "書き出したアプリに iCloud か通知の権限が入っていないので、上げずに止める" >&2
+  exit 1
+}
+
+export_options upload > build/ExportOptions-upload.plist
+xcodebuild \
+  -exportArchive \
+  -archivePath "$ARCHIVE" \
+  -exportOptionsPlist build/ExportOptions-upload.plist \
+  -exportPath build/Upload \
+  "${AUTH[@]}"
