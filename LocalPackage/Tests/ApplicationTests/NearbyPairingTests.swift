@@ -39,6 +39,22 @@ struct NearbyPairingTests {
         #expect(pairing.phase == .searching)
     }
 
+    @Test("見届ける人が探し始めたときにペアを保存できなくても、つながったあとに保存できれば、そのペアを相手に送る")
+    func managerSendsThePairSavedAfterConnectingWhenTheEarlySaveFailed() async {
+        // Given
+        let sharing = FakeSharing()
+        sharing.failure = .offline
+        let (_, channel, _) = Self.started(as: .manager, sharing: sharing)
+        #expect(await eventually { sharing.returnedCount == 1 })
+        sharing.failure = nil
+
+        // When
+        channel.receive(.received(Partner.choosing(.player)))
+
+        // Then
+        #expect(await eventually { channel.sent.contains(sharing.url.absoluteString) })
+    }
+
     @Test("相手を探している間に、見つけた相手とつなぐのに失敗しても、探し直してペアリングが完了する")
     func pairingCompletesAfterAFailedConnectionWhileSearching() async throws {
         // Given

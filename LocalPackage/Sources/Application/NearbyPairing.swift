@@ -186,10 +186,17 @@ private extension NearbyPairing {
     func makeShare(ownerRole: Role, handsOverOnRefusal: Bool) {
         phase = .sharing
         let channel = channel
-        let preparing = preparing ?? prepareShare(ownerRole: ownerRole)
+        let preparedEarly = preparing
+        let preparing = preparedEarly ?? prepareShare(ownerRole: ownerRole)
         shareTask = Task {
             do throws(PairingFailure) {
-                let made = try await preparing.value.get()
+                var prepared = await preparing.value
+                if preparedEarly != nil, case .failure(let failure) = prepared, failure != .storageFull {
+                    guard isSharing(on: channel) else { return }
+                    // 探し始めたときには通らなかった通信が、いまは通ることがある。
+                    prepared = await prepareShare(ownerRole: ownerRole).value
+                }
+                let made = try prepared.get()
                 // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
                 guard isSharing(on: channel) else { return }
                 outcome = made.share
