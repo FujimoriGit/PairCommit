@@ -11,6 +11,7 @@ public protocol NearbyChannel: AnyObject {
 
     func start()
     func stop()
+    /// 相手とつながっていなければ、`PairingFailure.disconnected` を投げる。
     func send(_ text: String) throws(PairingFailure)
 }
 
