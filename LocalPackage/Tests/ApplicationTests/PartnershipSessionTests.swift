@@ -110,7 +110,7 @@ struct PartnershipSessionTests {
         try await session.store?.refresh()
 
         // When
-        await session.followStateChange(isActive: true)
+        await session.followStateChange()
 
         // Then
         #expect(session.stage == .choosingRole(.partnershipEnded))
@@ -250,8 +250,7 @@ private extension PartnershipSessionTests {
             sharing: StubSharing(saved: saved, remaining: remaining),
             inviting: IdleInviting(joined: joined),
             nudges: SilentNudges(),
-            partnerActions: SilentPartnerActions(),
-            knownState: ForgetfulKnownState(),
+            announcement: .quiet,
             failures: failures,
             nudgeMessage: { _, _ in "" },
             makeNearbyChannel: { SilentChannel() }
@@ -429,22 +428,6 @@ private struct SilentNudges: NudgeNotifying {
     func replace(with notices: [NudgeNotice], now: Date) async {}
 
     func withdrawAll() async {}
-}
-
-private struct SilentPartnerActions: PartnerActionNotifying {
-    func deliver(_ notices: [PartnerActionNotice]) async {}
-
-    func withdrawAll() async {}
-}
-
-private struct ForgetfulKnownState: KnownStateKeeping {
-    func lastKnown() -> PartnershipState? {
-        nil
-    }
-
-    func keep(_ state: PartnershipState) {}
-
-    func forget() {}
 }
 
 private final class SilentChannel: NearbyChannel {

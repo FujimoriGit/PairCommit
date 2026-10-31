@@ -39,28 +39,28 @@ private extension PairCommitApp {
 final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     let sharing: CloudSharing
     let notifications: NudgeNotifications
-    let partnerNotifications: PartnerActionNotifications
-    let knownState: SavedKnownState
+    let announcement: PartnerActionAnnouncement
     let failures: FailureDiagnostics
     let session: PartnershipSession
 
     override init() {
         let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
         let notifications = NudgeNotifications()
-        let partnerNotifications = PartnerActionNotifications()
-        let knownState = SavedKnownState()
+        let announcement = PartnerActionAnnouncement(
+            knownState: SavedKnownState(),
+            notifying: PartnerActionNotifications(),
+            message: { $0.message(in: $1) }
+        )
         let failures = FailureDiagnostics()
         self.sharing = sharing
         self.notifications = notifications
-        self.partnerNotifications = partnerNotifications
-        self.knownState = knownState
+        self.announcement = announcement
         self.failures = failures
         session = PartnershipSession(
             sharing: sharing,
             inviting: CloudInviting(shareTitle: PairCommitApp.shareTitle),
             nudges: notifications,
-            partnerActions: partnerNotifications,
-            knownState: knownState,
+            announcement: announcement,
             failures: failures,
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: makeNearbyChannel
@@ -94,11 +94,9 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any]
     ) async -> UIBackgroundFetchResult {
         let reception = PartnerChangeReception(
-            knownState: knownState,
             nudges: notifications,
-            partnerActions: partnerNotifications,
+            announcement: announcement,
             nudgeMessage: { $0.message(in: $1) },
-            partnerActionMessage: { $0.message(in: $1) },
             failures: failures
         )
         do throws(SyncFailure) {
