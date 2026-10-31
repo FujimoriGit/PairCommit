@@ -57,18 +57,21 @@ final class MultipeerSession: NSObject, NearbyChannel {
         // ローカルネットワークの許可がないことを返す API はなく、Bonjour の検索がこのエラーで待ち状態になることで分かる（TN3179）。
         // MC の検索は、許可がなくてもエラーを返さず、見つからないまま続く。
         permissionProbe.stateUpdateHandler = { [eventContinuation] state in
+            Diagnostics.pairing.decided("nearby permission", "\(state)")
             guard case .waiting(.dns(let code)) = state, Int(code) == kDNSServiceErr_PolicyDenied else { return }
             eventContinuation.yield(.notPermitted)
         }
     }
 
     func start() {
+        Diagnostics.pairing.decided("nearby start", "\(myPeerID.displayName) として探し始めた")
         advertiser.startAdvertisingPeer()
         browser.startBrowsingForPeers()
         permissionProbe.start(queue: .main)
     }
 
     func stop() {
+        Diagnostics.pairing.decided("nearby stop", "\(myPeerID.displayName) を止めた")
         permissionProbe.cancel()
         advertiser.stopAdvertisingPeer()
         browser.stopBrowsingForPeers()
@@ -93,15 +96,17 @@ extension MultipeerSession: MCSessionDelegate {
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         switch state {
         case .connected:
+            Diagnostics.pairing.decided("nearby session", "\(peerID.displayName) とつながった")
             advertiser.stopAdvertisingPeer()
             browser.stopBrowsingForPeers()
             eventContinuation.yield(.connected)
         case .notConnected:
+            Diagnostics.pairing.decided("nearby session", "\(peerID.displayName) とつながっていない状態になった")
             eventContinuation.yield(.disconnected)
         case .connecting:
-            break
+            Diagnostics.pairing.decided("nearby session", "\(peerID.displayName) とつなぎ始めた")
         @unknown default:
-            break
+            Diagnostics.pairing.decided("nearby session", "\(peerID.displayName) が未知の状態 \(state.rawValue) になった")
         }
     }
 
@@ -124,6 +129,7 @@ extension MultipeerSession: MCNearbyServiceAdvertiserDelegate {
                     didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?,
                     invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+        Diagnostics.pairing.decided("nearby advertise", "\(peerID.displayName) からの招待を受けた")
         invitationHandler(true, session)
     }
 
@@ -138,11 +144,17 @@ extension MultipeerSession: MCNearbyServiceAdvertiserDelegate {
 extension MultipeerSession: MCNearbyServiceBrowserDelegate {
     func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String: String]?) {
         // 両端が招待し合うのを防ぐため、displayNameが小さい側だけが招待する。
-        guard myPeerID.displayName < peerID.displayName else { return }
+        guard myPeerID.displayName < peerID.displayName else {
+            Diagnostics.pairing.decided("nearby browse", "\(peerID.displayName) を見つけた。相手からの招待を待つ")
+            return
+        }
+        Diagnostics.pairing.decided("nearby browse", "\(peerID.displayName) を見つけた。招待する")
         browser.invitePeer(peerID, to: session, withContext: nil, timeout: 30)
     }
 
-    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}
+    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
+        Diagnostics.pairing.decided("nearby browse", "\(peerID.displayName) を見失った")
+    }
 
     func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
         Diagnostics.pairing.failed("browse", error)
