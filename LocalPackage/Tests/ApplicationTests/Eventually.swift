@@ -17,7 +17,7 @@ func eventually(_ condition: () -> Bool) async -> Bool {
     return condition()
 }
 
-/// 時間をおいて進む処理を待つ。条件が成り立つまで、少しずつ眠りながら確かめる。
+/// 時間をおいて進む処理を待つ。
 @MainActor
 func eventually(within timeout: Duration, _ condition: () -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout

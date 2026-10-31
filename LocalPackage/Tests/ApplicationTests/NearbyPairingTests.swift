@@ -128,6 +128,25 @@ struct NearbyPairingTests {
         #expect(await eventually { pairing.phase == .done })
     }
 
+    @Test("見届ける人がペアを保存している途中で近くの通信が切れると、切断でペアリングが失敗する")
+    func managerFailsPairingWhenDisconnectedWhileSavingThePair() async {
+        // Given
+        let failures = RecordedFailures()
+        let (pairing, channel, sharing) = Self.started(as: .manager, failures: failures)
+        sharing.hold()
+        channel.receive(.received(Partner.choosing(.player)))
+        #expect(await eventually { sharing.isHeld })
+        channel.receive(.disconnected)
+        #expect(await eventually { failures.recorded.contains { $0 as? NearbyPairing.Failure == .external(.disconnected) } })
+
+        // When
+        sharing.release()
+
+        // Then
+        #expect(await eventually { pairing.phase == .failed(.external(.disconnected)) })
+        #expect(pairing.outcome == nil)
+    }
+
     @Test("見届ける人は、保存したペアを相手に送ったあとで近くの通信が切れても、相手がそのペアに参加していればペアリングが完了する")
     func managerCompletesPairingWhenDisconnectedAfterThePartnerJoins() async {
         // Given
@@ -221,12 +240,16 @@ private final class FakeChannel: NearbyChannel {
     private(set) var sent: [String] = []
 
     private let continuation: AsyncStream<NearbyEvent>.Continuation
+    private var isDisconnected = false
 
     init() {
         (events, continuation) = AsyncStream.makeStream()
     }
 
     func receive(_ event: NearbyEvent) {
+        if case .disconnected = event {
+            isDisconnected = true
+        }
         continuation.yield(event)
     }
 
@@ -237,6 +260,7 @@ private final class FakeChannel: NearbyChannel {
     }
 
     func send(_ text: String) throws(PairingFailure) {
+        guard !isDisconnected else { throw .disconnected }
         sent.append(text)
     }
 }
