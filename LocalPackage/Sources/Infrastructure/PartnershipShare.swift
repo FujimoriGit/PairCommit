@@ -164,6 +164,7 @@ enum PartnershipShare {
 
     static func acceptShare(from url: URL) async throws -> CKRecord.ID {
         let metadata = try await fetchMetadata(for: url)
+        try Task.checkCancellation()
         try await accept(metadata)
         // 共有ゾーンの ownerName は相手のものになるため、参加者側で組み立て直せない。
         guard let rootRecordID = metadata.hierarchicalRootRecordID else {
@@ -260,9 +261,17 @@ extension PartnershipShare {
     }
 
     static func fetchMetadata(for url: URL) async throws -> CKShare.Metadata {
+        let operation = CKFetchShareMetadataOperation(shareURLs: [url])
+        operation.shouldFetchRootRecord = true
+        return try await withTaskCancellationHandler {
+            try await fetch(with: operation)
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
+    static func fetch(with operation: CKFetchShareMetadataOperation) async throws -> CKShare.Metadata {
         try await withCheckedThrowingContinuation { continuation in
-            let operation = CKFetchShareMetadataOperation(shareURLs: [url])
-            operation.shouldFetchRootRecord = true
             var fetched: Result<CKShare.Metadata, Error>?
             operation.perShareMetadataResultBlock = { _, result in fetched = result }
             operation.fetchShareMetadataResultBlock = { result in
@@ -282,8 +291,16 @@ extension PartnershipShare {
     }
 
     static func accept(_ metadata: CKShare.Metadata) async throws {
+        let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
+        try await withTaskCancellationHandler {
+            try await accept(with: operation)
+        } onCancel: {
+            operation.cancel()
+        }
+    }
+
+    static func accept(with operation: CKAcceptSharesOperation) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
             var perShareError: Error?
             operation.perShareResultBlock = { _, result in
                 if case .failure(let error) = result { perShareError = error }

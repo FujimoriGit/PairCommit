@@ -38,6 +38,7 @@ public final class NearbyPairing {
     private let partnerJoinCheckInterval: Duration
     private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
+    private var shareTask: Task<Void, Never>?
     private var role: Role?
 
     /// - Parameter partnerJoinCheckInterval: 招待の URL を渡したあとに近くの通信が切れたとき、相手が参加したかを確かめ直す間隔。
@@ -160,7 +161,7 @@ private extension NearbyPairing {
     func makeShare(ownerRole: Role, handsOverOnRefusal: Bool) {
         phase = .sharing
         let channel = channel
-        Task {
+        shareTask = Task {
             do throws(PairingFailure) {
                 let made = try await sharing.makeShare(initialState: Self.initialState(ownerRole: ownerRole))
                 // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
@@ -224,7 +225,7 @@ private extension NearbyPairing {
     func acceptShare(from url: URL) {
         phase = .sharing
         let channel = channel
-        Task {
+        shareTask = Task {
             do throws(PairingFailure) {
                 let share = try await sharing.acceptShare(from: url)
                 guard isSharing(on: channel) else { return }
@@ -288,6 +289,8 @@ private extension NearbyPairing {
     func tearDown() {
         eventTask?.cancel()
         eventTask = nil
+        shareTask?.cancel()
+        shareTask = nil
         channel?.stop()
         channel = nil
     }

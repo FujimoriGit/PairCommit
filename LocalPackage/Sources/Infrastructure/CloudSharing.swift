@@ -20,7 +20,9 @@ public struct CloudSharing: PartnershipSharing {
 
     public func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare) {
         do {
-            let made = try await PartnershipShare.makeShare(initialState: initialState, title: shareTitle)
+            let made = try await TransientRetry.run("makeShare") {
+                try await PartnershipShare.makeShare(initialState: initialState, title: shareTitle)
+            }
             return (made.url, CloudPairedShare(rootRecordID: made.rootRecordID, isOwner: true))
         } catch {
             throw PairingFailure(error)
@@ -29,7 +31,9 @@ public struct CloudSharing: PartnershipSharing {
 
     public func acceptShare(from url: URL) async throws(PairingFailure) -> any PairedShare {
         do {
-            let rootRecordID = try await PartnershipShare.acceptShare(from: url)
+            let rootRecordID = try await TransientRetry.run("acceptShare") {
+                try await PartnershipShare.acceptShare(from: url)
+            }
             return CloudPairedShare(rootRecordID: rootRecordID, isOwner: false)
         } catch {
             throw PairingFailure(error)
@@ -106,16 +110,7 @@ extension PairingFailure {
     }
 }
 
-// MARK: - Private
-
-private extension CloudPairedShare {
-    // 作る側のペアはゾーン名とレコード名が固定で、1人に1つしかない。
-    func isSamePair(as other: (rootRecordID: CKRecord.ID, isOwner: Bool)) -> Bool {
-        other.isOwner == isOwner && (isOwner || other.rootRecordID == rootRecordID)
-    }
-}
-
-private extension PairingFailure {
+extension PairingFailure {
     static func classifying(_ error: any Error) -> Self {
         if case .invitationWithdrawn? = error as? PartnershipShareError {
             return .invitationWithdrawn
@@ -138,5 +133,14 @@ private extension PairingFailure {
         default:
             return .unexpected
         }
+    }
+}
+
+// MARK: - Private
+
+private extension CloudPairedShare {
+    // 作る側のペアはゾーン名とレコード名が固定で、1人に1つしかない。
+    func isSamePair(as other: (rootRecordID: CKRecord.ID, isOwner: Bool)) -> Bool {
+        other.isOwner == isOwner && (isOwner || other.rootRecordID == rootRecordID)
     }
 }
