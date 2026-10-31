@@ -39,6 +39,7 @@ public final class NearbyPairing {
     private var channel: (any NearbyChannel)?
     private var eventTask: Task<Void, Never>?
     private var shareTask: Task<Void, Never>?
+    private var preparing: Task<Result<(url: URL, share: any PairedShare), PairingFailure>, Never>?
     private var role: Role?
 
     /// - Parameter partnerJoinCheckInterval: 招待の URL を渡したあとに近くの通信が切れたとき、相手が参加したかを確かめ直す間隔。
@@ -58,16 +59,10 @@ public final class NearbyPairing {
         guard phase == .idle else { return }
         self.role = role
         phase = .searching
-
-        let channel = makeChannel()
-        self.channel = channel
-        let events = channel.events
-        eventTask = Task { [weak self] in
-            for await event in events {
-                self?.handle(event)
-            }
+        if role == .manager {
+            prepareShare(ownerRole: role)
         }
-        channel.start()
+        openChannel()
     }
 
     public func reset() {
@@ -118,7 +113,11 @@ private extension NearbyPairing {
             case .done, .failed:
                 // 完了後や、失敗を知らせたあとの切断は正常。
                 tearDown()
-            case .idle, .searching:
+            case .searching:
+                // 見つけた相手とつなぐのに失敗している。開き直さないと、同じ相手を二度目は見つけない。
+                closeChannel()
+                openChannel()
+            case .idle:
                 break
             }
         case .failed:
@@ -158,12 +157,39 @@ private extension NearbyPairing {
         }
     }
 
+    func openChannel() {
+        let channel = makeChannel()
+        self.channel = channel
+        let events = channel.events
+        eventTask = Task { [weak self] in
+            for await event in events {
+                self?.handle(event)
+            }
+        }
+        channel.start()
+    }
+
+    @discardableResult
+    func prepareShare(ownerRole: Role) -> Task<Result<(url: URL, share: any PairedShare), PairingFailure>, Never> {
+        let sharing = sharing
+        let task = Task { () -> Result<(url: URL, share: any PairedShare), PairingFailure> in
+            do throws(PairingFailure) {
+                return .success(try await sharing.makeShare(initialState: Self.initialState(ownerRole: ownerRole)))
+            } catch {
+                return .failure(error)
+            }
+        }
+        preparing = task
+        return task
+    }
+
     func makeShare(ownerRole: Role, handsOverOnRefusal: Bool) {
         phase = .sharing
         let channel = channel
+        let preparing = preparing ?? prepareShare(ownerRole: ownerRole)
         shareTask = Task {
             do throws(PairingFailure) {
-                let made = try await sharing.makeShare(initialState: Self.initialState(ownerRole: ownerRole))
+                let made = try await preparing.value.get()
                 // 待っているあいだに、切断や取り消しで終わっていたり、選び直されていたりすることがある。
                 guard isSharing(on: channel) else { return }
                 outcome = made.share
@@ -287,10 +313,16 @@ private extension NearbyPairing {
     }
 
     func tearDown() {
-        eventTask?.cancel()
-        eventTask = nil
+        closeChannel()
         shareTask?.cancel()
         shareTask = nil
+        preparing?.cancel()
+        preparing = nil
+    }
+
+    func closeChannel() {
+        eventTask?.cancel()
+        eventTask = nil
         channel?.stop()
         channel = nil
     }
