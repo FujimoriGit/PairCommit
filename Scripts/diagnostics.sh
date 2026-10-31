@@ -13,39 +13,50 @@ KEY_ID="${CLOUDKIT_KEY_ID:-$(cat "$CONFIG_DIR/cloudkit-key-id-$ENVIRONMENT" 2>/d
 
 SUBPATH="/database/1/iCloud.com.fujimori.PairCommit/$ENVIRONMENT/public/records/query"
 SINCE=$(( ($(date +%s) - HOURS * 3600) * 1000 ))
-BODY=$(jq -cn --argjson since "$SINCE" '{
-  resultsLimit: 200,
-  query: {
-    recordType: "Diagnostic",
-    filterBy: [{fieldName: "occurredAt", comparator: "GREATER_THAN", fieldValue: {value: $since, type: "TIMESTAMP"}}],
-    sortBy: [{fieldName: "occurredAt", ascending: false}]
-  }
-}')
 
-# 署名の形は CloudKit Web Services の決まり（日時:本文の SHA-256 の base64:パス）。
-DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-BODY_HASH=$(printf '%s' "$BODY" | openssl dgst -sha256 -binary | base64)
-SIGNATURE=$(printf '%s:%s:%s' "$DATE" "$BODY_HASH" "$SUBPATH" | openssl dgst -sha256 -sign "$KEY_PATH" | base64)
+query() {
+  local body="$1" date body_hash signature
+  # 署名の形は CloudKit Web Services の決まり（日時:本文の SHA-256 の base64:パス）。本文ごとに作り直す。
+  date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  body_hash=$(printf '%s' "$body" | openssl dgst -sha256 -binary | base64)
+  signature=$(printf '%s:%s:%s' "$date" "$body_hash" "$SUBPATH" | openssl dgst -sha256 -sign "$KEY_PATH" | base64)
+  curl -sS "https://api.apple-cloudkit.com$SUBPATH" \
+    -H "Content-Type: application/json" \
+    -H "X-Apple-CloudKit-Request-KeyID: $KEY_ID" \
+    -H "X-Apple-CloudKit-Request-ISO8601Date: $date" \
+    -H "X-Apple-CloudKit-Request-SignatureV1: $signature" \
+    -d "$body"
+}
 
-RESPONSE=$(curl -sS "https://api.apple-cloudkit.com$SUBPATH" \
-  -H "Content-Type: application/json" \
-  -H "X-Apple-CloudKit-Request-KeyID: $KEY_ID" \
-  -H "X-Apple-CloudKit-Request-ISO8601Date: $DATE" \
-  -H "X-Apple-CloudKit-Request-SignatureV1: $SIGNATURE" \
-  -d "$BODY")
+RECORDS='[]'
+MARKER='null'
+while :; do
+  BODY=$(jq -cn --argjson since "$SINCE" --argjson marker "$MARKER" '{
+    resultsLimit: 200,
+    query: {
+      recordType: "Diagnostic",
+      filterBy: [{fieldName: "occurredAt", comparator: "GREATER_THAN", fieldValue: {value: $since, type: "TIMESTAMP"}}],
+      sortBy: [{fieldName: "occurredAt", ascending: false}]
+    }
+  } + (if $marker == null then {} else {continuationMarker: $marker} end)')
+  RESPONSE=$(query "$BODY")
+  if ! jq -e '.records' >/dev/null <<<"$RESPONSE"; then
+    echo "$RESPONSE" >&2
+    exit 1
+  fi
+  RECORDS=$(jq -c --argjson page "$(jq -c '.records' <<<"$RESPONSE")" '. + $page' <<<"$RECORDS")
+  MARKER=$(jq -c '.continuationMarker // null' <<<"$RESPONSE")
+  [ "$MARKER" = null ] && break
+done
 
-if ! jq -e '.records' >/dev/null <<<"$RESPONSE"; then
-  echo "$RESPONSE" >&2
-  exit 1
-fi
-
-jq -r '.records[] | [
+jq -r '.[] | [
   (.fields.occurredAt.value / 1000 | localtime | strftime("%Y-%m-%d %H:%M:%S")),
   .created.userRecordName,
   .fields.device.value,
+  .fields.system.value,
   .fields.appVersion.value,
   .fields.kind.value,
   .fields.category.value,
   .fields.operation.value,
   .fields.detail.value
-] | @tsv' <<<"$RESPONSE"
+] | @tsv' <<<"$RECORDS"
