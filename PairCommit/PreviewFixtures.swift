@@ -140,8 +140,15 @@ extension PartnershipStore {
                 notes: notes,
                 lastNoteNumber: notes.map(\.number).max() ?? 0
             ),
-            failures: PreviewFailures()
+            failures: PreviewFailures(),
+            announcement: .preview
         )
+    }
+}
+
+extension PartnerActionAnnouncement {
+    static var preview: Self {
+        .init(knownState: PreviewKnownState(), notifying: PreviewPartnerActionNotifications(), message: { _, _ in "" })
     }
 }
 
@@ -165,8 +172,7 @@ extension PartnershipSession {
             sharing: PreviewSharing(),
             inviting: PreviewInviting(),
             nudges: PreviewNudgeNotifications(),
-            partnerActions: PreviewPartnerActionNotifications(),
-            knownState: PreviewKnownState(),
+            announcement: .preview,
             failures: PreviewFailures(),
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: { PreviewNearbyChannel() }

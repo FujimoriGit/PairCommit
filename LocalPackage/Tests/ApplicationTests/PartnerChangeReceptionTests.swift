@@ -13,38 +13,27 @@ import Testing
 @MainActor
 struct PartnerChangeReceptionTests {
 
-    @Test("アプリを開いていない間に挑む人が完了を報告すると、見届ける人に完了報告が知らされる")
-    func reportWhileInBackgroundIsToldToTheManager() async throws {
+    @Test("アプリを開いているかにかかわらず、挑む人が完了を報告すると、見届ける人に完了報告が知らされる", arguments: [false, true])
+    func reportIsToldToTheManager(isActive: Bool) async throws {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
-        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
+        let announcement = PartnerActionAnnouncement.recording(into: notifications, known: before)
+        let store = PartnershipStore(
+            role: .manager,
+            synchronizer: synchronizer,
+            state: before,
+            failures: RecordedFailures(),
+            announcement: announcement
+        )
+        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
 
         // When
-        _ = try await reception.receive(into: store, orStartingFrom: nil, isActive: false)
+        _ = try await Self.reception(announcing: announcement).receive(into: store, orStartingFrom: nil, isActive: isActive)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
-    }
-
-    @Test("アプリを開いている間に届いた相手の操作は、通知されない")
-    func actionWhileInForegroundIsNotNotified() async throws {
-        // Given
-        let (before, taskID) = try Self.pairedWithTask()
-        let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
-        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
-        let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
-
-        // When
-        _ = try await reception.receive(into: store, orStartingFrom: nil, isActive: true)
-
-        // Then
-        #expect(notifications.notices.isEmpty)
     }
 
     @Test("アプリが終了したあとに起こされても、相手の操作が知らされる")
@@ -54,7 +43,7 @@ struct PartnerChangeReceptionTests {
         let synchronizer = InMemorySynchronizer(initialState: before)
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
+        let reception = Self.reception(announcing: .recording(into: notifications, known: before))
 
         // When
         _ = try await reception.receive(
@@ -72,10 +61,17 @@ struct PartnerChangeReceptionTests {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
-        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
+        let announcement = PartnerActionAnnouncement.recording(into: notifications, known: before)
+        let store = PartnershipStore(
+            role: .manager,
+            synchronizer: synchronizer,
+            state: before,
+            failures: RecordedFailures(),
+            announcement: announcement
+        )
+        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
+        let reception = Self.reception(announcing: announcement)
 
         // When
         async let first = reception.receive(into: store, orStartingFrom: nil, isActive: false)
@@ -100,47 +96,13 @@ private extension PartnerChangeReceptionTests {
             .creatingTask(title: "t", by: .manager)
     }
 
-    static func reception(known: PartnershipState, notifying notifications: RecordingPartnerActions) -> PartnerChangeReception {
+    static func reception(announcing announcement: PartnerActionAnnouncement) -> PartnerChangeReception {
         .init(
-            knownState: MemoryKnownState(known),
             nudges: SilentNudges(),
-            partnerActions: notifications,
+            announcement: announcement,
             nudgeMessage: { _, _ in "催促" },
-            partnerActionMessage: { _, _ in "操作" },
             failures: RecordedFailures()
         )
-    }
-}
-
-@MainActor
-private final class RecordingPartnerActions: PartnerActionNotifying {
-    private(set) var notices: [PartnerActionNotice] = []
-
-    func deliver(_ notices: [PartnerActionNotice]) async {
-        self.notices += notices
-    }
-
-    func withdrawAll() async {}
-}
-
-private final class MemoryKnownState: KnownStateKeeping, @unchecked Sendable {
-    private let lock = NSLock()
-    private var state: PartnershipState?
-
-    init(_ state: PartnershipState?) {
-        self.state = state
-    }
-
-    func lastKnown() -> PartnershipState? {
-        lock.withLock { state }
-    }
-
-    func keep(_ state: PartnershipState) {
-        lock.withLock { self.state = state }
-    }
-
-    func forget() {
-        lock.withLock { state = nil }
     }
 }
 

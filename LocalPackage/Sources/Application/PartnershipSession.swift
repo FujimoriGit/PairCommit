@@ -40,8 +40,7 @@ public final class PartnershipSession {
 
     private let sharing: any PartnershipSharing
     private let nudges: any NudgeNotifying
-    private let partnerActions: any PartnerActionNotifying
-    private let knownState: any KnownStateKeeping
+    private let announcement: PartnerActionAnnouncement
     private let failures: any FailureRecording
     private let nudgeMessage: @Sendable (Nudge, PartnershipState) -> String
     private var connection: Connection
@@ -50,16 +49,14 @@ public final class PartnershipSession {
         sharing: any PartnershipSharing,
         inviting: any PartnershipInviting,
         nudges: any NudgeNotifying,
-        partnerActions: any PartnerActionNotifying,
-        knownState: any KnownStateKeeping,
+        announcement: PartnerActionAnnouncement,
         failures: any FailureRecording,
         nudgeMessage: @escaping @Sendable (Nudge, PartnershipState) -> String,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
         self.sharing = sharing
         self.nudges = nudges
-        self.partnerActions = partnerActions
-        self.knownState = knownState
+        self.announcement = announcement
         self.failures = failures
         self.nudgeMessage = nudgeMessage
         nearby = NearbyPairing(sharing: sharing, failures: failures, makeChannel: makeNearbyChannel)
@@ -172,25 +169,15 @@ public final class PartnershipSession {
     }
 
     /// ペアの状態が変わったら呼ぶ。ペアが終わっていれば役割の選択に戻り、続いていれば催促の通知を揃える。
-    /// - Parameter isActive: 画面が前面にあるか。前面にあるときだけ、相手の操作を知らせ終えたものとして残す。
-    public func followStateChange(isActive: Bool) async {
+    public func followStateChange() async {
         guard case .paired(_, let store) = connection else { return }
         let state = store.state
         guard state.pairing != nil else {
             await returnToRolePicker(with: .partnershipEnded)
             return
         }
-        if isActive {
-            knownState.keep(state)
-        }
         let message = nudgeMessage
         await nudges.post(for: store.role, in: state) { message($0, state) }
-    }
-
-    /// いまの状態を、相手の操作を知らせ終えたものとして残す。画面が前面に戻ったときに呼ぶ。
-    public func markCurrentStateSeen() {
-        guard case .paired(_, let store) = connection else { return }
-        knownState.keep(store.state)
     }
 
     /// 相手の側でもペアを終わらせ、役割の選択に戻る。前に組んで残っているペアも終わらせる。
@@ -243,7 +230,7 @@ private extension PartnershipSession {
         connection = .connecting(share, isResumed: isResumed, failure: nil)
         let started: PartnershipStore?
         do throws(SyncFailure) {
-            started = try await PartnershipStore(starting: share, failures: failures)
+            started = try await PartnershipStore(starting: share, failures: failures, announcement: announcement)
         } catch {
             connection = .connecting(share, isResumed: isResumed, failure: error)
             nearby.reset()
@@ -268,8 +255,7 @@ private extension PartnershipSession {
             failures.record(interruption, during: "returnToRolePicker")
         }
         await nudges.withdrawAll()
-        await partnerActions.withdrawAll()
-        knownState.forget()
+        await announcement.clear()
         sharing.clearSavedShare()
         remote.reset()
         connection = .unpaired(interruption)

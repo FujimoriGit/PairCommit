@@ -19,17 +19,30 @@ public final class PartnershipStore {
 
     private let synchronizer: any PartnershipSyncing
     private let failures: any FailureRecording
+    private let announcement: PartnerActionAnnouncement
     private var pending: Task<Void, Never>?
 
-    public init(role: Role, synchronizer: any PartnershipSyncing, state: PartnershipState, failures: any FailureRecording) {
+    public init(
+        role: Role,
+        synchronizer: any PartnershipSyncing,
+        state: PartnershipState,
+        failures: any FailureRecording,
+        announcement: PartnerActionAnnouncement
+    ) {
         self.role = role
         self.synchronizer = synchronizer
         self.state = state
         self.failures = failures
+        self.announcement = announcement
     }
 
     /// 共有から同期を始め、ペアでの役割を決める。共有にまだペアが入っていないか、もう終わっていれば nil。
-    public convenience init?(starting share: any PairedShare, failures: any FailureRecording) async throws(SyncFailure) {
+    /// 前に受け取った状態から相手が行った操作は、通知する。
+    public convenience init?(
+        starting share: any PairedShare,
+        failures: any FailureRecording,
+        announcement: PartnerActionAnnouncement
+    ) async throws(SyncFailure) {
         let synchronizer = share.synchronizer()
         let state: PartnershipState
         do throws(SyncFailure) {
@@ -40,13 +53,22 @@ public final class PartnershipStore {
         }
         guard let ownerRole = state.pairing?.ownerRole else { return nil }
         let agreement = PairingAgreement(ownerRole: ownerRole, isOwner: share.isOwner)
-        self.init(role: agreement.role, synchronizer: synchronizer, state: state, failures: failures)
+        self.init(
+            role: agreement.role,
+            synchronizer: synchronizer,
+            state: state,
+            failures: failures,
+            announcement: announcement
+        )
+        await announcement.announce(state, to: role)
     }
 
+    /// 最新の状態を取り直し、前に受け取った状態から相手が行った操作を通知する。
     public func refresh() async throws(SyncFailure) {
         let failure = await serialized { [self] () -> SyncFailure? in
             do throws(SyncFailure) {
                 state = try await synchronizer.load()
+                await announcement.announce(state, to: role)
                 return nil
             } catch {
                 return error
@@ -120,13 +142,16 @@ private extension PartnershipStore {
         state = next
         do throws(SyncFailure) {
             try await synchronizer.save(next, replacing: base)
+            await announcement.announce(next, to: role)
             return nil
         } catch {
             switch error {
             case .outdated(let latest) where remaining > 1:
+                await announcement.announce(latest, to: role)
                 return await apply(transform, to: latest, remaining: remaining - 1)
             case .outdated(let latest):
                 state = latest
+                await announcement.announce(latest, to: role)
             case .unavailable:
                 state = base
             }
