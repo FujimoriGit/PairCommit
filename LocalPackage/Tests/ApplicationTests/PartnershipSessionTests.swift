@@ -16,7 +16,7 @@ struct PartnershipSessionTests {
     @Test("前のペアが端末に残っていれば、つなぐと、そのペアの役割で使い始める")
     func thePairLeftOnTheDeviceStartsWithItsRole() async throws {
         // Given
-        let session = try Self.session(saved: Self.share())
+        let session = try PartnershipSession.make(saved: Self.share())
 
         // When
         await session.connect()
@@ -28,7 +28,7 @@ struct PartnershipSessionTests {
     @Test("前のペアが相手の側で終わっていたら、つなぐと、ペアが終わったことを伝えて役割の選択に戻る")
     func anEndedPairLeftOnTheDeviceReturnsToTheRolePicker() async {
         // Given
-        let session = Self.session(saved: StubShare(isOwner: true))
+        let session = PartnershipSession.make(saved: StubShare(isOwner: true))
 
         // When
         await session.connect()
@@ -40,7 +40,7 @@ struct PartnershipSessionTests {
     @Test("前のペアにつなげなかったら、つなげなかった理由を出して、つなぎ直しを待つ")
     func failingToConnectWaitsForRetry() async {
         // Given
-        let session = Self.session(saved: UnreachableShare())
+        let session = PartnershipSession.make(saved: UnreachableShare())
 
         // When
         await session.connect()
@@ -52,7 +52,7 @@ struct PartnershipSessionTests {
     @Test("端末の外に前のペアが残っていれば、つなぐと、そのペアの役割で使い始める")
     func aRemainingPairStartsWithItsRole() async throws {
         // Given
-        let session = try Self.session(remaining: Self.share())
+        let session = try PartnershipSession.make(remaining: Self.share())
         await session.resumeRemainingPairing()
 
         // When
@@ -65,7 +65,7 @@ struct PartnershipSessionTests {
     @Test("役割を選んでペアの組み方を選んでいる間は、端末の外に前のペアが残っていても、そのペアにつながない")
     func choosingHowToPairIsNotInterruptedByARemainingPair() async throws {
         // Given
-        let session = try Self.session(remaining: Self.share())
+        let session = try PartnershipSession.make(remaining: Self.share())
         session.chosenRole = .manager
 
         // When
@@ -78,7 +78,7 @@ struct PartnershipSessionTests {
     @Test("ペアを組んでいるときに招待リンクを開くと、組み済みとして断る")
     func invitationLinkIsRefusedWhilePaired() async throws {
         // Given
-        let session = try Self.session(saved: Self.share())
+        let session = try PartnershipSession.make(saved: Self.share())
         await session.connect()
 
         // When / Then
@@ -90,7 +90,7 @@ struct PartnershipSessionTests {
     @Test("近くの相手とペアリングしている途中に招待リンクを開くと、ペアリング中として断る")
     func invitationLinkIsRefusedWhilePairingNearby() {
         // Given
-        let session = Self.session()
+        let session = PartnershipSession.make()
         session.pairNearby(as: .manager)
 
         // When / Then
@@ -104,13 +104,13 @@ struct PartnershipSessionTests {
         // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         let synchronizer = InMemorySynchronizer(initialState: paired)
-        let session = Self.session(saved: StubShare(isOwner: true, synchronizer: synchronizer))
+        let session = PartnershipSession.make(saved: StubShare(isOwner: true, synchronizer: synchronizer))
         await session.connect()
         try await synchronizer.save(.init(), replacing: paired)
         try await session.store?.refresh()
 
         // When
-        await session.followStateChange(isActive: true)
+        await session.followStateChange()
 
         // Then
         #expect(session.stage == .choosingRole(.partnershipEnded))
@@ -119,7 +119,7 @@ struct PartnershipSessionTests {
     @Test("ペアリングをやり直すと、役割の選択に戻る")
     func redoingThePairingReturnsToTheRolePicker() async throws {
         // Given
-        let session = try Self.session(saved: Self.share())
+        let session = try PartnershipSession.make(saved: Self.share())
         await session.connect()
 
         // When
@@ -133,7 +133,7 @@ struct PartnershipSessionTests {
     func redoingThePairingEndsEveryRemainingPair() async throws {
         // Given
         let pairs = RemainingPairs(["いまのペア", "前のペア"])
-        let session = try Self.session(saved: Self.share("いまのペア", in: pairs))
+        let session = try PartnershipSession.make(saved: Self.share("いまのペア", in: pairs))
         await session.connect()
 
         // When
@@ -147,7 +147,7 @@ struct PartnershipSessionTests {
     func pairingAnewEndsThePairsLeftBefore() async throws {
         // Given
         let pairs = RemainingPairs(["新しいペア", "前のペア"])
-        let session = try Self.session(joined: Self.share("新しいペア", in: pairs))
+        let session = try PartnershipSession.make(joined: Self.share("新しいペア", in: pairs))
         try session.accept(Self.link)
         await session.pairRemotely()
 
@@ -162,7 +162,7 @@ struct PartnershipSessionTests {
     func pairingAnewStartsEvenIfThePairsLeftBeforeCannotBeEnded() async throws {
         // Given
         let pairs = RemainingPairs(["新しいペア", "前のペア"])
-        let session = try Self.session(joined: Self.leftoverKeepingShare("新しいペア", in: pairs))
+        let session = try PartnershipSession.make(joined: Self.leftoverKeepingShare("新しいペア", in: pairs))
         try session.accept(Self.link)
         await session.pairRemotely()
 
@@ -178,7 +178,7 @@ struct PartnershipSessionTests {
         // Given
         let pairs = RemainingPairs(["新しいペア", "前のペア"])
         let failures = RecordedFailures()
-        let session = try Self.session(joined: Self.leftoverKeepingShare("新しいペア", in: pairs), failures: failures)
+        let session = try PartnershipSession.make(joined: Self.leftoverKeepingShare("新しいペア", in: pairs), failures: failures)
         try session.accept(Self.link)
         await session.pairRemotely()
 
@@ -193,7 +193,7 @@ struct PartnershipSessionTests {
     func redoingThePairingKeepsTheCurrentPairIfThePairsLeftBeforeCannotBeEnded() async throws {
         // Given
         let pairs = RemainingPairs(["いまのペア", "前のペア"])
-        let session = try Self.session(saved: Self.leftoverKeepingShare("いまのペア", in: pairs))
+        let session = try PartnershipSession.make(saved: Self.leftoverKeepingShare("いまのペア", in: pairs))
         await session.connect()
 
         // When
@@ -209,7 +209,7 @@ struct PartnershipSessionTests {
     func resumingARemainingPairKeepsTheOthers() async throws {
         // Given
         let pairs = RemainingPairs(["つなぎ直したペア", "ほかのペア"])
-        let session = try Self.session(remaining: Self.share("つなぎ直したペア", in: pairs))
+        let session = try PartnershipSession.make(remaining: Self.share("つなぎ直したペア", in: pairs))
         await session.resumeRemainingPairing()
 
         // When
@@ -238,24 +238,6 @@ private extension PartnershipSessionTests {
     static func share(_ name: String, in pairs: RemainingPairs) throws -> RemainingPairShare {
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         return RemainingPairShare(name: name, pairs: pairs, stored: InMemorySynchronizer(initialState: paired))
-    }
-
-    static func session(
-        saved: (any PairedShare)? = nil,
-        remaining: (any PairedShare)? = nil,
-        joined: (any PairedShare)? = nil,
-        failures: RecordedFailures = .init()
-    ) -> PartnershipSession {
-        .init(
-            sharing: StubSharing(saved: saved, remaining: remaining),
-            inviting: IdleInviting(joined: joined),
-            nudges: SilentNudges(),
-            partnerActions: SilentPartnerActions(),
-            knownState: ForgetfulKnownState(),
-            failures: failures,
-            nudgeMessage: { _, _ in "" },
-            makeNearbyChannel: { SilentChannel() }
-        )
     }
 }
 
@@ -355,104 +337,4 @@ private struct UnreachableSynchronizer: PartnershipSyncing {
     func save(_ state: PartnershipState, replacing base: PartnershipState) throws(SyncFailure) {
         throw .unavailable
     }
-}
-
-private struct StubSharing: PartnershipSharing {
-    let saved: (any PairedShare)?
-    let remaining: (any PairedShare)?
-
-    func makeShare(initialState: PartnershipState) async throws(PairingFailure) -> (url: URL, share: any PairedShare) {
-        throw .unexpected
-    }
-
-    func acceptShare(from url: URL) async throws(PairingFailure) -> any PairedShare {
-        throw .unexpected
-    }
-
-    func savedShare() -> (any PairedShare)? {
-        saved
-    }
-
-    func remainingShare() async throws(PairingFailure) -> (any PairedShare)? {
-        remaining
-    }
-
-    func declineRemainingShare() {}
-
-    func clearSavedShare() {}
-}
-
-private struct IdleInviting: PartnershipInviting {
-    let joined: (any PairedShare)?
-
-    func send() async throws(PairingFailure) -> URL {
-        throw .unexpected
-    }
-
-    func advance(ownerRole: Role) async throws(PairingFailure) -> InvitationProgress {
-        throw .unexpected
-    }
-
-    func withdraw() async throws(PairingFailure) {}
-
-    func join(_ link: URL) async throws(PairingFailure) {
-        guard joined != nil else { throw .unexpected }
-    }
-
-    func advanceJoining() async throws(PairingFailure) -> (any PairedShare)? {
-        guard let joined else { throw .unexpected }
-        return joined
-    }
-
-    func leave() async throws(PairingFailure) {}
-
-    func endPair() async throws(PairingFailure) {}
-
-    func savedStage() -> InvitationStage? {
-        nil
-    }
-
-    func savedWithdrawal() -> Withdrawal? {
-        nil
-    }
-
-    func save(_ stage: InvitationStage) {}
-
-    func save(_ withdrawal: Withdrawal) {}
-
-    func clearSaved() {}
-}
-
-private struct SilentNudges: NudgeNotifying {
-    func requestPermission() async {}
-
-    func replace(with notices: [NudgeNotice], now: Date) async {}
-
-    func withdrawAll() async {}
-}
-
-private struct SilentPartnerActions: PartnerActionNotifying {
-    func deliver(_ notices: [PartnerActionNotice]) async {}
-
-    func withdrawAll() async {}
-}
-
-private struct ForgetfulKnownState: KnownStateKeeping {
-    func lastKnown() -> PartnershipState? {
-        nil
-    }
-
-    func keep(_ state: PartnershipState) {}
-
-    func forget() {}
-}
-
-private final class SilentChannel: NearbyChannel {
-    let events = AsyncStream<NearbyEvent> { $0.finish() }
-
-    func start() {}
-
-    func stop() {}
-
-    func send(_ text: String) throws(PairingFailure) {}
 }

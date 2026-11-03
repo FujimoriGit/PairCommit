@@ -16,7 +16,6 @@ struct ContentView: View {
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     @State private var linkRefusal: PartnershipSession.LinkRefusal?
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         content
@@ -71,12 +70,7 @@ private extension ContentView {
                     try? await store.refresh()
                 }
             }
-            .task(id: store.state) { await session.followStateChange(isActive: scenePhase == .active) }
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .active {
-                    session.markCurrentStateSeen()
-                }
-            }
+            .task(id: store.state) { await session.followStateChange() }
             .sensoryFeedback(.error, trigger: store.saveFailure) { _, failure in failure != nil }
             .alert(
                 .rootOperationFailed,

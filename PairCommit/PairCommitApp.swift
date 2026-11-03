@@ -37,30 +37,24 @@ private extension PairCommitApp {
 
 @MainActor
 final class PairCommitDelegate: NSObject, UIApplicationDelegate {
-    let sharing: CloudSharing
     let notifications: NudgeNotifications
-    let partnerNotifications: PartnerActionNotifications
-    let knownState: SavedKnownState
-    let failures: FailureDiagnostics
     let session: PartnershipSession
 
     override init() {
         let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
         let notifications = NudgeNotifications()
-        let partnerNotifications = PartnerActionNotifications()
-        let knownState = SavedKnownState()
+        let announcement = PartnerActionAnnouncement(
+            knownState: SavedKnownState(),
+            notifying: PartnerActionNotifications(),
+            message: { $0.message(in: $1) }
+        )
         let failures = FailureDiagnostics()
-        self.sharing = sharing
         self.notifications = notifications
-        self.partnerNotifications = partnerNotifications
-        self.knownState = knownState
-        self.failures = failures
         session = PartnershipSession(
             sharing: sharing,
             inviting: CloudInviting(shareTitle: PairCommitApp.shareTitle),
             nudges: notifications,
-            partnerActions: partnerNotifications,
-            knownState: knownState,
+            announcement: announcement,
             failures: failures,
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: makeNearbyChannel
@@ -93,20 +87,9 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable: Any]
     ) async -> UIBackgroundFetchResult {
-        let reception = PartnerChangeReception(
-            knownState: knownState,
-            nudges: notifications,
-            partnerActions: partnerNotifications,
-            nudgeMessage: { $0.message(in: $1) },
-            partnerActionMessage: { $0.message(in: $1) },
-            failures: failures
-        )
+        let reception = PartnerChangeReception(nudges: notifications, nudgeMessage: { $0.message(in: $1) })
         do throws(SyncFailure) {
-            let received = try await reception.receive(
-                into: session.store,
-                orStartingFrom: sharing.savedShare(),
-                isActive: application.applicationState == .active
-            )
+            let received = try await reception.receive(in: session, isActive: application.applicationState == .active)
             return received ? .newData : .noData
         } catch {
             return .failed

@@ -9,10 +9,10 @@ import Domain
 
 struct StubShare: PairedShare {
     let isOwner: Bool
-    let stored: InMemorySynchronizer
+    let stored: any PartnershipSyncing
     let partnerJoined: Bool
 
-    init(isOwner: Bool, synchronizer: InMemorySynchronizer = .init(), partnerJoined: Bool = true) {
+    init(isOwner: Bool, synchronizer: any PartnershipSyncing = InMemorySynchronizer(), partnerJoined: Bool = true) {
         self.isOwner = isOwner
         stored = synchronizer
         self.partnerJoined = partnerJoined
