@@ -312,7 +312,7 @@ struct PartnershipStoreTests {
         #expect(store.state == latest)
     }
 
-    @Test("見届ける人のビジョンの承認が保存できずに取り消されても、挑む人がビジョンを提出したとは知らされない")
+    @Test("見届ける人のビジョンの承認が保存できずに戻されても、挑む人がビジョンを提出したとは知らされない")
     func managerIsNotToldOfASubmissionWhenTheirApprovalIsUndone() async throws {
         // Given
         let proposed = try Self.proposedVision()
@@ -337,8 +337,8 @@ struct PartnershipStoreTests {
         #expect(notifications.notices.isEmpty)
     }
 
-    @Test("挑む人の完了報告を取り直す前に見届ける人が操作すると、見届ける人に完了報告が知らされる")
-    func managerActingBeforeFetchingTheReportIsToldOfIt() async throws {
+    @Test("挑む人が完了を報告したあとに、見届ける人がそれを見ずに操作すると、見届ける人に完了報告が知らされる")
+    func managerActingWithoutSeeingTheReportIsToldOfIt() async throws {
         // Given
         let (reported, taskID) = try Self.reportedTask()
         let before = try reported.returningTask(taskID, feedback: "f", by: .manager)
