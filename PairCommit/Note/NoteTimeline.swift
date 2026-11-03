@@ -40,12 +40,21 @@ private extension NoteTimeline {
                 kind(of: note)
             }
             .padding(.horizontal, 6)
-            Text(note.body)
+            Text(AttributedString(linkingURLsIn: note.body))
                 .font(.subheadline)
                 .foregroundStyle(isMine ? .white : .primary)
+                .tint(isMine ? .white : role.accent)
                 .padding(.horizontal, 13)
                 .padding(.vertical, 9)
                 .background(isMine ? role.accent : Color(.secondarySystemGroupedBackground), in: bubble(isMine: isMine))
+                .contentShape(.contextMenuPreview, bubble(isMine: isMine))
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = note.body
+                    } label: {
+                        Label(String(localized: .noteCopy), systemImage: "doc.on.doc")
+                    }
+                }
             Text(note.writtenAt, format: Date.FormatStyle.monthDayTime)
                 .font(.caption2)
                 .foregroundStyle(.secondary)

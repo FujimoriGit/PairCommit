@@ -131,7 +131,7 @@ private extension TaskDetailView {
     )
     let notes = [
         Note.preview(on: .task(task.id), kind: .report, author: .player, number: 1, body: "今週は2回行けた。金曜に残りの1回を入れる"),
-        Note.preview(on: .task(task.id), kind: .feedback, author: .manager, number: 2, body: "いいペース。金曜に行けたら教えて")
+        Note.preview(on: .task(task.id), kind: .feedback, author: .manager, number: 2, body: "いいペース。金曜に行けたら教えて。フォームはこれを見て https://example.com/squat")
     ]
     NavigationStack {
         TaskDetailView(
