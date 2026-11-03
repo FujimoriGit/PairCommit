@@ -14,13 +14,14 @@ extension PartnershipSession {
         saved: (any PairedShare)? = nil,
         remaining: (any PairedShare)? = nil,
         joined: (any PairedShare)? = nil,
+        nudges: any NudgeNotifying = SilentNudges(),
         announcement: PartnerActionAnnouncement = .quiet,
         failures: RecordedFailures = .init()
     ) -> PartnershipSession {
         .init(
             sharing: StubSharing(saved: saved, remaining: remaining),
             inviting: IdleInviting(joined: joined),
-            nudges: SilentNudges(),
+            nudges: nudges,
             announcement: announcement,
             failures: failures,
             nudgeMessage: { _, _ in "" },

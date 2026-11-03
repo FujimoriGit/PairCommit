@@ -98,6 +98,45 @@ struct PartnerChangeReceptionTests {
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
     }
+
+    @Test("招待リンクでペアを組み終えた直後に、アプリを開いたまま相手の変更の知らせが届いても、通知の許可を求める")
+    func pairingAnewAsksForPermissionEvenIfAChangeArrivesFirst() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let permissions = PermissionRequests()
+        let session = PartnershipSession.make(
+            joined: StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired)),
+            nudges: permissions
+        )
+        try session.accept(URL(fileURLWithPath: "/invitation"))
+        await session.pairRemotely()
+
+        // When
+        _ = try await Self.reception().receive(in: session, isActive: true)
+
+        // Then
+        #expect(permissions.count == 1)
+    }
+
+    @Test("相手の変更の知らせで起こされてつないでいる間にアプリを開くと、通知の許可を求める")
+    func openingTheAppWhileWokenAsksForPermission() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let synchronizer = LateFirstStart(stale: paired, latest: paired)
+        let permissions = PermissionRequests()
+        let session = PartnershipSession.make(saved: StubShare(isOwner: true, synchronizer: synchronizer), nudges: permissions)
+        let woken = Task { try await Self.reception().receive(in: session, isActive: false) }
+        await synchronizer.waitForFirstStart()
+
+        // When
+        async let opened: Void = session.connect()
+        await synchronizer.release()
+        await opened
+        _ = try await woken.value
+
+        // Then
+        #expect(permissions.count == 1)
+    }
 }
 
 // MARK: - Private
@@ -116,6 +155,19 @@ private extension PartnerChangeReceptionTests {
     static func reception() -> PartnerChangeReception {
         .init(nudges: SilentNudges(), nudgeMessage: { _, _ in "催促" })
     }
+}
+
+@MainActor
+private final class PermissionRequests: NudgeNotifying {
+    private(set) var count = 0
+
+    func requestPermission() async {
+        count += 1
+    }
+
+    func replace(with notices: [NudgeNotice], now: Date) async {}
+
+    func withdrawAll() async {}
 }
 
 /// 最初の取得は `release()` まで返らず、返すのはそれより前の `stale` の状態。

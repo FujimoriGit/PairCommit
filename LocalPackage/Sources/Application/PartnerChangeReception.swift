@@ -22,10 +22,11 @@ public struct PartnerChangeReception: Sendable {
     }
 
     /// 状態を取り直し、相手がこの端末の役割に向けて行った操作を通知する。前面にいなければ、催促も通知する。
-    /// まだペアにつないでいなければ、つないでから取り直す。ペアを組んでいなければ何もせず false を返す。
+    /// まだペアにつないでいなければ、つないでから取り直す。前面にいれば、つなぐときに通知の許可を求める。
+    /// ペアを組んでいなければ何もせず false を返す。
     @MainActor
     public func receive(in session: PartnershipSession, isActive: Bool) async throws(SyncFailure) -> Bool {
-        guard let store = try await session.connectedStore() else { return false }
+        guard let store = try await session.connectedStore(requestingPermission: isActive) else { return false }
         try await store.refresh()
         guard !isActive else { return true }
         let state = store.state

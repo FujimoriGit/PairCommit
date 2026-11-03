@@ -83,12 +83,13 @@ public final class PartnershipSession {
 
     /// 使っているペアのストア。つないでいる途中ならつなぎ終わるのを待ち、まだつないでいなければつなぐ。
     /// ペアを組んでいなければ nil。
-    func connectedStore() async throws(SyncFailure) -> PartnershipStore? {
+    func connectedStore(requestingPermission: Bool) async throws(SyncFailure) -> PartnershipStore? {
         switch connection {
         case .unpaired: return nil
         case .paired(_, let store): return store
         case .starting(_, _, let starting): await starting.value
-        case .connecting(let share, let isResumed, _): await connect(to: share, isResumed: isResumed, requestingPermission: false)
+        case .connecting(let share, let isResumed, _):
+            await connect(to: share, isResumed: isResumed, requestingPermission: requestingPermission)
         }
         switch connection {
         case .paired(_, let store): return store
@@ -113,10 +114,21 @@ public final class PartnershipSession {
         connection = .connecting(remaining, isResumed: true, failure: nil)
     }
 
-    /// つなぐ段階に入ったペアにつなぐ。つなげずに失敗しているときは何もしない。
+    /// つなぐ段階に入ったペアにつなぎ、通知の許可を求める。ほかからつないでいる途中なら、つなぎ終わるのを待つ。
+    /// つなげずに失敗しているときは何もしない。
     public func connect() async {
-        guard case .connecting(let share, let isResumed, nil) = connection else { return }
-        await connect(to: share, isResumed: isResumed)
+        switch connection {
+        case .connecting(let share, let isResumed, nil):
+            await connect(to: share, isResumed: isResumed)
+        case .starting(_, _, let starting):
+            await starting.value
+            guard case .paired = connection else { return }
+            await nudges.requestPermission()
+        case .paired:
+            await nudges.requestPermission()
+        case .unpaired, .connecting:
+            return
+        }
     }
 
     public func retryConnecting() async {
