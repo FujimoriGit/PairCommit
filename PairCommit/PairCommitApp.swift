@@ -37,10 +37,7 @@ private extension PairCommitApp {
 
 @MainActor
 final class PairCommitDelegate: NSObject, UIApplicationDelegate {
-    let sharing: CloudSharing
     let notifications: NudgeNotifications
-    let announcement: PartnerActionAnnouncement
-    let failures: FailureDiagnostics
     let session: PartnershipSession
 
     override init() {
@@ -52,10 +49,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
             message: { $0.message(in: $1) }
         )
         let failures = FailureDiagnostics()
-        self.sharing = sharing
         self.notifications = notifications
-        self.announcement = announcement
-        self.failures = failures
         session = PartnershipSession(
             sharing: sharing,
             inviting: CloudInviting(shareTitle: PairCommitApp.shareTitle),
@@ -93,18 +87,9 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable: Any]
     ) async -> UIBackgroundFetchResult {
-        let reception = PartnerChangeReception(
-            nudges: notifications,
-            announcement: announcement,
-            nudgeMessage: { $0.message(in: $1) },
-            failures: failures
-        )
+        let reception = PartnerChangeReception(nudges: notifications, nudgeMessage: { $0.message(in: $1) })
         do throws(SyncFailure) {
-            let received = try await reception.receive(
-                into: session.store,
-                orStartingFrom: sharing.savedShare(),
-                isActive: application.applicationState == .active
-            )
+            let received = try await reception.receive(in: session, isActive: application.applicationState == .active)
             return received ? .newData : .noData
         } catch {
             return .failed

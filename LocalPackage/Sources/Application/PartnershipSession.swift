@@ -70,6 +70,7 @@ public final class PartnershipSession {
         // ペアができてからつながるまでは、ペアリングの画面のまま待つ。
         case _ where nearby.phase != .idle: .pairingNearby
         case .connecting(_, _, let failure): .connecting(failure)
+        case .starting: .connecting(nil)
         case .unpaired where remote.phase != .idle: .pairingRemotely
         case .unpaired(let interruption): .choosingRole(interruption)
         }
@@ -78,6 +79,22 @@ public final class PartnershipSession {
     public var store: PartnershipStore? {
         guard case .paired(_, let store) = connection else { return nil }
         return store
+    }
+
+    /// 使っているペアのストア。つないでいる途中ならつなぎ終わるのを待ち、まだつないでいなければつなぐ。
+    /// ペアを組んでいなければ nil。
+    func connectedStore() async throws(SyncFailure) -> PartnershipStore? {
+        switch connection {
+        case .unpaired: return nil
+        case .paired(_, let store): return store
+        case .starting(_, _, let starting): await starting.value
+        case .connecting(let share, let isResumed, _): await connect(to: share, isResumed: isResumed, requestingPermission: false)
+        }
+        switch connection {
+        case .paired(_, let store): return store
+        case .connecting(_, _, .some(let failure)): throw failure
+        case .unpaired, .connecting, .starting: return nil
+        }
     }
 
     /// 端末に前のペアが残っていなければ、端末の外に残っているペアを探し、見つかればつなぐ段階に入る。
@@ -136,7 +153,7 @@ public final class PartnershipSession {
     public func accept(_ link: URL) throws(LinkRefusal) {
         let refusal: LinkRefusal
         switch connection {
-        case .connecting, .paired:
+        case .connecting, .starting, .paired:
             refusal = .alreadyPaired
         case .unpaired where remote.phase != .idle || nearby.phase != .idle:
             refusal = .pairingInProgress
@@ -213,6 +230,7 @@ private extension PartnershipSession {
     enum Connection {
         case unpaired(Interruption?)
         case connecting(any PairedShare, isResumed: Bool, failure: SyncFailure?)
+        case starting(any PairedShare, isResumed: Bool, Task<Void, Never>)
         case paired(any PairedShare, PartnershipStore)
     }
 
@@ -226,8 +244,13 @@ private extension PartnershipSession {
         chosenRole = nil
     }
 
-    func connect(to share: any PairedShare, isResumed: Bool) async {
-        connection = .connecting(share, isResumed: isResumed, failure: nil)
+    func connect(to share: any PairedShare, isResumed: Bool, requestingPermission: Bool = true) async {
+        let starting = Task { await start(share, isResumed: isResumed, requestingPermission: requestingPermission) }
+        connection = .starting(share, isResumed: isResumed, starting)
+        await starting.value
+    }
+
+    func start(_ share: any PairedShare, isResumed: Bool, requestingPermission: Bool) async {
         let started: PartnershipStore?
         do throws(SyncFailure) {
             started = try await PartnershipStore(starting: share, failures: failures, announcement: announcement)
@@ -240,7 +263,9 @@ private extension PartnershipSession {
             await returnToRolePicker(with: isResumed ? .partnershipEnded : .partnerSetupMissing)
             return
         }
-        await nudges.requestPermission()
+        if requestingPermission {
+            await nudges.requestPermission()
+        }
         connection = .paired(share, started)
         guard !isResumed else { return }
         do throws(PairingFailure) {

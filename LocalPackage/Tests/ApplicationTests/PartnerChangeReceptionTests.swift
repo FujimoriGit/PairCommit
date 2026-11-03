@@ -19,18 +19,15 @@ struct PartnerChangeReceptionTests {
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
         let notifications = RecordingPartnerActions()
-        let announcement = PartnerActionAnnouncement.recording(into: notifications, known: before)
-        let store = PartnershipStore(
-            role: .manager,
-            synchronizer: synchronizer,
-            state: before,
-            failures: RecordedFailures(),
-            announcement: announcement
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
         )
+        await session.connect()
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
 
         // When
-        _ = try await Self.reception(announcing: announcement).receive(into: store, orStartingFrom: nil, isActive: isActive)
+        _ = try await Self.reception().receive(in: session, isActive: isActive)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
@@ -43,14 +40,13 @@ struct PartnerChangeReceptionTests {
         let synchronizer = InMemorySynchronizer(initialState: before)
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(announcing: .recording(into: notifications, known: before))
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
+        )
 
         // When
-        _ = try await reception.receive(
-            into: nil,
-            orStartingFrom: StubShare(isOwner: true, synchronizer: synchronizer),
-            isActive: false
-        )
+        _ = try await Self.reception().receive(in: session, isActive: false)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
@@ -62,21 +58,42 @@ struct PartnerChangeReceptionTests {
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
         let notifications = RecordingPartnerActions()
-        let announcement = PartnerActionAnnouncement.recording(into: notifications, known: before)
-        let store = PartnershipStore(
-            role: .manager,
-            synchronizer: synchronizer,
-            state: before,
-            failures: RecordedFailures(),
-            announcement: announcement
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
         )
+        await session.connect()
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
-        let reception = Self.reception(announcing: announcement)
+        let reception = Self.reception()
 
         // When
-        async let first = reception.receive(into: store, orStartingFrom: nil, isActive: false)
-        async let second = reception.receive(into: store, orStartingFrom: nil, isActive: false)
+        async let first = reception.receive(in: session, isActive: false)
+        async let second = reception.receive(in: session, isActive: false)
         _ = try await (first, second)
+
+        // Then
+        #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
+    }
+
+    @Test("相手の変更の知らせで起こされてつないでいる間にアプリを開くと、次の知らせが届いても、挑む人の完了報告は見届ける人に1度だけ知らされる")
+    func openingTheAppWhileWokenTellsTheReportOnce() async throws {
+        // Given
+        let (before, taskID) = try Self.pairedWithTask()
+        let synchronizer = LateFirstStart(stale: before, latest: try before.reportingTask(taskID, by: .player))
+        let notifications = RecordingPartnerActions()
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
+        )
+        let reception = Self.reception()
+        let woken = Task { try await reception.receive(in: session, isActive: false) }
+        await synchronizer.waitForFirstStart()
+        await session.connect()
+        await synchronizer.release()
+        _ = try await woken.value
+
+        // When
+        _ = try await reception.receive(in: session, isActive: false)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
@@ -96,20 +113,48 @@ private extension PartnerChangeReceptionTests {
             .creatingTask(title: "t", by: .manager)
     }
 
-    static func reception(announcing announcement: PartnerActionAnnouncement) -> PartnerChangeReception {
-        .init(
-            nudges: SilentNudges(),
-            announcement: announcement,
-            nudgeMessage: { _, _ in "催促" },
-            failures: RecordedFailures()
-        )
+    static func reception() -> PartnerChangeReception {
+        .init(nudges: SilentNudges(), nudgeMessage: { _, _ in "催促" })
     }
 }
 
-private struct SilentNudges: NudgeNotifying {
-    func requestPermission() async {}
+/// 最初の取得は `release()` まで返らず、返すのはそれより前の `stale` の状態。
+private actor LateFirstStart: PartnershipSyncing {
+    private let stale: PartnershipState
+    private let stored: InMemorySynchronizer
+    private var hasStarted = false
+    private var arrival: CheckedContinuation<Void, Never>?
+    private var held: CheckedContinuation<Void, Never>?
 
-    func replace(with notices: [NudgeNotice], now: Date) async {}
+    init(stale: PartnershipState, latest: PartnershipState) {
+        self.stale = stale
+        stored = InMemorySynchronizer(initialState: latest)
+    }
 
-    func withdrawAll() async {}
+    func start() async -> PartnershipState {
+        guard !hasStarted else { return await stored.start() }
+        hasStarted = true
+        arrival?.resume()
+        arrival = nil
+        await withCheckedContinuation { held = $0 }
+        return stale
+    }
+
+    func load() async -> PartnershipState {
+        await stored.load()
+    }
+
+    func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
+        try await stored.save(state, replacing: base)
+    }
+
+    func waitForFirstStart() async {
+        guard !hasStarted else { return }
+        await withCheckedContinuation { arrival = $0 }
+    }
+
+    func release() {
+        held?.resume()
+        held = nil
+    }
 }
