@@ -14,7 +14,10 @@ extension PartnerAction {
         return switch self {
         case .visionProposed(let id): String(localized: .partnerActionVisionProposed(partner, statement(of: id, in: state)))
         case .visionApproved(let id): String(localized: .partnerActionVisionApproved(partner, statement(of: id, in: state)))
-        case .visionReturned(let id): String(localized: .partnerActionVisionReturned(partner, statement(of: id, in: state)))
+        case .visionReturned(let id, let feedback):
+            body(of: feedback, in: state).map {
+                String(localized: .partnerActionVisionReturnedWithFeedback(partner, statement(of: id, in: state), $0))
+            } ?? String(localized: .partnerActionVisionReturned(partner, statement(of: id, in: state)))
         case .visionClosed(let id, .achieved): String(localized: .partnerActionVisionAchieved(partner, statement(of: id, in: state)))
         case .visionClosed(let id, .abandoned): String(localized: .partnerActionVisionAbandoned(partner, statement(of: id, in: state)))
         case .taskAdded(let id): String(localized: .partnerActionTaskAdded(partner, title(of: id, in: state)))

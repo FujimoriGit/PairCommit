@@ -43,7 +43,7 @@ private extension PartnerActionNotifications {
         switch action {
         case .visionProposed(let id): "\(prefix)vision-proposed.\(id)"
         case .visionApproved(let id): "\(prefix)vision-approved.\(id)"
-        case .visionReturned(let id): "\(prefix)vision-returned.\(id)"
+        case .visionReturned(let id, _): "\(prefix)vision-returned.\(id)"
         case .visionClosed(let id, _): "\(prefix)vision-closed.\(id)"
         case .taskAdded(let id): "\(prefix)task-added.\(id)"
         case .taskProposed(let id): "\(prefix)task-proposed.\(id)"

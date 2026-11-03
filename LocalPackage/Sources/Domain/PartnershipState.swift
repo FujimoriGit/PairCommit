@@ -165,11 +165,20 @@ extension PartnershipState {
         return replacing(vision.with(status: .active))
     }
 
-    public func rejectingVision(_ id: Vision.ID, by role: Role) throws(VisionRejectionError) -> Self {
+    /// `feedback` は空白だけにはできない。
+    public func rejectingVision(
+        _ id: Vision.ID,
+        feedback: String,
+        by role: Role,
+        noteID: UUID = UUID(),
+        now: Date = Date()
+    ) throws(VisionRejectionError) -> Self {
         guard role == .manager else { throw .notManager }
         guard let vision = self.vision(id) else { throw .visionNotFound }
         guard vision.status == .proposed else { throw .notProposed }
+        guard let feedback = nonBlank(feedback) else { throw .blankFeedback }
         return replacing(vision.with(status: .draft))
+            .appendingNote(feedback, kind: .feedback, on: .vision(id), by: role, id: noteID, now: now)
     }
 
     public func closingVision(
@@ -361,10 +370,14 @@ extension PartnershipState {
     /// `previous` からこの状態までに、相手が `role` に向けて行った操作。別のペアの状態と比べたときは空。
     public func partnerActions(since previous: Self, for role: Role) -> [PartnerAction] {
         guard pairing?.id == previous.pairing?.id else { return [] }
-        let visionActions = visions.compactMap { vision in
-            action(on: vision, from: previous.visions.first { $0.id == vision.id }?.status)
-        }
         let added = notes.filter { note in !previous.notes.contains { $0.id == note.id } }
+        let visionActions = visions.compactMap { vision in
+            action(
+                on: vision,
+                from: previous.visions.first { $0.id == vision.id }?.status,
+                feedback: added.last { $0.kind == .feedback && $0.subject == .vision(vision.id) }?.id
+            )
+        }
         let taskActions = tasks.flatMap { task in
             actions(
                 on: task,
@@ -372,7 +385,7 @@ extension PartnershipState {
                 feedback: added.last { $0.kind == .feedback && $0.subject == .task(task.id) }?.id
             )
         }
-        let attached = Set(taskActions.compactMap(\.feedback))
+        let attached = Set((visionActions + taskActions).compactMap(\.feedback))
         let noteActions = added
             .filter { !attached.contains($0.id) }
             .map { PartnerAction.noteWritten($0.id, author: $0.author) }
@@ -424,12 +437,12 @@ private extension PartnershipState {
         return found.filter { $0.nudge.recipient == role }
     }
 
-    func action(on vision: Vision, from before: Vision.Status?) -> PartnerAction? {
+    func action(on vision: Vision, from before: Vision.Status?, feedback: Note.ID?) -> PartnerAction? {
         guard vision.status != before else { return nil }
         switch vision.status {
         case .proposed: return .visionProposed(vision.id)
         case .active: return .visionApproved(vision.id)
-        case .draft: return before == .proposed ? .visionReturned(vision.id) : nil
+        case .draft: return before == .proposed ? .visionReturned(vision.id, feedback: feedback) : nil
         case .achieved, .abandoned: return vision.outcome.map { .visionClosed(vision.id, $0) }
         }
     }

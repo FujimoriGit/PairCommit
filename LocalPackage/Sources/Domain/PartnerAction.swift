@@ -11,7 +11,7 @@ import Foundation
 public enum PartnerAction: Hashable, Sendable {
     case visionProposed(Vision.ID)
     case visionApproved(Vision.ID)
-    case visionReturned(Vision.ID)
+    case visionReturned(Vision.ID, feedback: Note.ID?)
     case visionClosed(Vision.ID, Vision.Outcome)
     case taskAdded(TaskItem.ID)
     case taskProposed(TaskItem.ID)
@@ -40,7 +40,7 @@ public enum PartnerAction: Hashable, Sendable {
 extension PartnerAction {
     var feedback: Note.ID? {
         switch self {
-        case .taskApproved(_, let feedback), .taskReturned(_, let feedback): feedback
+        case .visionReturned(_, let feedback), .taskApproved(_, let feedback), .taskReturned(_, let feedback): feedback
         default: nil
         }
     }

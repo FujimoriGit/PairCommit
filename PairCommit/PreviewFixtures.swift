@@ -140,12 +140,29 @@ extension PartnershipStore {
                 notes: notes,
                 lastNoteNumber: notes.map(\.number).max() ?? 0
             ),
-            failures: PreviewFailures()
+            failures: PreviewFailures(),
+            announcement: .preview
         )
     }
 }
 
+extension PartnerActionAnnouncement {
+    static var preview: Self {
+        .init(knownState: PreviewKnownState(), notifying: PreviewPartnerActionNotifications(), message: { _, _ in "" })
+    }
+}
+
 extension Note {
+    static func previewSendingBack(_ vision: Vision) -> Self {
+        .preview(
+            on: .vision(vision.id),
+            kind: .feedback,
+            author: .manager,
+            number: 1,
+            body: "半年で10kgは急すぎる。月ごとの目安も書いてほしい"
+        )
+    }
+
     static func preview(on subject: Subject, kind: Kind, author: Role, number: Int, body: String) -> Self {
         .init(
             id: UUID(),
@@ -165,8 +182,7 @@ extension PartnershipSession {
             sharing: PreviewSharing(),
             inviting: PreviewInviting(),
             nudges: PreviewNudgeNotifications(),
-            partnerActions: PreviewPartnerActionNotifications(),
-            knownState: PreviewKnownState(),
+            announcement: .preview,
             failures: PreviewFailures(),
             nudgeMessage: { $0.message(in: $1) },
             makeNearbyChannel: { PreviewNearbyChannel() }

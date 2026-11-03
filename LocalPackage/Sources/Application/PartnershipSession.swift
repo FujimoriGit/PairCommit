@@ -40,8 +40,7 @@ public final class PartnershipSession {
 
     private let sharing: any PartnershipSharing
     private let nudges: any NudgeNotifying
-    private let partnerActions: any PartnerActionNotifying
-    private let knownState: any KnownStateKeeping
+    private let announcement: PartnerActionAnnouncement
     private let failures: any FailureRecording
     private let nudgeMessage: @Sendable (Nudge, PartnershipState) -> String
     private var connection: Connection
@@ -50,16 +49,14 @@ public final class PartnershipSession {
         sharing: any PartnershipSharing,
         inviting: any PartnershipInviting,
         nudges: any NudgeNotifying,
-        partnerActions: any PartnerActionNotifying,
-        knownState: any KnownStateKeeping,
+        announcement: PartnerActionAnnouncement,
         failures: any FailureRecording,
         nudgeMessage: @escaping @Sendable (Nudge, PartnershipState) -> String,
         makeNearbyChannel: @escaping @MainActor () -> any NearbyChannel
     ) {
         self.sharing = sharing
         self.nudges = nudges
-        self.partnerActions = partnerActions
-        self.knownState = knownState
+        self.announcement = announcement
         self.failures = failures
         self.nudgeMessage = nudgeMessage
         nearby = NearbyPairing(sharing: sharing, failures: failures, makeChannel: makeNearbyChannel)
@@ -73,6 +70,7 @@ public final class PartnershipSession {
         // ペアができてからつながるまでは、ペアリングの画面のまま待つ。
         case _ where nearby.phase != .idle: .pairingNearby
         case .connecting(_, _, let failure): .connecting(failure)
+        case .starting: .connecting(nil)
         case .unpaired where remote.phase != .idle: .pairingRemotely
         case .unpaired(let interruption): .choosingRole(interruption)
         }
@@ -81,6 +79,23 @@ public final class PartnershipSession {
     public var store: PartnershipStore? {
         guard case .paired(_, let store) = connection else { return nil }
         return store
+    }
+
+    /// 使っているペアのストア。つないでいる途中ならつなぎ終わるのを待ち、まだつないでいなければつなぐ。
+    /// ペアを組んでいなければ nil。
+    func connectedStore(requestingPermission: Bool) async throws(SyncFailure) -> PartnershipStore? {
+        switch connection {
+        case .unpaired: return nil
+        case .paired(_, let store): return store
+        case .starting(_, _, let starting): await starting.value
+        case .connecting(let share, let isResumed, _):
+            await connect(to: share, isResumed: isResumed, requestingPermission: requestingPermission)
+        }
+        switch connection {
+        case .paired(_, let store): return store
+        case .connecting(_, _, .some(let failure)): throw failure
+        case .unpaired, .connecting, .starting: return nil
+        }
     }
 
     /// 端末に前のペアが残っていなければ、端末の外に残っているペアを探し、見つかればつなぐ段階に入る。
@@ -139,7 +154,7 @@ public final class PartnershipSession {
     public func accept(_ link: URL) throws(LinkRefusal) {
         let refusal: LinkRefusal
         switch connection {
-        case .connecting, .paired:
+        case .connecting, .starting, .paired:
             refusal = .alreadyPaired
         case .unpaired where remote.phase != .idle || nearby.phase != .idle:
             refusal = .pairingInProgress
@@ -172,25 +187,15 @@ public final class PartnershipSession {
     }
 
     /// ペアの状態が変わったら呼ぶ。ペアが終わっていれば役割の選択に戻り、続いていれば催促の通知を揃える。
-    /// - Parameter isActive: 画面が前面にあるか。前面にあるときだけ、相手の操作を知らせ終えたものとして残す。
-    public func followStateChange(isActive: Bool) async {
+    public func followStateChange() async {
         guard case .paired(_, let store) = connection else { return }
         let state = store.state
         guard state.pairing != nil else {
             await returnToRolePicker(with: .partnershipEnded)
             return
         }
-        if isActive {
-            knownState.keep(state)
-        }
         let message = nudgeMessage
         await nudges.post(for: store.role, in: state) { message($0, state) }
-    }
-
-    /// いまの状態を、相手の操作を知らせ終えたものとして残す。画面が前面に戻ったときに呼ぶ。
-    public func markCurrentStateSeen() {
-        guard case .paired(_, let store) = connection else { return }
-        knownState.keep(store.state)
     }
 
     /// 相手の側でもペアを終わらせ、役割の選択に戻る。前に組んで残っているペアも終わらせる。
@@ -226,6 +231,7 @@ private extension PartnershipSession {
     enum Connection {
         case unpaired(Interruption?)
         case connecting(any PairedShare, isResumed: Bool, failure: SyncFailure?)
+        case starting(any PairedShare, isResumed: Bool, Task<Void, Never>)
         case paired(any PairedShare, PartnershipStore)
     }
 
@@ -239,11 +245,16 @@ private extension PartnershipSession {
         chosenRole = nil
     }
 
-    func connect(to share: any PairedShare, isResumed: Bool) async {
-        connection = .connecting(share, isResumed: isResumed, failure: nil)
+    func connect(to share: any PairedShare, isResumed: Bool, requestingPermission: Bool = true) async {
+        let starting = Task { await start(share, isResumed: isResumed, requestingPermission: requestingPermission) }
+        connection = .starting(share, isResumed: isResumed, starting)
+        await starting.value
+    }
+
+    func start(_ share: any PairedShare, isResumed: Bool, requestingPermission: Bool) async {
         let started: PartnershipStore?
         do throws(SyncFailure) {
-            started = try await PartnershipStore(starting: share, failures: failures)
+            started = try await PartnershipStore(starting: share, failures: failures, announcement: announcement)
         } catch {
             connection = .connecting(share, isResumed: isResumed, failure: error)
             nearby.reset()
@@ -253,7 +264,9 @@ private extension PartnershipSession {
             await returnToRolePicker(with: isResumed ? .partnershipEnded : .partnerSetupMissing)
             return
         }
-        await nudges.requestPermission()
+        if requestingPermission {
+            await nudges.requestPermission()
+        }
         connection = .paired(share, started)
         guard !isResumed else { return }
         do throws(PairingFailure) {
@@ -268,8 +281,7 @@ private extension PartnershipSession {
             failures.record(interruption, during: "returnToRolePicker")
         }
         await nudges.withdrawAll()
-        await partnerActions.withdrawAll()
-        knownState.forget()
+        await announcement.clear()
         sharing.clearSavedShare()
         remote.reset()
         connection = .unpaired(interruption)

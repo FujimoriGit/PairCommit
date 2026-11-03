@@ -26,7 +26,7 @@ struct VisionDraftingTests {
     func playerCanRewriteAVisionThatWasSentBack() throws {
         // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
-        let returned = try proposed.rejectingVision(visionID, by: .manager)
+        let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
         // When

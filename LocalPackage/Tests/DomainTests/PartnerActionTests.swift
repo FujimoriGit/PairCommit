@@ -50,17 +50,18 @@ struct PartnerActionTests {
         #expect(actions == [.visionProposed(visionID)])
     }
 
-    @Test("見届ける人がビジョンを差し戻すと、挑む人に差し戻しが知らされる")
-    func returnedVisionIsToldToThePlayer() throws {
+    @Test("見届ける人がビジョンを差し戻すと、挑む人に差し戻しと理由が一緒に知らされる")
+    func returnedVisionIsToldToThePlayerWithTheReason() throws {
         // Given
         let (before, visionID) = try PartnershipState().proposedVision()
-        let after = try before.rejectingVision(visionID, by: .manager)
+        let after = try before.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
+        let noteID = try #require(after.notes.first?.id)
 
         // When
         let actions = after.partnerActions(since: before, for: .player)
 
         // Then
-        #expect(actions == [.visionReturned(visionID)])
+        #expect(actions == [.visionReturned(visionID, feedback: noteID)])
     }
 
     @Test("見届ける人がビジョンを達成にすると、挑む人に達成が知らされる")

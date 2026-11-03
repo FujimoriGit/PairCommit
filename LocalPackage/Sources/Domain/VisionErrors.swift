@@ -48,6 +48,7 @@ public enum VisionRejectionError: Error, Equatable {
     case notManager
     case visionNotFound
     case notProposed
+    case blankFeedback
 }
 
 public enum VisionClosingError: Error, Equatable {

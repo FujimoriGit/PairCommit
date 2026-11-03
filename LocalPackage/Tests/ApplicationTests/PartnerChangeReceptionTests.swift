@@ -13,38 +13,24 @@ import Testing
 @MainActor
 struct PartnerChangeReceptionTests {
 
-    @Test("アプリを開いていない間に挑む人が完了を報告すると、見届ける人に完了報告が知らされる")
-    func reportWhileInBackgroundIsToldToTheManager() async throws {
+    @Test("アプリを開いているかにかかわらず、挑む人が完了を報告すると、見届ける人に完了報告が知らされる", arguments: [false, true])
+    func reportIsToldToTheManager(isActive: Bool) async throws {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
-        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
+        )
+        await session.connect()
+        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
 
         // When
-        _ = try await reception.receive(into: store, orStartingFrom: nil, isActive: false)
+        _ = try await Self.reception().receive(in: session, isActive: isActive)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
-    }
-
-    @Test("アプリを開いている間に届いた相手の操作は、通知されない")
-    func actionWhileInForegroundIsNotNotified() async throws {
-        // Given
-        let (before, taskID) = try Self.pairedWithTask()
-        let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
-        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
-        let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
-
-        // When
-        _ = try await reception.receive(into: store, orStartingFrom: nil, isActive: true)
-
-        // Then
-        #expect(notifications.notices.isEmpty)
     }
 
     @Test("アプリが終了したあとに起こされても、相手の操作が知らされる")
@@ -54,14 +40,13 @@ struct PartnerChangeReceptionTests {
         let synchronizer = InMemorySynchronizer(initialState: before)
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
+        )
 
         // When
-        _ = try await reception.receive(
-            into: nil,
-            orStartingFrom: StubShare(isOwner: true, synchronizer: synchronizer),
-            isActive: false
-        )
+        _ = try await Self.reception().receive(in: session, isActive: false)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
@@ -72,18 +57,63 @@ struct PartnerChangeReceptionTests {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
-        let store = PartnershipStore(role: .manager, synchronizer: synchronizer, state: before, failures: RecordedFailures())
-        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let notifications = RecordingPartnerActions()
-        let reception = Self.reception(known: before, notifying: notifications)
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
+        )
+        await session.connect()
+        try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
+        let reception = Self.reception()
 
         // When
-        async let first = reception.receive(into: store, orStartingFrom: nil, isActive: false)
-        async let second = reception.receive(into: store, orStartingFrom: nil, isActive: false)
+        async let first = reception.receive(in: session, isActive: false)
+        async let second = reception.receive(in: session, isActive: false)
         _ = try await (first, second)
 
         // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
+    }
+
+    @Test("相手の変更の知らせで起こされるのと同時にアプリを開くと、次の知らせが届いても、挑む人の完了報告は見届ける人に1度だけ知らされる")
+    func openingTheAppWhileWokenTellsTheReportOnce() async throws {
+        // Given
+        let (before, taskID) = try Self.pairedWithTask()
+        let synchronizer = LateFirstStart(earlier: before, latest: try before.reportingTask(taskID, by: .player))
+        let notifications = RecordingPartnerActions()
+        let session = PartnershipSession.make(
+            saved: StubShare(isOwner: true, synchronizer: synchronizer),
+            announcement: .recording(into: notifications, known: before)
+        )
+        let reception = Self.reception()
+        async let opened: Void = session.connect()
+        async let woken = reception.receive(in: session, isActive: false)
+        _ = try await (opened, woken)
+
+        // When
+        _ = try await reception.receive(in: session, isActive: false)
+
+        // Then
+        #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
+    }
+
+    @Test("招待リンクでペアを組み終えた直後に、アプリを開いたまま相手の変更の知らせが届いても、通知の許可を求める")
+    func pairingAnewAsksForPermissionEvenIfAChangeArrivesFirst() async throws {
+        // Given
+        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
+        let permissions = PermissionRequests()
+        let session = PartnershipSession.make(
+            joined: StubShare(isOwner: true, synchronizer: InMemorySynchronizer(initialState: paired)),
+            nudges: permissions
+        )
+        try session.accept(URL(fileURLWithPath: "/invitation"))
+        await session.pairRemotely()
+
+        // When
+        _ = try await Self.reception().receive(in: session, isActive: true)
+
+        // Then
+        #expect(permissions.count == 1)
     }
 }
 
@@ -100,54 +130,47 @@ private extension PartnerChangeReceptionTests {
             .creatingTask(title: "t", by: .manager)
     }
 
-    static func reception(known: PartnershipState, notifying notifications: RecordingPartnerActions) -> PartnerChangeReception {
-        .init(
-            knownState: MemoryKnownState(known),
-            nudges: SilentNudges(),
-            partnerActions: notifications,
-            nudgeMessage: { _, _ in "催促" },
-            partnerActionMessage: { _, _ in "操作" },
-            failures: RecordedFailures()
-        )
+    static func reception() -> PartnerChangeReception {
+        .init(nudges: SilentNudges(), nudgeMessage: { _, _ in "催促" })
     }
 }
 
 @MainActor
-private final class RecordingPartnerActions: PartnerActionNotifying {
-    private(set) var notices: [PartnerActionNotice] = []
+private final class PermissionRequests: NudgeNotifying {
+    private(set) var count = 0
 
-    func deliver(_ notices: [PartnerActionNotice]) async {
-        self.notices += notices
+    func requestPermission() async {
+        count += 1
     }
-
-    func withdrawAll() async {}
-}
-
-private final class MemoryKnownState: KnownStateKeeping, @unchecked Sendable {
-    private let lock = NSLock()
-    private var state: PartnershipState?
-
-    init(_ state: PartnershipState?) {
-        self.state = state
-    }
-
-    func lastKnown() -> PartnershipState? {
-        lock.withLock { state }
-    }
-
-    func keep(_ state: PartnershipState) {
-        lock.withLock { self.state = state }
-    }
-
-    func forget() {
-        lock.withLock { state = nil }
-    }
-}
-
-private struct SilentNudges: NudgeNotifying {
-    func requestPermission() async {}
 
     func replace(with notices: [NudgeNotice], now: Date) async {}
 
     func withdrawAll() async {}
+}
+
+/// 最初の取得だけ少し遅れて返り、返すのは `earlier` の状態。
+private actor LateFirstStart: PartnershipSyncing {
+    private let earlier: PartnershipState
+    private let stored: InMemorySynchronizer
+    private var hasStarted = false
+
+    init(earlier: PartnershipState, latest: PartnershipState) {
+        self.earlier = earlier
+        stored = InMemorySynchronizer(initialState: latest)
+    }
+
+    func start() async -> PartnershipState {
+        guard !hasStarted else { return await stored.start() }
+        hasStarted = true
+        try? await Task.sleep(for: .milliseconds(50))
+        return earlier
+    }
+
+    func load() async -> PartnershipState {
+        await stored.load()
+    }
+
+    func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
+        try await stored.save(state, replacing: base)
+    }
 }

@@ -2534,6 +2534,23 @@
         }
       }
     },
+    "partnerAction.visionReturnedWithFeedback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ sent back the vision “%2$@”: %3$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@がビジョン「%@」を差し戻しました：%@"
+          }
+        }
+      }
+    },
     "partnerLine.witnessed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3827,6 +3844,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タスクはありませんでした"
+          }
+        }
+      }
+    },
+    "visionReview.sendBackPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why are you sending it back?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "差し戻す理由"
+          }
+        }
+      }
+    },
+    "visionReview.sendBackTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send back the vision"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビジョンを差し戻す"
           }
         }
       }
