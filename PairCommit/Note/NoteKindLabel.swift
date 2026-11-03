@@ -6,7 +6,7 @@
 //
 
 import Domain
-import Foundation
+import SwiftUI
 
 extension Note.Kind {
     var label: String {
@@ -14,6 +14,13 @@ extension Note.Kind {
         case .report: String(localized: .noteKindReport)
         case .reminder: String(localized: .noteKindReminder)
         case .feedback: String(localized: .noteKindFeedback)
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .reminder: .orange
+        case .report, .feedback: .secondary
         }
     }
 }

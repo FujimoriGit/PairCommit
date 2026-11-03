@@ -16,20 +16,34 @@ struct NoteComposer: View {
     @State private var text = ""
     @State private var isPosting = false
     @State private var failureMessage: String?
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .bottom, spacing: 10) {
+            HStack(alignment: .bottom, spacing: 8) {
                 TextField(String(localized: .notePlaceholder), text: $text, axis: .vertical)
                     .lineLimit(1...4)
-                    .fieldBox()
+                    .focused($isFocused)
+                    .padding(.leading, 14)
+                    .padding(.vertical, 9)
                 Button(action: post) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.largeTitle)
+                    Image(systemName: "arrow.up")
+                        .font(.body.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(isPostable ? store.role.accent : Color(.systemGray3), in: .circle)
                 }
-                .disabled(text.isBlank || isPosting)
+                .disabled(!isPostable)
                 .accessibilityLabel(Text(.notePost))
+                .padding(4)
             }
+            .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 20))
+            .overlay {
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(Color(.separator), lineWidth: 0.5)
+            }
+            .contentShape(.rect)
+            .onTapGesture { isFocused = true }
             if let failureMessage {
                 Label(failureMessage, systemImage: "exclamationmark.circle.fill")
                     .font(.footnote)
@@ -47,6 +61,10 @@ struct NoteComposer: View {
 // MARK: - Private
 
 private extension NoteComposer {
+    var isPostable: Bool {
+        !text.isBlank && !isPosting
+    }
+
     func post() {
         let body = text
         let subject = subject
