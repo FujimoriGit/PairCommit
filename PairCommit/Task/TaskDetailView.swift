@@ -152,7 +152,8 @@ private extension TaskDetailView {
         progress: 80
     )
     let notes = [
-        Note.preview(on: .task(task.id), kind: .reminder, author: .manager, number: 1, body: "そろそろ承認するから、どこまでやったか教えて")
+        Note.preview(on: .task(task.id), kind: .reminder, author: .manager, number: 1, body: "そろそろ承認するから、どこまでやったか教えて"),
+        Note.preview(on: .task(task.id), kind: .report, author: .player, number: 2, body: "4回中3回まで行けた。残りは土曜に行く")
     ]
     NavigationStack {
         TaskDetailView(

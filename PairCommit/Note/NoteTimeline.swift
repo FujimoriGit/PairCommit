@@ -30,26 +30,57 @@ struct NoteTimeline: View {
 
 private extension NoteTimeline {
     func row(_ note: Note) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(author(of: note))
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                Text(note.kind.label)
-                    .marker(.secondary)
-                Spacer(minLength: 8)
-                Text(note.writtenAt, format: Date.FormatStyle.monthDayTime)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        let isMine = note.author == role
+        return VStack(alignment: isMine ? .trailing : .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                if !isMine {
+                    Text(author(of: note))
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                }
+                kind(of: note)
             }
+            .padding(.horizontal, 6)
             Text(note.body)
                 .font(.subheadline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(isMine ? .white : .primary)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 9)
+                .background(isMine ? role.accent : Color(.secondarySystemGroupedBackground), in: bubble(isMine: isMine))
+            Text(note.writtenAt, format: Date.FormatStyle.monthDayTime)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
         }
-        .card()
+        .padding(isMine ? .leading : .trailing, 56)
+        .frame(maxWidth: .infinity, alignment: isMine ? .trailing : .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel { label in
+            if isMine {
+                Text(.noteYou)
+            }
+            label
+        }
+    }
+
+    func kind(of note: Note) -> some View {
+        Text(note.kind.label)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(note.kind.tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(note.kind.tint.opacity(0.12), in: .capsule)
+    }
+
+    func bubble(isMine: Bool) -> UnevenRoundedRectangle {
+        .rect(
+            topLeadingRadius: 18,
+            bottomLeadingRadius: isMine ? 18 : 6,
+            bottomTrailingRadius: isMine ? 6 : 18,
+            topTrailingRadius: 18
+        )
     }
 
     func author(of note: Note) -> String {
-        guard note.author != role else { return String(localized: .noteYou) }
-        return pairing?.name(of: note.author) ?? note.author.label
+        pairing?.name(of: note.author) ?? note.author.label
     }
 }
