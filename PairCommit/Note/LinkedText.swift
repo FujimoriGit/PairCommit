@@ -5,7 +5,7 @@
 //  Created by Daiki Fujimori on 2026/11/03
 //
 
-import Foundation
+import SwiftUI
 
 extension AttributedString {
     /// 文中の URL とメールアドレスを、タップで開けるリンクにする。
