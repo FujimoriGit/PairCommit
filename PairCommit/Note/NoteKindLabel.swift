@@ -19,9 +19,8 @@ extension Note.Kind {
 
     var tint: Color {
         switch self {
-        case .report: Role.player.accent
         case .reminder: .orange
-        case .feedback: Role.manager.accent
+        case .report, .feedback: .secondary
         }
     }
 }

@@ -47,14 +47,7 @@ private extension NoteTimeline {
                 .padding(.horizontal, 13)
                 .padding(.vertical, 9)
                 .background(isMine ? role.accent : Color(.secondarySystemGroupedBackground), in: bubble(isMine: isMine))
-                .contentShape(.contextMenuPreview, bubble(isMine: isMine))
-                .contextMenu {
-                    Button {
-                        UIPasteboard.general.string = note.body
-                    } label: {
-                        Label(String(localized: .noteCopy), systemImage: "doc.on.doc")
-                    }
-                }
+                .textSelection(.enabled)
             Text(note.writtenAt, format: Date.FormatStyle.monthDayTime)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -73,11 +66,7 @@ private extension NoteTimeline {
 
     func kind(of note: Note) -> some View {
         Text(note.kind.label)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(note.kind.tint)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(note.kind.tint.opacity(0.12), in: .capsule)
+            .marker(note.kind.tint)
     }
 
     func bubble(isMine: Bool) -> UnevenRoundedRectangle {
