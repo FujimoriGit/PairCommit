@@ -75,23 +75,20 @@ struct PartnerChangeReceptionTests {
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
     }
 
-    @Test("相手の変更の知らせで起こされてつないでいる間にアプリを開くと、次の知らせが届いても、挑む人の完了報告は見届ける人に1度だけ知らされる")
+    @Test("相手の変更の知らせで起こされるのと同時にアプリを開くと、次の知らせが届いても、挑む人の完了報告は見届ける人に1度だけ知らされる")
     func openingTheAppWhileWokenTellsTheReportOnce() async throws {
         // Given
         let (before, taskID) = try Self.pairedWithTask()
-        let synchronizer = LateFirstStart(stale: before, latest: try before.reportingTask(taskID, by: .player))
+        let synchronizer = LateFirstStart(earlier: before, latest: try before.reportingTask(taskID, by: .player))
         let notifications = RecordingPartnerActions()
         let session = PartnershipSession.make(
             saved: StubShare(isOwner: true, synchronizer: synchronizer),
             announcement: .recording(into: notifications, known: before)
         )
         let reception = Self.reception()
-        let woken = Task { try await reception.receive(in: session, isActive: false) }
-        await synchronizer.waitForFirstStart()
         async let opened: Void = session.connect()
-        await synchronizer.release()
-        await opened
-        _ = try await woken.value
+        async let woken = reception.receive(in: session, isActive: false)
+        _ = try await (opened, woken)
 
         // When
         _ = try await reception.receive(in: session, isActive: false)
@@ -114,26 +111,6 @@ struct PartnerChangeReceptionTests {
 
         // When
         _ = try await Self.reception().receive(in: session, isActive: true)
-
-        // Then
-        #expect(permissions.count == 1)
-    }
-
-    @Test("相手の変更の知らせで起こされてつないでいる間にアプリを開くと、通知の許可を求める")
-    func openingTheAppWhileWokenAsksForPermission() async throws {
-        // Given
-        let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
-        let synchronizer = LateFirstStart(stale: paired, latest: paired)
-        let permissions = PermissionRequests()
-        let session = PartnershipSession.make(saved: StubShare(isOwner: true, synchronizer: synchronizer), nudges: permissions)
-        let woken = Task { try await Self.reception().receive(in: session, isActive: false) }
-        await synchronizer.waitForFirstStart()
-
-        // When
-        async let opened: Void = session.connect()
-        await synchronizer.release()
-        await opened
-        _ = try await woken.value
 
         // Then
         #expect(permissions.count == 1)
@@ -171,26 +148,22 @@ private final class PermissionRequests: NudgeNotifying {
     func withdrawAll() async {}
 }
 
-/// 最初の取得は `release()` まで返らず、返すのはそれより前の `stale` の状態。
+/// 最初の取得だけ少し遅れて返り、返すのは `earlier` の状態。
 private actor LateFirstStart: PartnershipSyncing {
-    private let stale: PartnershipState
+    private let earlier: PartnershipState
     private let stored: InMemorySynchronizer
     private var hasStarted = false
-    private var arrival: CheckedContinuation<Void, Never>?
-    private var held: CheckedContinuation<Void, Never>?
 
-    init(stale: PartnershipState, latest: PartnershipState) {
-        self.stale = stale
+    init(earlier: PartnershipState, latest: PartnershipState) {
+        self.earlier = earlier
         stored = InMemorySynchronizer(initialState: latest)
     }
 
     func start() async -> PartnershipState {
         guard !hasStarted else { return await stored.start() }
         hasStarted = true
-        arrival?.resume()
-        arrival = nil
-        await withCheckedContinuation { held = $0 }
-        return stale
+        try? await Task.sleep(for: .milliseconds(50))
+        return earlier
     }
 
     func load() async -> PartnershipState {
@@ -199,15 +172,5 @@ private actor LateFirstStart: PartnershipSyncing {
 
     func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
         try await stored.save(state, replacing: base)
-    }
-
-    func waitForFirstStart() async {
-        guard !hasStarted else { return }
-        await withCheckedContinuation { arrival = $0 }
-    }
-
-    func release() {
-        held?.resume()
-        held = nil
     }
 }

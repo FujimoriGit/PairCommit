@@ -114,21 +114,10 @@ public final class PartnershipSession {
         connection = .connecting(remaining, isResumed: true, failure: nil)
     }
 
-    /// つなぐ段階に入ったペアにつなぎ、通知の許可を求める。ほかからつないでいる途中なら、つなぎ終わるのを待つ。
-    /// つなげずに失敗しているときは何もしない。
+    /// つなぐ段階に入ったペアにつなぐ。つなげずに失敗しているときは何もしない。
     public func connect() async {
-        switch connection {
-        case .connecting(let share, let isResumed, nil):
-            await connect(to: share, isResumed: isResumed)
-        case .starting(_, _, let starting):
-            await starting.value
-            guard case .paired = connection else { return }
-            await nudges.requestPermission()
-        case .paired:
-            await nudges.requestPermission()
-        case .unpaired, .connecting:
-            return
-        }
+        guard case .connecting(let share, let isResumed, nil) = connection else { return }
+        await connect(to: share, isResumed: isResumed)
     }
 
     public func retryConnecting() async {
