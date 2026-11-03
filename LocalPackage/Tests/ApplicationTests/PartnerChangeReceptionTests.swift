@@ -88,8 +88,9 @@ struct PartnerChangeReceptionTests {
         let reception = Self.reception()
         let woken = Task { try await reception.receive(in: session, isActive: false) }
         await synchronizer.waitForFirstStart()
-        await session.connect()
+        async let opened: Void = session.connect()
         await synchronizer.release()
+        await opened
         _ = try await woken.value
 
         // When
