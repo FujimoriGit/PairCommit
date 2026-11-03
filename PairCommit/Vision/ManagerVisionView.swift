@@ -12,7 +12,7 @@ import SwiftUI
 struct ManagerVisionView: View {
     let store: PartnershipStore
 
-    @State private var failureMessage: String?
+    @State private var sendingBack: Vision?
 
     var body: some View {
         Screen(role: store.role) {
@@ -20,8 +20,12 @@ struct ManagerVisionView: View {
             content
         }
         .animation(.default, value: store.state)
-        .animation(.default, value: failureMessage)
-        .sensoryFeedback(.error, trigger: failureMessage) { _, message in message != nil }
+        // 差し戻すと保存の前に承認待ちの表示が消えるので、シートはそれより外に付ける
+        .sheet(item: $sendingBack) { vision in
+            ReviewForm(wording: .visionSendingBack, subject: vision.statement, role: store.role) {
+                await sendBack(vision, feedback: $0)
+            }
+        }
     }
 }
 
@@ -77,32 +81,27 @@ private extension ManagerVisionView {
             }
             .buttonStyle(.filled)
             Button(.managerVisionSendBack) {
-                perform { state, role throws(VisionRejectionError) in try state.rejectingVision(vision.id, by: role) }
+                sendingBack = vision
             }
             .buttonStyle(.soft(feedback: .warning))
         }
-        FailureNote(message: failureMessage)
     }
 
     // 承認すると保存の前にこの画面が消える
     func approve(_ vision: Vision) {
-        failureMessage = nil
         Task {
             await store.send { state, role throws(VisionApprovalError) in try state.approvingVision(vision.id, by: role) }
         }
     }
 
-    func perform<Rejection: PresentableError>(
-        _ transform: @escaping @Sendable (PartnershipState, Role) throws(Rejection) -> PartnershipState
-    ) {
-        failureMessage = nil
-        Task {
-            do throws(PartnershipFailure<Rejection>) {
-                try await store.perform(transform)
-                failureMessage = nil
-            } catch {
-                failureMessage = error.message
+    func sendBack(_ vision: Vision, feedback: String) async -> String? {
+        do throws(PartnershipFailure<VisionRejectionError>) {
+            try await store.perform { state, role throws(VisionRejectionError) in
+                try state.rejectingVision(vision.id, feedback: feedback, by: role)
             }
+            return nil
+        } catch {
+            return error.message
         }
     }
 }

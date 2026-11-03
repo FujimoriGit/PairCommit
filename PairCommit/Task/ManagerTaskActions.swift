@@ -28,7 +28,7 @@ struct ManagerTaskActions: View {
                 Text(.managerTaskCancelConfirmationMessage)
             }
             .sheet(item: $review) { review in
-                TaskReviewForm(review: review, taskTitle: task.title, role: store.role) { await submit(review, feedback: $0) }
+                ReviewForm(wording: review.wording, subject: task.title, role: store.role) { await submit(review, feedback: $0) }
             }
     }
 }
@@ -36,6 +36,20 @@ struct ManagerTaskActions: View {
 // MARK: - Private
 
 private extension ManagerTaskActions {
+    enum TaskReview: Hashable, Identifiable {
+        case approval
+        case sendingBack
+
+        var id: Self { self }
+
+        var wording: ReviewForm.Wording {
+            switch self {
+            case .approval: .taskApproval
+            case .sendingBack: .taskSendingBack
+            }
+        }
+    }
+
     @ViewBuilder
     var buttons: some View {
         switch layout {
