@@ -341,10 +341,18 @@ extension PartnershipState {
     public func nudges(
         for role: Role,
         now: Date = Date(),
+        in calendar: Calendar = .current,
         dueSoonWithin: TimeInterval = Nudge.dueSoonWithin,
         approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
     ) -> [Nudge] {
-        nudgeWindows(for: role, dueSoonWithin: dueSoonWithin, approvalStalledAfter: approvalStalledAfter)
+        let windows = nudgeWindows(
+            for: role,
+            now: now,
+            in: calendar,
+            dueSoonWithin: dueSoonWithin,
+            approvalStalledAfter: approvalStalledAfter
+        )
+        return windows
             .filter { $0.startsAt < now && now <= ($0.endsAt ?? .distantFuture) }
             .map(\.nudge)
     }
@@ -353,10 +361,17 @@ extension PartnershipState {
     public func upcomingNudges(
         for role: Role,
         now: Date = Date(),
+        in calendar: Calendar = .current,
         dueSoonWithin: TimeInterval = Nudge.dueSoonWithin,
         approvalStalledAfter: TimeInterval = Nudge.approvalStalledAfter
     ) -> [Nudge: Date] {
-        let windows = nudgeWindows(for: role, dueSoonWithin: dueSoonWithin, approvalStalledAfter: approvalStalledAfter)
+        let windows = nudgeWindows(
+            for: role,
+            now: now,
+            in: calendar,
+            dueSoonWithin: dueSoonWithin,
+            approvalStalledAfter: approvalStalledAfter
+        )
         return Dictionary(
             windows.filter { $0.startsAt >= now }.map { ($0.nudge, $0.startsAt) },
             uniquingKeysWith: { first, _ in first }
@@ -404,6 +419,8 @@ private extension PartnershipState {
 
     func nudgeWindows(
         for role: Role,
+        now: Date,
+        in calendar: Calendar,
         dueSoonWithin: TimeInterval,
         approvalStalledAfter: TimeInterval
     ) -> [NudgeWindow] {
@@ -434,7 +451,47 @@ private extension PartnershipState {
                 break
             }
         }
+        found += stalledWindows(on: vision, now: now, in: calendar)
         return found.filter { $0.nudge.recipient == role }
+    }
+
+    func stalledWindows(on vision: Vision, now: Date, in calendar: Calendar) -> [NudgeWindow] {
+        let visionTasks = tasks(for: vision.id)
+        guard visionTasks.contains(where: { $0.status == .todo }) else { return [] }
+        let visionNotes = notes.filter { note in
+            switch note.subject {
+            case .vision(let id): id == vision.id
+            case .task(let id): visionTasks.contains { $0.id == id }
+            }
+        }
+        let playerNotes = visionNotes.filter { $0.author == .player }.map(\.writtenAt)
+        let managerNotes = visionNotes.filter { $0.author == .manager }.map(\.writtenAt)
+        guard let playerMoved = (visionTasks.map(\.statusChangedAt) + playerNotes).max() else { return [] }
+        let managerCheckedIn = max(playerMoved, managerNotes.max() ?? playerMoved)
+        let reportDue = Self.stalledReminders(after: playerMoved, now: now, in: calendar).map {
+            NudgeWindow(nudge: .progressReportDue(vision.id, on: $0.startsAt), startsAt: $0.startsAt, endsAt: $0.endsAt)
+        }
+        let checkIn = Self.stalledReminders(after: managerCheckedIn, now: now, in: calendar).map {
+            NudgeWindow(nudge: .checkInDue(vision.id, on: $0.startsAt), startsAt: $0.startsAt, endsAt: $0.endsAt)
+        }
+        return reportDue + checkIn
+    }
+
+    static func stalledReminders(
+        after movedAt: Date,
+        now: Date,
+        in calendar: Calendar
+    ) -> [(startsAt: Date, endsAt: Date)] {
+        guard let first = calendar.nextDate(
+            after: movedAt.addingTimeInterval(Nudge.stalledAfter),
+            matching: DateComponents(hour: Nudge.stalledReminderHour, minute: 0, second: 0),
+            matchingPolicy: .nextTime
+        ) else { return [] }
+        let elapsedDays = max(0, calendar.dateComponents([.day], from: first, to: now).day ?? 0)
+        let starts = (elapsedDays...(elapsedDays + Nudge.stalledRemindersAhead + 1)).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: first)
+        }
+        return zip(starts, starts.dropFirst()).map { (startsAt: $0, endsAt: $1) }
     }
 
     func action(on vision: Vision, from before: Vision.Status?, feedback: Note.ID?) -> PartnerAction? {

@@ -11,6 +11,7 @@ import Foundation
 public protocol NudgeNotifying: Sendable {
     func requestPermission() async
     /// 催促の通知を `notices` に揃える。`notices` にない催促の通知は取り下げる。
+    /// 一度出した催促は、`notices` から外れるまで出し直さない。
     func replace(with notices: [NudgeNotice], now: Date) async
     func withdrawAll() async
 }
