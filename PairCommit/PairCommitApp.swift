@@ -107,4 +107,14 @@ extension PairCommitDelegate: UNUserNotificationCenterDelegate {
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound]
     }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) else {
+            return
+        }
+        await session.open(subject)
+    }
 }

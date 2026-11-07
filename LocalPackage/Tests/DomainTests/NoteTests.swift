@@ -202,7 +202,7 @@ struct NoteTests {
         let actions = after.partnerActions(since: before, for: .manager)
 
         // Then
-        #expect(actions == [.noteWritten(noteID, author: .player)])
+        #expect(actions == [.noteWritten(noteID, on: .task(taskID), author: .player)])
     }
 
     @Test("見届ける人が書き込むと、挑む人にその書き込みが知らされる")
@@ -216,7 +216,7 @@ struct NoteTests {
         let actions = after.partnerActions(since: before, for: .player)
 
         // Then
-        #expect(actions == [.noteWritten(noteID, author: .manager)])
+        #expect(actions == [.noteWritten(noteID, on: .task(taskID), author: .manager)])
     }
 
     @Test("挑む人がもう一度書き込むと、見届ける人には新しい書き込みだけが知らされる")
@@ -231,6 +231,6 @@ struct NoteTests {
         let actions = after.partnerActions(since: before, for: .manager)
 
         // Then
-        #expect(actions == [.noteWritten(noteID, author: .player)])
+        #expect(actions == [.noteWritten(noteID, on: .task(taskID), author: .player)])
     }
 }

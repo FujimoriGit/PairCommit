@@ -37,7 +37,7 @@ extension PartnerAction {
             String(localized: .partnerActionReactionChanged(partner, title(of: id, in: state), reaction.emoji))
         case .progressChanged(let id, let percent):
             String(localized: .partnerActionProgressChanged(partner, title(of: id, in: state), percent))
-        case .noteWritten(let id, _): noteMessage(of: id, from: partner, in: state)
+        case .noteWritten(let id, _, _): noteMessage(of: id, from: partner, in: state)
         }
     }
 }

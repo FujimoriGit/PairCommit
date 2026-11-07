@@ -16,6 +16,7 @@ struct PartnershipTabs: View {
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     @State private var destination = Destination.home
+    @State private var homePath: [Note.Subject] = []
     @State private var refreshFailure: String?
     @State private var isNaming = false
     @State private var isTyping = false
@@ -42,6 +43,11 @@ struct PartnershipTabs: View {
         .onChange(of: isNamingRequired, initial: true) { _, isRequired in
             if isRequired {
                 isNaming = true
+            }
+        }
+        .onChange(of: session.requestedSubject, initial: true) {
+            if let subject = session.takeRequestedSubject() {
+                open(subject)
             }
         }
         .task {
@@ -90,11 +96,16 @@ private extension PartnershipTabs {
         let mask: GestureMask = isTyping ? .subviews : .all
         switch tab {
         case .home:
-            NavigationStack {
+            NavigationStack(path: $homePath) {
                 home
                     .refreshable { await refresh() }
                     .toolbar(.hidden, for: .navigationBar)
                     .simultaneousGesture(tabSwipe, including: mask)
+                    .navigationDestination(for: Note.Subject.self) { subject in
+                        TimelineView(.everyMinute) { context in
+                            opened(subject, now: context.date)
+                        }
+                    }
             }
         case .tasks:
             NavigationStack {
@@ -148,6 +159,40 @@ private extension PartnershipTabs {
                 guard destinations.indices.contains(next) else { return }
                 withAnimation { destination = destinations[next] }
             }
+    }
+
+    @ViewBuilder
+    func opened(_ subject: Note.Subject, now: Date) -> some View {
+        switch subject {
+        case .task(let id):
+            TaskDetailView(store: store, taskID: id, now: now)
+        case .vision(let id):
+            if let vision = store.state.activeVision, vision.id == id {
+                ActiveVisionView(store: store, vision: vision, now: now)
+            } else if let closed = store.state.closedVisions.first(where: { $0.id == id }) {
+                VisionHistoryView(
+                    vision: closed.vision,
+                    outcome: closed.outcome,
+                    tasks: store.state.tasks(for: id),
+                    role: store.role
+                )
+            }
+        }
+    }
+
+    func open(_ subject: Note.Subject) {
+        let state = store.state
+        switch subject {
+        case .task(let id) where state.tasks.contains(where: { $0.id == id }):
+            homePath = [subject]
+        case .vision(let id) where state.activeVision?.id == id || state.closedVisions.contains(where: { $0.id == id }):
+            homePath = [subject]
+        case .vision(let id) where state.visions.contains(where: { $0.id == id }):
+            homePath = []
+        case .task, .vision:
+            return
+        }
+        destination = .home
     }
 
     // ペアが終わったときは最初の画面へ戻るので、入力を求めない
