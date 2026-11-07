@@ -37,6 +37,8 @@ public final class PartnershipSession {
     public let remote: RemotePairing
     /// 役割を選び、ペアの組み方を選んでいる途中の役割。
     public var chosenRole: Role?
+    /// 利用者が押した通知の対象。ペアの画面が受け取るまで持っておく。
+    public private(set) var requestedSubject: Note.Subject?
 
     private let sharing: any PartnershipSharing
     private let nudges: any NudgeNotifying
@@ -196,6 +198,17 @@ public final class PartnershipSession {
         }
         let message = nudgeMessage
         await nudges.post(for: store.role, in: state) { message($0, state) }
+    }
+
+    /// 押された通知の対象を、ペアの画面が受け取るまで持っておく。
+    public func open(_ subject: Note.Subject) {
+        requestedSubject = subject
+    }
+
+    /// 押された通知の対象を受け取る。受け取った対象はもう持たない。
+    public func takeRequestedSubject() -> Note.Subject? {
+        defer { requestedSubject = nil }
+        return requestedSubject
     }
 
     /// 相手の側でもペアを終わらせ、役割の選択に戻る。前に組んで残っているペアも終わらせる。

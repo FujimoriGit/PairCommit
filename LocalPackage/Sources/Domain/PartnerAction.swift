@@ -22,17 +22,30 @@ public enum PartnerAction: Hashable, Sendable {
     case taskCancelled(TaskItem.ID)
     case reactionChanged(TaskItem.ID, Reaction)
     case progressChanged(TaskItem.ID, Int)
-    case noteWritten(Note.ID, author: Role)
+    case noteWritten(Note.ID, on: Note.Subject, author: Role)
 
     public var recipient: Role {
         switch self {
-        case .noteWritten(_, let author):
+        case .noteWritten(_, _, let author):
             author.counterpart
         case .visionProposed, .taskProposed, .taskReported, .reactionChanged:
             .manager
         case .visionApproved, .visionReturned, .visionClosed, .taskAdded, .taskAdopted,
              .taskApproved, .taskReturned, .taskCancelled, .progressChanged:
             .player
+        }
+    }
+
+    public var subject: Note.Subject {
+        switch self {
+        case .visionProposed(let id), .visionApproved(let id), .visionReturned(let id, _), .visionClosed(let id, _):
+            .vision(id)
+        case .taskAdded(let id), .taskProposed(let id), .taskAdopted(let id), .taskReported(let id),
+             .taskApproved(let id, _), .taskReturned(let id, _), .taskCancelled(let id),
+             .reactionChanged(let id, _), .progressChanged(let id, _):
+            .task(id)
+        case .noteWritten(_, let subject, _):
+            subject
         }
     }
 }

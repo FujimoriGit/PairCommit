@@ -18,6 +18,7 @@ public struct PartnerActionNotifications: PartnerActionNotifying {
             let content = UNMutableNotificationContent()
             content.body = notice.message
             content.sound = .default
+            content.userInfo = notice.action.subject.notificationUserInfo
             let identifier = Self.identifier(of: notice.action)
             do {
                 try await center.add(.init(identifier: identifier, content: content, trigger: nil))
@@ -54,7 +55,7 @@ private extension PartnerActionNotifications {
         case .taskCancelled(let id): "\(prefix)task-cancelled.\(id)"
         case .reactionChanged(let id, _): "\(prefix)reaction.\(id)"
         case .progressChanged(let id, _): "\(prefix)progress.\(id)"
-        case .noteWritten(let id, _): "\(prefix)note.\(id)"
+        case .noteWritten(let id, _, _): "\(prefix)note.\(id)"
         }
     }
 }

@@ -83,6 +83,7 @@ private extension NudgeNotifications {
         let content = UNMutableNotificationContent()
         content.body = notice.message
         content.sound = .default
+        content.userInfo = notice.nudge.subject.notificationUserInfo
         return UNNotificationRequest(identifier: identifier(of: notice.nudge), content: content, trigger: trigger)
     }
 
