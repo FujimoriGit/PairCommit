@@ -26,15 +26,21 @@ public struct NudgeNotifications: NudgeNotifying {
             notices.filter { $0.startsAt == nil }.map { (Self.identifier(of: $0.nudge), $0) },
             uniquingKeysWith: { first, _ in first }
         )
+        let upcoming = notices.compactMap { notice in notice.startsAt.map { (notice, $0) } }
+        let upcomingIDs = Set(upcoming.map { Self.identifier(of: $0.0.nudge) })
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
+
+        // 押したり消したりした通知は配信済みに残らないので、配信済みかどうかでは出し直しを防げない。
+        // 出した催促と予約した催促を端末に残し、解消するまでは出し直さない。
+        let notified = Self.notified() ?? Set(delivered)
+        Self.keepNotified(Set(current.keys).union(upcomingIDs))
 
         // 解消した催促の通知は残さない。読んだときにはもう終わっている、が起きる。
         center.removeDeliveredNotifications(
             withIdentifiers: delivered.filter { $0.hasPrefix(Self.prefix) && current[$0] == nil }
         )
 
-        // 配信済みの催促は出し直さない。同じ識別子で add し直すと、差し替わると同時にもう一度鳴る。
-        for (id, notice) in current where !delivered.contains(id) {
+        for (id, notice) in current where !notified.contains(id) {
             do {
                 try await center.add(Self.request(for: notice, trigger: nil))
             } catch {
@@ -43,11 +49,9 @@ public struct NudgeNotifications: NudgeNotifying {
         }
 
         // 誰も操作しなければプッシュは来ないので、期限が過ぎるだけの催促は先に予約しておく。
-        // 予約も同じ識別子で出すので、鳴ったあとは配信済みとして上の重複除けに掛かる。
         // 未配信の予約は同じ識別子の add で置き換わるので、消すのは予約しなくなったものだけにする。
         // 予約できるのはアプリごとに64件までで、超えた分は発火の遅いものから黙って捨てられる。
-        let upcoming = notices.compactMap { notice in notice.startsAt.map { (notice, $0) } }
-        await Self.withdrawPending(keeping: Set(upcoming.map { Self.identifier(of: $0.0.nudge) }))
+        await Self.withdrawPending(keeping: upcomingIDs)
         for (notice, startsAt) in upcoming {
             do {
                 try await center.add(Self.request(for: notice, trigger: Self.trigger(at: startsAt, after: now)))
@@ -62,6 +66,7 @@ public struct NudgeNotifications: NudgeNotifying {
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
         center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(Self.prefix) })
         await Self.withdrawPending(keeping: [])
+        UserDefaults.standard.removeObject(forKey: Self.notifiedKey)
     }
 }
 
@@ -69,6 +74,7 @@ public struct NudgeNotifications: NudgeNotifying {
 
 private extension NudgeNotifications {
     static let prefix = "nudge."
+    static let notifiedKey = "nudge.notified"
 
     static func identifier(of nudge: Nudge) -> String {
         switch nudge {
@@ -76,7 +82,17 @@ private extension NudgeNotifications {
         case .taskDueSoon(let id): "\(prefix)task-due-soon.\(id)"
         case .approvalStalled(let id): "\(prefix)approval-stalled.\(id)"
         case .visionOverdue(let id): "\(prefix)vision-overdue.\(id)"
+        case .progressReportDue(let id, let day): "\(prefix)progress-report-due.\(id).\(Int(day.timeIntervalSince1970))"
+        case .checkInDue(let id, let day): "\(prefix)check-in-due.\(id).\(Int(day.timeIntervalSince1970))"
         }
+    }
+
+    static func notified() -> Set<String>? {
+        UserDefaults.standard.stringArray(forKey: notifiedKey).map(Set.init)
+    }
+
+    static func keepNotified(_ identifiers: Set<String>) {
+        UserDefaults.standard.set(Array(identifiers), forKey: notifiedKey)
     }
 
     static func request(for notice: NudgeNotice, trigger: UNNotificationTrigger?) -> UNNotificationRequest {

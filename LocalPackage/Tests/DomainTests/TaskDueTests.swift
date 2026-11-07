@@ -23,7 +23,7 @@ struct TaskDueTests {
 
         // Then
         #expect(due == .overdue)
-        #expect(state.nudges(for: .player, now: now) == [.taskOverdue(task.id)])
+        #expect(state.nudges(for: .player, now: now).contains(.taskOverdue(task.id)))
     }
 
     @Test("期限の時刻より前なら、期限が当日のタスクは今日の期限になる")

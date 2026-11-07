@@ -15,6 +15,8 @@ extension Nudge {
         case .taskDueSoon(let id): dueSoonMessage(of: id, in: state)
         case .approvalStalled(let id): String(localized: .nudgeApprovalStalled(title(of: id, in: state)))
         case .visionOverdue: String(localized: .nudgeVisionOverdue)
+        case .progressReportDue: String(localized: .nudgeProgressReportDue(name(of: .manager, in: state)))
+        case .checkInDue: String(localized: .nudgeCheckInDue(name(of: .player, in: state)))
         }
     }
 }
@@ -31,6 +33,10 @@ private extension Nudge {
             return String(localized: .nudgeTaskDeadlineUnknown(title(of: id, in: state)))
         }
         return String(localized: .nudgeTaskDueSoon(title(of: id, in: state), deadline.formatted(Date.FormatStyle.monthDayTime)))
+    }
+
+    func name(of role: Role, in state: PartnershipState) -> String {
+        state.pairing?.name(of: role) ?? role.label
     }
 
     func task(of id: TaskItem.ID, in state: PartnershipState) -> TaskItem? {
