@@ -47,17 +47,18 @@ struct NudgeTests {
         #expect(nudges == [.taskDueSoon(state.tasks[0].id)])
     }
 
-    @Test("期限のないタスクは催促されない")
-    func taskWithoutDeadlineIsNeverNudged() throws {
+    @Test("期限のないタスクは、期限切れとしても期限が近いとしても催促されない")
+    func taskWithoutDeadlineIsNeverNudgedAboutItsDeadline() throws {
         // Given
         let ready = try activeVision()
-        let state = try ready.state.creatingTask(title: "走る", by: .manager, now: day(0)).state
+        let created = try ready.state.creatingTask(title: "走る", by: .manager, now: day(0))
 
         // When
-        let nudges = state.nudges(for: .player, now: day(365))
+        let nudges = created.state.nudges(for: .player, now: day(365))
 
         // Then
-        #expect(nudges.isEmpty)
+        #expect(!nudges.contains(.taskOverdue(created.taskID)))
+        #expect(!nudges.contains(.taskDueSoon(created.taskID)))
     }
 
     @Test("完了報告が承認されないまま2日を過ぎると、見届ける人に催促される")

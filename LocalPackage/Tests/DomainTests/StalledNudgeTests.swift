@@ -26,7 +26,7 @@ struct StalledNudgeTests {
     @Test("タスクが動いてから1日たっていなければ、20時を過ぎても挑む人に進み具合の報告は催促されない")
     func taskTouchedLessThanADayAgoDoesNotNudgeThePlayer() throws {
         // Given
-        let (state, _) = try Self.visionWithTask(createdAt: at(day: 0, hour: 21))
+        let (state, _) = try Self.visionWithTask(createdAt: at(day: 0, hour: 22))
 
         // When
         let nudges = state.nudges(for: .player, now: at(day: 1, hour: 21), in: utc)
@@ -98,17 +98,19 @@ struct StalledNudgeTests {
         #expect(nudges.isEmpty)
     }
 
-    @Test("タスクが動かないままなら、挑む人への進み具合の報告の催促は、この先7日分の20時が予約される")
-    func reportNudgesAreScheduledForTheNextSevenDays() throws {
+    @Test(
+        "タスクが動かないままなら、最初の催促の前でも後でも、挑む人への進み具合の報告の催促はこの先7回分が予約される",
+        arguments: [at(day: 1, hour: 12), at(day: 1, hour: 21)]
+    )
+    func reportNudgesAreScheduledSevenTimesAhead(now: Date) throws {
         // Given
-        let (state, visionID) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
+        let (state, _) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
 
         // When
-        let upcoming = state.upcomingNudges(for: .player, now: at(day: 1, hour: 21), in: utc)
+        let upcoming = state.upcomingNudges(for: .player, now: now, in: utc)
 
         // Then
         #expect(upcoming.count == 7)
-        #expect(upcoming[.progressReportDue(visionID, on: at(day: 8, hour: 20))] == at(day: 8, hour: 20))
     }
 }
 

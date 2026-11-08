@@ -487,8 +487,11 @@ private extension PartnershipState {
             matching: DateComponents(hour: Nudge.stalledReminderHour, minute: 0, second: 0),
             matchingPolicy: .nextTime
         ) else { return [] }
-        let elapsedDays = max(0, calendar.dateComponents([.day], from: first, to: now).day ?? 0)
-        let starts = (elapsedDays...(elapsedDays + Nudge.stalledRemindersAhead + 1)).compactMap {
+        // 始まっている回があればそれと、これから始まる回を `stalledRemindersAhead` 回分。
+        let (firstShown, count) = first < now
+            ? (max(0, calendar.dateComponents([.day], from: first, to: now).day ?? 0), Nudge.stalledRemindersAhead + 1)
+            : (0, Nudge.stalledRemindersAhead)
+        let starts = (firstShown...(firstShown + count)).compactMap {
             calendar.date(byAdding: .day, value: $0, to: first)
         }
         return zip(starts, starts.dropFirst()).map { (startsAt: $0, endsAt: $1) }
