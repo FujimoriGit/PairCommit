@@ -23,7 +23,8 @@ struct PairCommitApp: App {
                 invitationLinks: InvitationSceneDelegate.links,
                 makeCriteriaReviewing: {
                     OnDeviceCriteriaReview(instructions: CriteriaReviewPrompt.instructions, prompt: CriteriaReviewPrompt.prompt)
-                }
+                },
+                linkPreviewing: LinkPresentationPreviews()
             )
         }
     }

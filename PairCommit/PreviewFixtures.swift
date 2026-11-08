@@ -8,6 +8,7 @@
 import Application
 import Domain
 import Foundation
+import UIKit
 
 // プレビューが「いま」とみなす瞬間。期限も状態の変更時刻もここからの相対で置く。
 // 実時間を使うと、期限を過ぎた日から催促が出はじめて基準画像が壊れる。
@@ -303,5 +304,30 @@ final class PreviewNearbyChannel: NearbyChannel {
 struct PreviewCriteriaReview: CriteriaReviewing {
     func review(statement: String, doneCriteria: String) async throws(ReviewFailure) -> CriteriaReview {
         .init(isVerifiable: true, advice: "数値と期日が入っているので判定できます")
+    }
+}
+
+// 読み込みを待たずに撮られるので、読み込めても基準画像には写らない。カードはカード単体のプレビューで写す。
+struct OfflineLinkPreviews: LinkPreviewing {
+    func preview(of url: URL) async throws(LinkPreviewFailure) -> LinkPreview {
+        throw .failed
+    }
+}
+
+extension LinkPreview {
+    static let preview = LinkPreview(title: "初心者のための10kmランニング計画｜8週間で完走する練習メニュー", image: previewImage)
+    static let previewWithoutImage = LinkPreview(title: "初心者のための10kmランニング計画｜8週間で完走する練習メニュー", image: nil)
+
+    private static var previewImage: Data? {
+        let size = CGSize(width: 382, height: 200)
+        return UIGraphicsImageRenderer(size: size).image { context in
+            let colors = [
+                UIColor(red: 0.96, green: 0.64, blue: 0.38, alpha: 1).cgColor,
+                UIColor(red: 0.16, green: 0.62, blue: 0.56, alpha: 1).cgColor
+            ] as CFArray
+            guard let gradient = CGGradient(colorsSpace: nil, colors: colors, locations: nil) else { return }
+            context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: size.width, y: size.height), options: [])
+        }
+        .pngData()
     }
 }

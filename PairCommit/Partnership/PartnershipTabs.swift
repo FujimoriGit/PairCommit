@@ -14,6 +14,7 @@ struct PartnershipTabs: View {
     let session: PartnershipSession
     let store: PartnershipStore
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
+    let linkPreviewing: any LinkPreviewing
 
     @State private var destination = Destination.home
     @State private var homePath: [NotificationTarget.Detail] = []
@@ -132,7 +133,7 @@ private extension PartnershipTabs {
         switch (store.role, store.state.activeVision) {
         case (_, .some(let vision)):
             TimelineView(.everyMinute) { context in
-                HomeView(store: store, vision: vision, now: context.date)
+                HomeView(store: store, vision: vision, now: context.date, linkPreviewing: linkPreviewing)
             }
         case (.manager, .none): ManagerVisionView(store: store)
         case (.player, .none):
@@ -144,7 +145,7 @@ private extension PartnershipTabs {
 
     var tasks: some View {
         TimelineView(.everyMinute) { context in
-            TaskBoardView(store: store, vision: store.state.activeVision, now: context.date)
+            TaskBoardView(store: store, vision: store.state.activeVision, now: context.date, linkPreviewing: linkPreviewing)
         }
     }
 
@@ -165,7 +166,7 @@ private extension PartnershipTabs {
     func opened(_ detail: NotificationTarget.Detail, now: Date) -> some View {
         switch detail {
         case .task(let id):
-            TaskDetailView(store: store, taskID: id, now: now)
+            TaskDetailView(store: store, taskID: id, now: now, linkPreviewing: linkPreviewing)
         case .activeVision(let id):
             if let vision = store.state.activeVision, vision.id == id {
                 ActiveVisionView(store: store, vision: vision, now: now)
@@ -206,5 +207,10 @@ private extension PartnershipTabs {
 }
 
 #Preview("ペアのタブ") {
-    PartnershipTabs(session: .preview, store: .preview(role: .manager, visions: []), makeCriteriaReviewing: { nil })
+    PartnershipTabs(
+        session: .preview,
+        store: .preview(role: .manager, visions: []),
+        makeCriteriaReviewing: { nil },
+        linkPreviewing: OfflineLinkPreviews()
+    )
 }

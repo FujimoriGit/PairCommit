@@ -15,6 +15,7 @@ struct TaskSection: View {
     let tasks: [TaskItem]
     let store: PartnershipStore
     let now: Date
+    let linkPreviewing: any LinkPreviewing
 
     @ViewBuilder
     var body: some View {
@@ -23,7 +24,7 @@ struct TaskSection: View {
                 TaskSectionHeader(title: title, count: tasks.count, isAlert: isAlert)
                 TaskRowGroup {
                     ForEach(tasks) { task in
-                        TaskRow(store: store, task: task, now: now)
+                        TaskRow(store: store, task: task, now: now, linkPreviewing: linkPreviewing)
                     }
                 }
             }
