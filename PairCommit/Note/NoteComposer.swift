@@ -68,6 +68,7 @@ private extension NoteComposer {
     func post() {
         let body = text
         let subject = subject
+        text = ""
         isPosting = true
         Task {
             defer { isPosting = false }
@@ -75,9 +76,11 @@ private extension NoteComposer {
                 try await store.perform { state, role throws(NoteWritingError) in
                     try state.writingNote(body, on: subject, by: role)
                 }
-                text = ""
                 failureMessage = nil
             } catch {
+                if text.isBlank {
+                    text = body
+                }
                 failureMessage = error.message
             }
         }
