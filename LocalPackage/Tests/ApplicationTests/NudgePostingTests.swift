@@ -25,7 +25,8 @@ struct NudgePostingTests {
         await notifications.post(for: .player, in: later.state, now: Self.day(2)) { _ in "催促" }
 
         // Then
-        #expect(Set(notifications.notices) == [
+        let taskSubjects: Set<Note.Subject> = [.task(overdue.taskID), .task(later.taskID)]
+        #expect(Set(notifications.notices.filter { taskSubjects.contains($0.nudge.subject) }) == [
             NudgeNotice(nudge: .taskOverdue(overdue.taskID), message: "催促", startsAt: nil),
             NudgeNotice(nudge: .taskDueSoon(later.taskID), message: "催促", startsAt: Self.day(10 - 3)),
             NudgeNotice(nudge: .taskOverdue(later.taskID), message: "催促", startsAt: Self.day(10)),

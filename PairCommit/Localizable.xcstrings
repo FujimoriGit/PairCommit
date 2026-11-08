@@ -1905,6 +1905,40 @@
         }
       }
     },
+    "nudge.checkInDue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@’s tasks haven’t moved in a while. Take a look and help them along."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@のタスクがしばらく動いていません。タスクを確かめて、導いてあげましょう。"
+          }
+        }
+      }
+    },
+    "nudge.progressReportDue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your tasks haven’t moved in a while. Let %@ know how it’s going."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "しばらくタスクが進んでいないようです。%@に進み具合を報告しましょう。"
+          }
+        }
+      }
+    },
     "nudge.taskDeadlineUnknown" : {
       "extractionState" : "manual",
       "localizations" : {

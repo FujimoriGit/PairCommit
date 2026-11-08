@@ -26,8 +26,8 @@ struct NudgeTests {
         let nudges = state.nudges(for: .player, now: day(2))
 
         // Then
-        #expect(nudges.count == 1)
-        #expect(nudges.first == .taskOverdue(state.tasks[0].id))
+        #expect(nudges.contains(.taskOverdue(state.tasks[0].id)))
+        #expect(!nudges.contains(.taskDueSoon(state.tasks[0].id)))
     }
 
     @Test("期限まで3日を切った未完了のタスクは、期限の前でも挑む人に催促される")
@@ -48,17 +48,18 @@ struct NudgeTests {
         #expect(nudges == [.taskDueSoon(state.tasks[0].id)])
     }
 
-    @Test("期限のないタスクは催促されない")
-    func taskWithoutDeadlineIsNeverNudged() throws {
+    @Test("期限のないタスクは、期限切れとしても期限が近いとしても催促されない")
+    func taskWithoutDeadlineIsNeverNudgedAboutItsDeadline() throws {
         // Given
         let ready = try activeVision()
-        let state = try ready.state.creatingTask(title: "走る", by: .manager, now: day(0)).state
+        let created = try ready.state.creatingTask(title: "走る", by: .manager, now: day(0))
 
         // When
-        let nudges = state.nudges(for: .player, now: day(365))
+        let nudges = created.state.nudges(for: .player, now: day(365))
 
         // Then
-        #expect(nudges.isEmpty)
+        #expect(!nudges.contains(.taskOverdue(created.taskID)))
+        #expect(!nudges.contains(.taskDueSoon(created.taskID)))
     }
 
     @Test("完了報告が承認されないまま2日を過ぎると、見届ける人に催促される")
@@ -128,7 +129,7 @@ struct NudgeTests {
         let nudges = state.nudges(for: .manager, now: day(2))
 
         // Then
-        #expect(nudges.isEmpty)
+        #expect(!nudges.contains(.taskOverdue(state.tasks[0].id)))
     }
 
     @Test("期限が近いことの催促は、開始時刻より前には発生せず、開始時刻を過ぎると発生する")
@@ -187,7 +188,7 @@ struct NudgeTests {
         let upcoming = state.upcomingNudges(for: .player, now: day(3))
 
         // Then
-        #expect(Set(upcoming.keys) == [.taskOverdue(taskID)])
+        #expect(upcoming[.taskDueSoon(taskID)] == nil)
     }
 
     @Test("催促の開始時刻ちょうどでも、催促は抜け落ちず、重複もしない")

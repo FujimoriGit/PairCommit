@@ -12,18 +12,22 @@ public enum Nudge: Hashable, Sendable {
     case taskDueSoon(TaskItem.ID)
     case approvalStalled(TaskItem.ID)
     case visionOverdue(Vision.ID)
+    /// `on` は、その日の回が始まった時刻。
+    case progressReportDue(Vision.ID, on: Date)
+    /// `on` は、その日の回が始まった時刻。
+    case checkInDue(Vision.ID, on: Date)
 
     public var recipient: Role {
         switch self {
-        case .taskOverdue, .taskDueSoon:      return .player
-        case .approvalStalled, .visionOverdue: return .manager
+        case .taskOverdue, .taskDueSoon, .progressReportDue: return .player
+        case .approvalStalled, .visionOverdue, .checkInDue:  return .manager
         }
     }
 
     public var subject: Note.Subject {
         switch self {
         case .taskOverdue(let id), .taskDueSoon(let id), .approvalStalled(let id): .task(id)
-        case .visionOverdue(let id): .vision(id)
+        case .visionOverdue(let id), .progressReportDue(let id, _), .checkInDue(let id, _): .vision(id)
         }
     }
 }
@@ -31,4 +35,7 @@ public enum Nudge: Hashable, Sendable {
 extension Nudge {
     public static let dueSoonWithin: TimeInterval = 3 * 24 * 60 * 60
     public static let approvalStalledAfter: TimeInterval = 2 * 24 * 60 * 60
+    public static let stalledAfter: TimeInterval = 24 * 60 * 60
+    public static let stalledReminderHour = 20
+    public static let stalledRemindersAhead = 7
 }
