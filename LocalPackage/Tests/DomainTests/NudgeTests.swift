@@ -27,6 +27,7 @@ struct NudgeTests {
 
         // Then
         #expect(nudges.contains(.taskOverdue(state.tasks[0].id)))
+        #expect(!nudges.contains(.taskDueSoon(state.tasks[0].id)))
     }
 
     @Test("期限まで3日を切った未完了のタスクは、期限の前でも挑む人に催促される")

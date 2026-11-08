@@ -65,6 +65,7 @@ public struct NudgeNotifications: NudgeNotifying {
             }
         }
 
+        // 予約できるのはアプリごとに64件までで、超えた分は発火の遅いものから黙って捨てられる。
         // add が失敗したものや予約の一覧に残らなかったものは鳴らないので、一覧にあるものだけを鳴るものとして残す。
         let pending = Set(await center.pendingNotificationRequests().map(\.identifier))
         let scheduled = Dictionary(
