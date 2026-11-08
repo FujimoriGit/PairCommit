@@ -16,7 +16,7 @@ struct PartnershipTabs: View {
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     @State private var destination = Destination.home
-    @State private var homePath: [Note.Subject] = []
+    @State private var homePath: [NotificationTarget] = []
     @State private var refreshFailure: String?
     @State private var isNaming = false
     @State private var isTyping = false
@@ -46,8 +46,8 @@ struct PartnershipTabs: View {
             }
         }
         .onChange(of: session.requestedSubject, initial: true) {
-            if let subject = session.takeRequestedSubject() {
-                open(subject)
+            if let subject = session.takeRequestedSubject(), let target = store.state.target(of: subject) {
+                open(target)
             }
         }
         .task {
@@ -101,9 +101,9 @@ private extension PartnershipTabs {
                     .refreshable { await refresh() }
                     .toolbar(.hidden, for: .navigationBar)
                     .simultaneousGesture(tabSwipe, including: mask)
-                    .navigationDestination(for: Note.Subject.self) { subject in
+                    .navigationDestination(for: NotificationTarget.self) { target in
                         TimelineView(.everyMinute) { context in
-                            opened(subject, now: context.date)
+                            opened(target, now: context.date)
                         }
                     }
             }
@@ -162,14 +162,16 @@ private extension PartnershipTabs {
     }
 
     @ViewBuilder
-    func opened(_ subject: Note.Subject, now: Date) -> some View {
-        switch subject {
+    func opened(_ target: NotificationTarget, now: Date) -> some View {
+        switch target {
         case .task(let id):
             TaskDetailView(store: store, taskID: id, now: now)
-        case .vision(let id):
+        case .activeVision(let id):
             if let vision = store.state.activeVision, vision.id == id {
                 ActiveVisionView(store: store, vision: vision, now: now)
-            } else if let closed = store.state.closedVisions.first(where: { $0.id == id }) {
+            }
+        case .closedVision(let id):
+            if let closed = store.state.closedVisions.first(where: { $0.id == id }) {
                 VisionHistoryView(
                     vision: closed.vision,
                     outcome: closed.outcome,
@@ -177,21 +179,13 @@ private extension PartnershipTabs {
                     role: store.role
                 )
             }
+        case .home:
+            EmptyView()
         }
     }
 
-    func open(_ subject: Note.Subject) {
-        let state = store.state
-        switch subject {
-        case .task(let id) where state.tasks.contains(where: { $0.id == id }):
-            homePath = [subject]
-        case .vision(let id) where state.activeVision?.id == id || state.closedVisions.contains(where: { $0.id == id }):
-            homePath = [subject]
-        case .vision(let id) where state.visions.contains(where: { $0.id == id }):
-            homePath = []
-        case .task, .vision:
-            return
-        }
+    func open(_ target: NotificationTarget) {
+        homePath = target == .home ? [] : [target]
         destination = .home
     }
 
