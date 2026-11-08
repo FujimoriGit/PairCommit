@@ -11,23 +11,28 @@ import Foundation
 
 extension PartnerActionAnnouncement {
     static var quiet: Self {
-        .init(knownState: MemoryKnownState(nil), notifying: SilentPartnerActions(), message: { _, _ in "" })
+        .init(knownState: MemoryKnownState(nil), unseen: MemoryUnseen(), notifying: SilentPartnerActions(), message: { _, _ in "" })
     }
 
     static func recording(into notifications: RecordingPartnerActions, known: PartnershipState?) -> Self {
-        .init(knownState: MemoryKnownState(known), notifying: notifications, message: { _, _ in "操作" })
+        .init(knownState: MemoryKnownState(known), unseen: MemoryUnseen(), notifying: notifications, message: { _, _ in "操作" })
     }
 }
 
 @MainActor
 final class RecordingPartnerActions: PartnerActionNotifying {
     private(set) var notices: [PartnerActionNotice] = []
+    private(set) var badges: [Int] = []
 
     func deliver(_ notices: [PartnerActionNotice]) async {
         self.notices += notices
     }
 
     func withdrawAll() async {}
+
+    func showBadge(_ count: Int) async {
+        badges.append(count)
+    }
 }
 
 final class MemoryKnownState: KnownStateKeeping, @unchecked Sendable {
@@ -51,8 +56,23 @@ final class MemoryKnownState: KnownStateKeeping, @unchecked Sendable {
     }
 }
 
+final class MemoryUnseen: UnseenKeeping, @unchecked Sendable {
+    private let lock = NSLock()
+    private var unseen = UnseenUpdates()
+
+    func lastUnseen() -> UnseenUpdates {
+        lock.withLock { unseen }
+    }
+
+    func keep(_ unseen: UnseenUpdates) {
+        lock.withLock { self.unseen = unseen }
+    }
+}
+
 private struct SilentPartnerActions: PartnerActionNotifying {
     func deliver(_ notices: [PartnerActionNotice]) async {}
 
     func withdrawAll() async {}
+
+    func showBadge(_ count: Int) async {}
 }

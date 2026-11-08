@@ -14,7 +14,7 @@ public struct NudgeNotifications: NudgeNotifying {
 
     public func requestPermission() async {
         do {
-            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
         } catch {
             Diagnostics.notification.failed("requestAuthorization", error)
         }

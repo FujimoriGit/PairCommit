@@ -68,6 +68,10 @@ private extension TaskRow {
         task.status.turn == store.role
     }
 
+    var unseenCount: Int {
+        store.unseen.count(on: .task(task.id))
+    }
+
     var heading: some View {
         HStack(spacing: 12) {
             if style == .list {
@@ -83,6 +87,9 @@ private extension TaskRow {
             .frame(maxWidth: .infinity, alignment: .leading)
             if let reaction = task.reaction {
                 Text(reaction.emoji)
+            }
+            if unseenCount > 0 {
+                CountBadge(count: unseenCount)
             }
             if !isMyTurn {
                 Image(systemName: "chevron.right")

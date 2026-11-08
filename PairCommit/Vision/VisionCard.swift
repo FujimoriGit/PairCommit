@@ -13,6 +13,7 @@ struct VisionCard: View {
     let taskProgress: Vision.Progress
     let role: Role
     let now: Date
+    var unseenCount = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -20,6 +21,9 @@ struct VisionCard: View {
                 Text(.commonVision)
                     .font(.caption.weight(.bold))
                 Spacer(minLength: 8)
+                if unseenCount > 0 {
+                    CountBadge(count: unseenCount)
+                }
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.bold))
                     .opacity(0.8)
@@ -112,6 +116,17 @@ private extension VisionCard {
         taskProgress: .init(approved: 3, total: 5),
         role: .player,
         now: .preview
+    )
+    .padding()
+}
+
+#Preview("まだ見ていない更新があるビジョンカード") {
+    VisionCard(
+        vision: .preview(status: .active, deadline: .preview(daysLater: 30)),
+        taskProgress: .init(approved: 3, total: 5),
+        role: .player,
+        now: .preview,
+        unseenCount: 1
     )
     .padding()
 }

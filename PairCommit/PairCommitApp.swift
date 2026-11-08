@@ -45,6 +45,7 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         let notifications = NudgeNotifications()
         let announcement = PartnerActionAnnouncement(
             knownState: SavedKnownState(),
+            unseen: SavedUnseen(),
             notifying: PartnerActionNotifications(),
             message: { $0.message(in: $1) }
         )

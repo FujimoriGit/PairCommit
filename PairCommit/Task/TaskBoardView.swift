@@ -165,6 +165,23 @@ private extension TaskBoardView {
     }
 }
 
+#Preview("見届ける人のまだ見ていない更新があるタスク一覧") {
+    NavigationStack {
+        let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
+        let tasks = [TaskItem].board(in: vision)
+        TaskBoardView(
+            store: .preview(
+                role: .manager,
+                visions: [vision],
+                tasks: tasks,
+                unseen: .init(counts: [.task(tasks[0].id): 2, .task(tasks[2].id): 1])
+            ),
+            vision: vision,
+            now: .preview
+        )
+    }
+}
+
 #Preview("挑む人のタスク一覧") {
     NavigationStack {
         let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))

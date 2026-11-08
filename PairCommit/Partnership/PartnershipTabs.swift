@@ -27,6 +27,7 @@ struct PartnershipTabs: View {
                 Tab(tab.title, systemImage: tab.symbol, value: tab) {
                     root(of: tab)
                 }
+                .badge(unseenCount(on: tab))
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: destination)
@@ -118,6 +119,7 @@ private extension PartnershipTabs {
                 PartnershipHistoryView(state: store.state, role: store.role)
                     .refreshable { await refresh() }
                     .simultaneousGesture(tabSwipe, including: mask)
+                    .task(id: unseenCount(on: .history)) { await store.see(unseenSubjects(on: .history)) }
             }
         case .settings:
             NavigationStack {
@@ -134,11 +136,38 @@ private extension PartnershipTabs {
             TimelineView(.everyMinute) { context in
                 HomeView(store: store, vision: vision, now: context.date)
             }
-        case (.manager, .none): ManagerVisionView(store: store)
+        case (.manager, .none):
+            ManagerVisionView(store: store)
+                .task(id: unseenCount(on: .home)) { await store.see(unseenSubjects(on: .home)) }
         case (.player, .none):
             TimelineView(.everyMinute) { context in
                 PlayerVisionView(store: store, reviewing: makeCriteriaReviewing(), now: context.date)
             }
+            .task(id: unseenCount(on: .home)) { await store.see(unseenSubjects(on: .home)) }
+        }
+    }
+
+    func unseenCount(on tab: Destination) -> Int {
+        unseenSubjects(on: tab).reduce(0) { $0 + store.unseen.count(on: $1) }
+    }
+
+    func unseenSubjects(on tab: Destination) -> Set<Note.Subject> {
+        Set(store.unseen.counts.keys.filter { place(of: $0) == tab })
+    }
+
+    func place(of subject: Note.Subject) -> Destination {
+        switch subject {
+        case .vision(let id):
+            isClosed(id) ? .history : .home
+        case .task(let id):
+            store.state.tasks.first { $0.id == id }.map { isClosed($0.visionID) } == true ? .history : .tasks
+        }
+    }
+
+    func isClosed(_ visionID: Vision.ID) -> Bool {
+        switch store.state.visions.first(where: { $0.id == visionID })?.status {
+        case .achieved, .abandoned: true
+        case .draft, .proposed, .active, nil: false
         }
     }
 

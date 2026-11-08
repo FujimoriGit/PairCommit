@@ -16,6 +16,8 @@ public final class PartnershipStore {
     public let role: Role
     /// `send(_:)` で反映した変更を、保存できずに元へ戻したときの失敗。
     public private(set) var saveFailure: SyncFailure?
+    /// 相手が自分に向けて行った操作のうち、まだ開いて見ていないもの。
+    public private(set) var unseen: UnseenUpdates
 
     private let synchronizer: any PartnershipSyncing
     private let failures: any FailureRecording
@@ -34,6 +36,7 @@ public final class PartnershipStore {
         self.state = state
         self.failures = failures
         self.announcement = announcement
+        unseen = announcement.lastUnseen
     }
 
     /// 共有から同期を始め、ペアでの役割を決める。共有にまだペアが入っていないか、もう終わっていれば nil。
@@ -61,6 +64,7 @@ public final class PartnershipStore {
             announcement: announcement
         )
         await announcement.announce(state, to: role)
+        unseen = announcement.lastUnseen
     }
 
     /// 最新の状態を取り直し、前に受け取った状態から相手が行った操作を通知する。
@@ -69,6 +73,7 @@ public final class PartnershipStore {
             do throws(SyncFailure) {
                 state = try await synchronizer.load()
                 await announcement.announce(state, to: role)
+                unseen = announcement.lastUnseen
                 return nil
             } catch {
                 return error
@@ -120,6 +125,13 @@ public final class PartnershipStore {
     public func dismissSaveFailure() {
         saveFailure = nil
     }
+
+    /// 開いて見た対象を、まだ見ていない更新から外す。
+    public func see(_ subjects: Set<Note.Subject>) async {
+        guard subjects.contains(where: { unseen.count(on: $0) > 0 }) else { return }
+        await announcement.see(subjects, in: state)
+        unseen = announcement.lastUnseen
+    }
 }
 
 // MARK: - Private
@@ -143,15 +155,18 @@ private extension PartnershipStore {
         do throws(SyncFailure) {
             try await synchronizer.save(next, replacing: base)
             await announcement.announce(next, to: role)
+            unseen = announcement.lastUnseen
             return nil
         } catch {
             switch error {
             case .outdated(let latest) where remaining > 1:
                 await announcement.announce(latest, to: role)
+                unseen = announcement.lastUnseen
                 return await apply(transform, to: latest, remaining: remaining - 1)
             case .outdated(let latest):
                 state = latest
                 await announcement.announce(latest, to: role)
+                unseen = announcement.lastUnseen
             case .unavailable:
                 state = base
             }

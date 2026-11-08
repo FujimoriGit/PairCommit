@@ -27,7 +27,8 @@ struct HomeView: View {
                     vision: vision,
                     taskProgress: store.state.progress(of: vision.id),
                     role: store.role,
-                    now: now
+                    now: now,
+                    unseenCount: store.unseen.count(on: .vision(vision.id))
                 )
             }
             .buttonStyle(.choice)
