@@ -57,6 +57,34 @@ struct UnseenUpdatesTests {
         #expect(kept.count(on: .vision(visionID)) == 0)
     }
 
+    @Test("挑む人がビジョンを提出すると、見届ける人のまだ見ていない更新はビジョンの分に数えられる")
+    func submittedVisionCountsAsAnOpenVision() throws {
+        // Given
+        let before = PartnershipState()
+        let (after, _) = try before.proposedVision()
+        let unseen = UnseenUpdates().adding(after.partnerActions(since: before, for: .manager))
+
+        // When
+        let count = unseen.count(in: .openVisions, of: after)
+
+        // Then
+        #expect(count == 1)
+    }
+
+    @Test("見届ける人がビジョンを達成にすると、挑む人のまだ見ていない更新は閉じたビジョンの分に数えられる")
+    func closedVisionCountsAsClosed() throws {
+        // Given
+        let (before, visionID) = try PartnershipState().activeVision()
+        let after = try before.closingVision(visionID, as: .achieved, by: .manager)
+        let unseen = UnseenUpdates().adding(after.partnerActions(since: before, for: .player))
+
+        // When
+        let count = unseen.count(in: .closedVisions, of: after)
+
+        // Then
+        #expect(count == 1)
+    }
+
     @Test("進行中のビジョンのタスクのまだ見ていない更新は、タスクの分に数えられる")
     func taskOfTheActiveVisionCountsAsAnOpenTask() throws {
         // Given
