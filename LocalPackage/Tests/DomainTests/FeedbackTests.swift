@@ -127,8 +127,8 @@ struct FeedbackTests {
         #expect(approved.feedback(on: .vision(visionID)) == nil)
     }
 
-    @Test("承認や差し戻しに添えた言葉は、やりとりに並ばない")
-    func wordsOnJudgmentsAreNotPartOfTheExchange() throws {
+    @Test("差し戻しの理由は、やりとりに並ばない")
+    func returnReasonIsNotPartOfTheExchange() throws {
         // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try todo
@@ -140,6 +140,21 @@ struct FeedbackTests {
 
         // Then
         #expect(returned.exchange(on: .task(taskID)).map(\.body) == ["進んでる？"])
+    }
+
+    @Test("承認のひとことは、やりとりに並ばない")
+    func approvalNoteIsNotPartOfTheExchange() throws {
+        // Given
+        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
+        let reported = try todo
+            .writingNote("進んでる？", on: .task(taskID), by: .manager)
+            .reportingTask(taskID, by: .player)
+
+        // When
+        let approved = try reported.approvingTask(taskID, feedback: "よく続けた", by: .manager)
+
+        // Then
+        #expect(approved.exchange(on: .task(taskID)).map(\.body) == ["進んでる？"])
     }
 
     @Test("どちらの判断か残っていない前の版のフィードバックは、タスクのやりとりに並ぶ")

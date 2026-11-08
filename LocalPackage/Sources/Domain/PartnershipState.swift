@@ -62,7 +62,7 @@ public struct PartnershipState: Sendable, Codable, Equatable {
         notes.filter { $0.subject == subject }
     }
 
-    /// 2人のやりとりとして並べる書き込み。承認・差し戻しに添えた言葉は含まない。
+    /// 2人のやりとりとして並べる書き込み。どちらの判断に添えたかが分かるフィードバックは含まない。
     public func exchange(on subject: Note.Subject) -> [Note] {
         notes(on: subject).filter { feedbackJudgment(of: $0) == nil }
     }
