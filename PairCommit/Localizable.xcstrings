@@ -953,6 +953,40 @@
         }
       }
     },
+    "feedback.approved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note on approval"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "承認のひとこと"
+          }
+        }
+      }
+    },
+    "feedback.returned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reason for sending back"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "差し戻しの理由"
+          }
+        }
+      }
+    },
     "home.idle.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1782,40 +1816,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フィードバック"
-          }
-        }
-      }
-    },
-    "note.kind.reminder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reminder"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "催促"
-          }
-        }
-      }
-    },
-    "note.kind.report" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "報告"
           }
         }
       }

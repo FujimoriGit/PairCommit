@@ -20,7 +20,7 @@ struct TaskDetailView: View {
         Screen(role: store.role) {
             if let task {
                 overview(of: task)
-                NoteTimeline(notes: store.state.notes(on: .task(task.id)), pairing: store.state.pairing, role: store.role)
+                NoteTimeline(notes: store.state.exchange(on: .task(task.id)), pairing: store.state.pairing, role: store.role)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -60,6 +60,9 @@ private extension TaskDetailView {
                     .marker(task.status.tint)
             }
             TaskDetailText(task: task)
+            if let feedback = store.state.feedback(on: .task(task.id)) {
+                FeedbackBox(feedback: feedback)
+            }
             progress(of: task)
             switch store.role {
             case .manager: ManagerTaskActions(store: store, task: task)
@@ -131,7 +134,7 @@ private extension TaskDetailView {
     )
     let notes = [
         Note.preview(on: .task(task.id), kind: .report, author: .player, number: 1, body: "今週は2回行けた。金曜に残りの1回を入れる"),
-        Note.preview(on: .task(task.id), kind: .feedback, author: .manager, number: 2, body: "いいペース。金曜に行けたら教えて。フォームはこれを見て https://example.com/squat")
+        Note.preview(on: .task(task.id), kind: .reminder, author: .manager, number: 2, body: "いいペース。金曜に行けたら教えて。フォームはこれを見て https://example.com/squat")
     ]
     NavigationStack {
         TaskDetailView(
@@ -152,12 +155,47 @@ private extension TaskDetailView {
         progress: 80
     )
     let notes = [
-        Note.preview(on: .task(task.id), kind: .reminder, author: .manager, number: 1, body: "そろそろ承認するから、どこまでやったか教えて"),
-        Note.preview(on: .task(task.id), kind: .report, author: .player, number: 2, body: "4回中3回まで行けた。残りは土曜に行く")
+        Note.preview(
+            on: .task(task.id),
+            kind: .feedback(.returned),
+            author: .manager,
+            number: 1,
+            body: "回数しか書いていないので、ジムのアプリの記録を付けて報告し直して"
+        ),
+        Note.preview(on: .task(task.id), kind: .reminder, author: .manager, number: 2, body: "そろそろ承認するから、どこまでやったか教えて"),
+        Note.preview(on: .task(task.id), kind: .report, author: .player, number: 3, body: "4回中3回まで行けた。残りは土曜に行く")
     ]
     NavigationStack {
         TaskDetailView(
             store: .preview(role: .player, visions: [vision], tasks: [task], notes: notes),
+            taskID: task.id,
+            now: .preview
+        )
+    }
+}
+
+#Preview("見届ける人の承認したタスクの詳細") {
+    let vision = Vision.preview(status: .active)
+    let task = TaskItem.preview(
+        visionID: vision.id,
+        title: "週3でジムに行く",
+        status: .approved,
+        createdBy: .manager,
+        progress: 100
+    )
+    let notes = [
+        Note.preview(on: .task(task.id), kind: .report, author: .player, number: 1, body: "4回行けた。アプリの記録も付けた"),
+        Note.preview(
+            on: .task(task.id),
+            kind: .feedback(.approved),
+            author: .manager,
+            number: 2,
+            body: "記録まで付けてくれてありがとう。来週もこのペースで"
+        )
+    ]
+    NavigationStack {
+        TaskDetailView(
+            store: .preview(role: .manager, visions: [vision], tasks: [task], notes: notes),
             taskID: task.id,
             now: .preview
         )

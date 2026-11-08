@@ -74,7 +74,11 @@ private extension ManagerVisionView {
 
     @ViewBuilder
     func review(_ vision: Vision) -> some View {
-        VisionDetail(vision: vision, note: String(localized: .commonAwaitingApproval))
+        VisionDetail(
+            vision: vision,
+            note: String(localized: .commonAwaitingApproval),
+            feedback: store.state.feedback(on: .vision(vision.id))
+        )
         VStack(spacing: 10) {
             Button(.commonApprove) {
                 approve(vision)

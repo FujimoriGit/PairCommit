@@ -49,7 +49,7 @@ struct NoteTests {
 
         // Then
         let note = try #require(returned.notes(on: .task(taskID)).first)
-        #expect(note.kind == .feedback && note.author == .manager && note.body == "写真も付けてほしい")
+        #expect(note.kind == .feedback(.returned) && note.author == .manager && note.body == "写真も付けてほしい")
     }
 
     @Test("理由が空白だけでは、完了報告を差し戻せない")
@@ -74,7 +74,7 @@ struct NoteTests {
 
         // Then
         let note = try #require(returned.notes(on: .vision(visionID)).first)
-        #expect(note.kind == .feedback && note.author == .manager && note.body == "期限を決めてほしい")
+        #expect(note.kind == .feedback(.returned) && note.author == .manager && note.body == "期限を決めてほしい")
     }
 
     @Test("理由が空白だけでは、ビジョンを差し戻せない")
@@ -98,7 +98,7 @@ struct NoteTests {
         let approved = try reported.approvingTask(taskID, feedback: "よく続けた", by: .manager)
 
         // Then
-        #expect(approved.notes(on: .task(taskID)).map(\.kind) == [.feedback])
+        #expect(approved.notes(on: .task(taskID)).map(\.kind) == [.feedback(.approved)])
     }
 
     @Test("見届ける人が空白だけのフィードバックを付けて承認すると、タスクは承認され、書き込みは残らない")

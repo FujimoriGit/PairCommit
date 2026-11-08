@@ -32,14 +32,19 @@ private extension NoteTimeline {
     func row(_ note: Note) -> some View {
         let isMine = note.author == role
         return VStack(alignment: isMine ? .trailing : .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                if !isMine {
-                    Text(author(of: note))
-                        .font(.system(.caption, design: .rounded, weight: .semibold))
+            if !isMine || isFeedback(note) {
+                HStack(spacing: 6) {
+                    if !isMine {
+                        Text(author(of: note))
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                    }
+                    if isFeedback(note) {
+                        Text(.noteKindFeedback)
+                            .marker(.secondary)
+                    }
                 }
-                kind(of: note)
+                .padding(.horizontal, 6)
             }
-            .padding(.horizontal, 6)
             Text(AttributedString(linkingURLsIn: note.body))
                 .font(.subheadline)
                 .foregroundStyle(isMine ? .white : .primary)
@@ -64,9 +69,8 @@ private extension NoteTimeline {
         }
     }
 
-    func kind(of note: Note) -> some View {
-        Text(note.kind.label)
-            .marker(note.kind.tint)
+    func isFeedback(_ note: Note) -> Bool {
+        if case .feedback = note.kind { true } else { false }
     }
 
     func bubble(isMine: Bool) -> UnevenRoundedRectangle {
