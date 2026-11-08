@@ -35,6 +35,23 @@ public struct UnseenUpdates: Hashable, Sendable, Codable {
     public func keeping(in state: PartnershipState) -> Self {
         .init(counts: counts.filter { state.contains($0.key) })
     }
+
+    public func subjects(in scope: Scope, of state: PartnershipState) -> Set<Note.Subject> {
+        Set(counts.keys.filter { state.scope(of: $0) == scope })
+    }
+
+    public func count(in scope: Scope, of state: PartnershipState) -> Int {
+        subjects(in: scope, of: state).reduce(0) { $0 + count(on: $1) }
+    }
+}
+
+extension UnseenUpdates {
+    public enum Scope: Sendable {
+        case openVisions
+        case openTasks
+        /// 閉じたビジョンと、そのタスク。
+        case closedVisions
+    }
 }
 
 // MARK: - Private
@@ -45,5 +62,19 @@ private extension PartnershipState {
         case .vision(let id): visions.contains { $0.id == id }
         case .task(let id): tasks.contains { $0.id == id }
         }
+    }
+
+    func scope(of subject: Note.Subject) -> UnseenUpdates.Scope? {
+        switch subject {
+        case .vision(let id):
+            return isClosed(id) ? .closedVisions : .openVisions
+        case .task(let id):
+            guard let task = tasks.first(where: { $0.id == id }) else { return nil }
+            return isClosed(task.visionID) ? .closedVisions : .openTasks
+        }
+    }
+
+    func isClosed(_ visionID: Vision.ID) -> Bool {
+        visions.first { $0.id == visionID }?.outcome != nil
     }
 }

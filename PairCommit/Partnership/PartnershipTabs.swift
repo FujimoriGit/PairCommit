@@ -148,26 +148,19 @@ private extension PartnershipTabs {
     }
 
     func unseenCount(on tab: Destination) -> Int {
-        unseenSubjects(on: tab).reduce(0) { $0 + store.unseen.count(on: $1) }
+        scope(of: tab).map { store.unseen.count(in: $0, of: store.state) } ?? 0
     }
 
     func unseenSubjects(on tab: Destination) -> Set<Note.Subject> {
-        Set(store.unseen.counts.keys.filter { place(of: $0) == tab })
+        scope(of: tab).map { store.unseen.subjects(in: $0, of: store.state) } ?? []
     }
 
-    func place(of subject: Note.Subject) -> Destination {
-        switch subject {
-        case .vision(let id):
-            isClosed(id) ? .history : .home
-        case .task(let id):
-            store.state.tasks.first { $0.id == id }.map { isClosed($0.visionID) } == true ? .history : .tasks
-        }
-    }
-
-    func isClosed(_ visionID: Vision.ID) -> Bool {
-        switch store.state.visions.first(where: { $0.id == visionID })?.status {
-        case .achieved, .abandoned: true
-        case .draft, .proposed, .active, nil: false
+    func scope(of tab: Destination) -> UnseenUpdates.Scope? {
+        switch tab {
+        case .home: .openVisions
+        case .tasks: .openTasks
+        case .history: .closedVisions
+        case .settings: nil
         }
     }
 

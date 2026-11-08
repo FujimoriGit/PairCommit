@@ -23,6 +23,8 @@ struct VisionCard: View {
                 Spacer(minLength: 8)
                 if unseenCount > 0 {
                     CountBadge(count: unseenCount)
+                        .hidden()
+                        .anchorPreference(key: BadgeBounds.self, value: .bounds) { $0 }
                 }
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.bold))
@@ -47,11 +49,30 @@ struct VisionCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .modifier(Surface(role: role))
+        // ガラスの面の中に置くと、赤がガラスの色に沈んで暗くなる。
+        .overlayPreferenceValue(BadgeBounds.self) { bounds in
+            GeometryReader { proxy in
+                if let bounds {
+                    CountBadge(count: unseenCount)
+                        .position(x: proxy[bounds].midX, y: proxy[bounds].midY)
+                }
+            }
+        }
         .shadow(color: role.accent.opacity(0.3), radius: 12, y: 6)
     }
 }
 
 // MARK: - Private
+
+private struct BadgeBounds: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? {
+        nil
+    }
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
+    }
+}
 
 private struct Surface: ViewModifier {
     let role: Role
