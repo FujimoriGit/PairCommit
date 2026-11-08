@@ -11,6 +11,7 @@ cd "$(dirname "$0")/.."
 ARCHIVE=build/PairCommit.xcarchive
 SOURCE_PACKAGES=build/SourcePackages
 CONTAINER=iCloud.com.fujimori.PairCommit
+TEAM=676WN4U5D4
 
 AUTH=(
   -allowProvisioningUpdates
@@ -38,6 +39,7 @@ xcodebuild \
   archive
 
 # manageAppVersionAndBuildNumber: ビルド番号は、App Store Connect に上がっている最大の番号の次を Xcode がつける
+# teamID: 書き出しは既定でアーカイブを作ったチームを使うが、署名せずに作ったアーカイブにはチームが記録されない
 export_options() {
   cat <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -50,6 +52,8 @@ export_options() {
 	<string>$1</string>
 	<key>signingStyle</key>
 	<string>automatic</string>
+	<key>teamID</key>
+	<string>$TEAM</string>
 	<key>manageAppVersionAndBuildNumber</key>
 	<true/>
 	<key>uploadSymbols</key>
