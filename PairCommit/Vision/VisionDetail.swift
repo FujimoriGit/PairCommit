@@ -12,6 +12,7 @@ struct VisionDetail: View {
     let vision: Vision
     var note: String?
     var noteTint: Color = .orange
+    var feedback: Note.Feedback?
 
     var body: some View {
         Panel {
@@ -21,6 +22,9 @@ struct VisionDetail: View {
             }
             Text(vision.statement)
                 .font(.system(.title3, design: .rounded, weight: .bold))
+            if let feedback {
+                FeedbackBox(feedback: feedback)
+            }
             field(String(localized: .commonDoneCriteria), vision.doneCriteria)
             if let why = vision.why {
                 field(String(localized: .commonWhy), why)

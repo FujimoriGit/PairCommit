@@ -156,7 +156,7 @@ extension Note {
     static func previewSendingBack(_ vision: Vision) -> Self {
         .preview(
             on: .vision(vision.id),
-            kind: .feedback,
+            kind: .feedback(.returned),
             author: .manager,
             number: 1,
             body: "半年で10kgは急すぎる。月ごとの目安も書いてほしい"

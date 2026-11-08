@@ -61,6 +61,32 @@ public struct PartnershipState: Sendable, Codable, Equatable {
     public func notes(on subject: Note.Subject) -> [Note] {
         notes.filter { $0.subject == subject }
     }
+
+    /// 2人のやりとりとして並べる書き込み。どちらの判断に添えたかが分かるフィードバックは含まない。
+    public func exchange(on subject: Note.Subject) -> [Note] {
+        notes(on: subject).filter { feedbackJudgment(of: $0) == nil }
+    }
+
+    /// 見届ける人が、いま効いている承認・差し戻しに添えた言葉。
+    /// 差し戻しの理由は、相手が出し直したあとも、次に判断するまで残る。
+    public func feedback(on subject: Note.Subject) -> Note.Feedback? {
+        let judgment: Note.Judgment? = switch subject {
+        case .vision(let id):
+            switch vision(id)?.status {
+            case .draft, .proposed: .returned
+            case .active, .achieved, .abandoned, nil: nil
+            }
+        case .task(let id):
+            switch task(id)?.status {
+            case .todo, .reported: .returned
+            case .approved: .approved
+            case .proposed, .cancelled, nil: nil
+            }
+        }
+        guard let judgment,
+              let note = notes(on: subject).last(where: { feedbackJudgment(of: $0) == judgment }) else { return nil }
+        return .init(judgment: judgment, body: note.body)
+    }
 }
 
 // MARK: - ペアリング
@@ -178,7 +204,7 @@ extension PartnershipState {
         guard vision.status == .proposed else { throw .notProposed }
         guard let feedback = nonBlank(feedback) else { throw .blankFeedback }
         return replacing(vision.with(status: .draft))
-            .appendingNote(feedback, kind: .feedback, on: .vision(id), by: role, id: noteID, now: now)
+            .appendingNote(feedback, kind: .feedback(.returned), on: .vision(id), by: role, id: noteID, now: now)
     }
 
     public func closingVision(
@@ -254,7 +280,7 @@ extension PartnershipState {
         guard task.status == .reported else { throw .notReported }
         let approved = replacing(task.with(status: .approved, at: now))
         guard let feedback = nonBlank(feedback) else { return approved }
-        return approved.appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
+        return approved.appendingNote(feedback, kind: .feedback(.approved), on: .task(id), by: role, id: noteID, now: now)
     }
 
     /// `feedback` は空白だけにはできない。
@@ -270,7 +296,7 @@ extension PartnershipState {
         guard task.status == .reported else { throw .notReported }
         guard let feedback = nonBlank(feedback) else { throw .blankFeedback }
         return replacing(task.with(status: .todo, at: now))
-            .appendingNote(feedback, kind: .feedback, on: .task(id), by: role, id: noteID, now: now)
+            .appendingNote(feedback, kind: .feedback(.returned), on: .task(id), by: role, id: noteID, now: now)
     }
 
     public func cancellingTask(_ id: TaskItem.ID, by role: Role, now: Date = Date()) throws(TaskCancellationError) -> Self {
@@ -390,14 +416,14 @@ extension PartnershipState {
             action(
                 on: vision,
                 from: previous.visions.first { $0.id == vision.id }?.status,
-                feedback: added.last { $0.kind == .feedback && $0.subject == .vision(vision.id) }?.id
+                feedback: added.last { $0.isFeedback && $0.subject == .vision(vision.id) }?.id
             )
         }
         let taskActions = tasks.flatMap { task in
             actions(
                 on: task,
                 from: previous.tasks.first { $0.id == task.id },
-                feedback: added.last { $0.kind == .feedback && $0.subject == .task(task.id) }?.id
+                feedback: added.last { $0.isFeedback && $0.subject == .task(task.id) }?.id
             )
         }
         let attached = Set((visionActions + taskActions).compactMap(\.feedback))
@@ -571,6 +597,14 @@ private extension PartnershipState {
 
     func task(_ id: TaskItem.ID) -> TaskItem? {
         tasks.first { $0.id == id }
+    }
+
+    func feedbackJudgment(of note: Note) -> Note.Judgment? {
+        guard case .feedback(let judgment) = note.kind else { return nil }
+        switch note.subject {
+        case .vision: return .returned
+        case .task: return judgment
+        }
     }
 
     func replacing(_ vision: Vision) -> Self {

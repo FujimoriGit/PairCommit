@@ -94,7 +94,9 @@ private extension PlayerVisionView {
 
     @ViewBuilder
     func revisionForm(_ vision: Vision) -> some View {
-        notes(on: vision)
+        if let feedback = store.state.feedback(on: .vision(vision.id)) {
+            FeedbackBox(feedback: feedback)
+        }
         fields
         VStack(spacing: 10) {
             Button(.playerVisionReviseAndSubmit) { revise(vision) }
@@ -171,8 +173,11 @@ private extension PlayerVisionView {
 
     @ViewBuilder
     func draftDetail(_ vision: Vision) -> some View {
-        VisionDetail(vision: vision, note: String(localized: .playerVisionSentBack(Role.manager.label)))
-        notes(on: vision)
+        VisionDetail(
+            vision: vision,
+            note: String(localized: .playerVisionSentBack(Role.manager.label)),
+            feedback: store.state.feedback(on: .vision(vision.id))
+        )
         VStack(spacing: 10) {
             Button(.playerVisionSubmit(Role.manager.label)) {
                 perform { state, role throws(VisionProposalError) in try state.proposingVision(vision.id, by: role) }
@@ -201,13 +206,9 @@ private extension PlayerVisionView {
         FailureNote(message: failureMessage)
     }
 
-    func notes(on vision: Vision) -> some View {
-        NoteTimeline(notes: store.state.notes(on: .vision(vision.id)), pairing: store.state.pairing, role: store.role)
-    }
-
     @ViewBuilder
     func summary(of vision: Vision, note: String) -> some View {
-        VisionDetail(vision: vision, note: note)
+        VisionDetail(vision: vision, note: note, feedback: store.state.feedback(on: .vision(vision.id)))
         FailureNote(message: failureMessage)
     }
 
