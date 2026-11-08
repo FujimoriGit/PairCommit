@@ -16,6 +16,7 @@ struct PartnershipTabs: View {
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     @State private var destination = Destination.home
+    @State private var homePath: [NotificationTarget.Detail] = []
     @State private var refreshFailure: String?
     @State private var isNaming = false
     @State private var isTyping = false
@@ -42,6 +43,11 @@ struct PartnershipTabs: View {
         .onChange(of: isNamingRequired, initial: true) { _, isRequired in
             if isRequired {
                 isNaming = true
+            }
+        }
+        .onChange(of: session.requestedSubject, initial: true) {
+            if let subject = session.takeRequestedSubject(), let target = store.state.target(of: subject) {
+                open(target)
             }
         }
         .task {
@@ -90,11 +96,16 @@ private extension PartnershipTabs {
         let mask: GestureMask = isTyping ? .subviews : .all
         switch tab {
         case .home:
-            NavigationStack {
+            NavigationStack(path: $homePath) {
                 home
                     .refreshable { await refresh() }
                     .toolbar(.hidden, for: .navigationBar)
                     .simultaneousGesture(tabSwipe, including: mask)
+                    .navigationDestination(for: NotificationTarget.Detail.self) { detail in
+                        TimelineView(.everyMinute) { context in
+                            opened(detail, now: context.date)
+                        }
+                    }
             }
         case .tasks:
             NavigationStack {
@@ -148,6 +159,35 @@ private extension PartnershipTabs {
                 guard destinations.indices.contains(next) else { return }
                 withAnimation { destination = destinations[next] }
             }
+    }
+
+    @ViewBuilder
+    func opened(_ detail: NotificationTarget.Detail, now: Date) -> some View {
+        switch detail {
+        case .task(let id):
+            TaskDetailView(store: store, taskID: id, now: now)
+        case .activeVision(let id):
+            if let vision = store.state.activeVision, vision.id == id {
+                ActiveVisionView(store: store, vision: vision, now: now)
+            }
+        case .closedVision(let id):
+            if let closed = store.state.closedVisions.first(where: { $0.id == id }) {
+                VisionHistoryView(
+                    vision: closed.vision,
+                    outcome: closed.outcome,
+                    tasks: store.state.tasks(for: id),
+                    role: store.role
+                )
+            }
+        }
+    }
+
+    func open(_ target: NotificationTarget) {
+        switch target {
+        case .home: homePath = []
+        case .detail(let detail): homePath = [detail]
+        }
+        destination = .home
     }
 
     // ペアが終わったときは最初の画面へ戻るので、入力を求めない

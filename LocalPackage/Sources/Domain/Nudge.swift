@@ -19,6 +19,13 @@ public enum Nudge: Hashable, Sendable {
         case .approvalStalled, .visionOverdue: return .manager
         }
     }
+
+    public var subject: Note.Subject {
+        switch self {
+        case .taskOverdue(let id), .taskDueSoon(let id), .approvalStalled(let id): .task(id)
+        case .visionOverdue(let id): .vision(id)
+        }
+    }
 }
 
 extension Nudge {

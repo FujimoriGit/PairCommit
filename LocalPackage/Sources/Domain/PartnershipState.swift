@@ -388,7 +388,7 @@ extension PartnershipState {
         let attached = Set((visionActions + taskActions).compactMap(\.feedback))
         let noteActions = added
             .filter { !attached.contains($0.id) }
-            .map { PartnerAction.noteWritten($0.id, author: $0.author) }
+            .map { PartnerAction.noteWritten($0.id, on: $0.subject, author: $0.author) }
         return (visionActions + taskActions + noteActions).filter { $0.recipient == role }
     }
 }
