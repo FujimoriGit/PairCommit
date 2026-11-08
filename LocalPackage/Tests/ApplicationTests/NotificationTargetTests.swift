@@ -22,7 +22,7 @@ struct NotificationTargetTests {
         let target = state.target(of: .task(taskID))
 
         // Then
-        #expect(target == .task(taskID))
+        #expect(target == .detail(.task(taskID)))
     }
 
     @Test("進行中のビジョンの通知を押すと、そのビジョンの詳細が開く")
@@ -34,7 +34,7 @@ struct NotificationTargetTests {
         let target = state.target(of: .vision(visionID))
 
         // Then
-        #expect(target == .activeVision(visionID))
+        #expect(target == .detail(.activeVision(visionID)))
     }
 
     @Test("閉じたビジョンの通知を押すと、記録のそのビジョンが開く")
@@ -47,7 +47,7 @@ struct NotificationTargetTests {
         let target = state.target(of: .vision(visionID))
 
         // Then
-        #expect(target == .closedVision(visionID))
+        #expect(target == .detail(.closedVision(visionID)))
     }
 
     @Test("提出されたビジョンの通知を押すと、ホームが開く")

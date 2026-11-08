@@ -16,7 +16,7 @@ struct PartnershipTabs: View {
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
 
     @State private var destination = Destination.home
-    @State private var homePath: [NotificationTarget] = []
+    @State private var homePath: [NotificationTarget.Detail] = []
     @State private var refreshFailure: String?
     @State private var isNaming = false
     @State private var isTyping = false
@@ -101,9 +101,9 @@ private extension PartnershipTabs {
                     .refreshable { await refresh() }
                     .toolbar(.hidden, for: .navigationBar)
                     .simultaneousGesture(tabSwipe, including: mask)
-                    .navigationDestination(for: NotificationTarget.self) { target in
+                    .navigationDestination(for: NotificationTarget.Detail.self) { detail in
                         TimelineView(.everyMinute) { context in
-                            opened(target, now: context.date)
+                            opened(detail, now: context.date)
                         }
                     }
             }
@@ -162,8 +162,8 @@ private extension PartnershipTabs {
     }
 
     @ViewBuilder
-    func opened(_ target: NotificationTarget, now: Date) -> some View {
-        switch target {
+    func opened(_ detail: NotificationTarget.Detail, now: Date) -> some View {
+        switch detail {
         case .task(let id):
             TaskDetailView(store: store, taskID: id, now: now)
         case .activeVision(let id):
@@ -179,13 +179,14 @@ private extension PartnershipTabs {
                     role: store.role
                 )
             }
-        case .home:
-            EmptyView()
         }
     }
 
     func open(_ target: NotificationTarget) {
-        homePath = target == .home ? [] : [target]
+        switch target {
+        case .home: homePath = []
+        case .detail(let detail): homePath = [detail]
+        }
         destination = .home
     }
 
