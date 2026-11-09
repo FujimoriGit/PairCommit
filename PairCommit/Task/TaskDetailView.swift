@@ -13,6 +13,7 @@ struct TaskDetailView: View {
     let store: PartnershipStore
     let taskID: TaskItem.ID
     let now: Date
+    let linkPreviewing: any LinkPreviewing
 
     @State private var editingProgress: Double?
 
@@ -20,7 +21,12 @@ struct TaskDetailView: View {
         Screen(role: store.role) {
             if let task {
                 overview(of: task)
-                NoteTimeline(notes: store.state.exchange(on: .task(task.id)), pairing: store.state.pairing, role: store.role)
+                NoteTimeline(
+                    notes: store.state.exchange(on: .task(task.id)),
+                    pairing: store.state.pairing,
+                    role: store.role,
+                    linkPreviewing: linkPreviewing
+                )
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -140,7 +146,8 @@ private extension TaskDetailView {
         TaskDetailView(
             store: .preview(role: .manager, visions: [vision], tasks: [task], notes: notes),
             taskID: task.id,
-            now: .preview
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
         )
     }
 }
@@ -169,7 +176,8 @@ private extension TaskDetailView {
         TaskDetailView(
             store: .preview(role: .player, visions: [vision], tasks: [task], notes: notes),
             taskID: task.id,
-            now: .preview
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
         )
     }
 }
@@ -197,7 +205,8 @@ private extension TaskDetailView {
         TaskDetailView(
             store: .preview(role: .manager, visions: [vision], tasks: [task], notes: notes),
             taskID: task.id,
-            now: .preview
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
         )
     }
 }

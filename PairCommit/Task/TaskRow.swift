@@ -19,12 +19,13 @@ struct TaskRow: View {
     let store: PartnershipStore
     let task: TaskItem
     let now: Date
+    let linkPreviewing: any LinkPreviewing
     var style = Style.list
 
     var body: some View {
         HStack(spacing: 12) {
             NavigationLink {
-                TaskDetailView(store: store, taskID: task.id, now: now)
+                TaskDetailView(store: store, taskID: task.id, now: now, linkPreviewing: linkPreviewing)
             } label: {
                 heading
             }

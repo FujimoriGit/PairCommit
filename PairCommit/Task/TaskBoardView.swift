@@ -13,6 +13,7 @@ struct TaskBoardView: View {
     let store: PartnershipStore
     let vision: Vision?
     let now: Date
+    let linkPreviewing: any LinkPreviewing
 
     @State private var mode = Mode.list
     @State private var isAddingTask = false
@@ -109,7 +110,7 @@ private extension TaskBoardView {
         } else {
             switch mode {
             case .list: list(of: tasks)
-            case .roadmap: TaskRoadmap(store: store, vision: vision, tasks: tasks, now: now)
+            case .roadmap: TaskRoadmap(store: store, vision: vision, tasks: tasks, now: now, linkPreviewing: linkPreviewing)
             }
         }
     }
@@ -119,7 +120,13 @@ private extension TaskBoardView {
         let awaitingManager = tasks.filter { $0.status.turn == .manager }
         let todo = tasks.filter { $0.status == .todo }.sortedByDeadline()
         if store.role == .manager {
-            TaskSection(title: String(localized: .managerTaskNeedsDecision), tasks: awaitingManager, store: store, now: now)
+            TaskSection(
+                title: String(localized: .managerTaskNeedsDecision),
+                tasks: awaitingManager,
+                store: store,
+                now: now,
+                linkPreviewing: linkPreviewing
+            )
         }
         ForEach([TaskItem.Due.overdue, .today, .withinWeek, .later, .unscheduled], id: \.self) { due in
             TaskSection(
@@ -127,7 +134,8 @@ private extension TaskBoardView {
                 isAlert: due == .overdue,
                 tasks: todo.filter { $0.due(at: now, in: .current) == due },
                 store: store,
-                now: now
+                now: now,
+                linkPreviewing: linkPreviewing
             )
         }
         if store.role == .player {
@@ -135,10 +143,11 @@ private extension TaskBoardView {
                 title: String(localized: .taskBoardPartnerTurn(Role.manager.label)),
                 tasks: awaitingManager,
                 store: store,
-                now: now
+                now: now,
+                linkPreviewing: linkPreviewing
             )
         }
-        ClosedTaskList(store: store, tasks: tasks, now: now) { isShowingCancelledTasks = true }
+        ClosedTaskList(store: store, tasks: tasks, now: now, linkPreviewing: linkPreviewing) { isShowingCancelledTasks = true }
     }
 
     func create(_ entered: TaskInput) async -> String? {
@@ -161,26 +170,41 @@ private extension TaskBoardView {
 #Preview("見届ける人のタスク一覧") {
     NavigationStack {
         let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
-        TaskBoardView(store: .preview(role: .manager, visions: [vision], tasks: .board(in: vision)), vision: vision, now: .preview)
+        TaskBoardView(
+            store: .preview(role: .manager, visions: [vision], tasks: .board(in: vision)),
+            vision: vision,
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
+        )
     }
 }
 
 #Preview("挑む人のタスク一覧") {
     NavigationStack {
         let vision = Vision.preview(status: .active, deadline: .preview(daysLater: 30))
-        TaskBoardView(store: .preview(role: .player, visions: [vision], tasks: .board(in: vision)), vision: vision, now: .preview)
+        TaskBoardView(
+            store: .preview(role: .player, visions: [vision], tasks: .board(in: vision)),
+            vision: vision,
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
+        )
     }
 }
 
 #Preview("タスクがないタスク一覧") {
     NavigationStack {
         let vision = Vision.preview(status: .active)
-        TaskBoardView(store: .preview(role: .manager, visions: [vision]), vision: vision, now: .preview)
+        TaskBoardView(
+            store: .preview(role: .manager, visions: [vision]),
+            vision: vision,
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
+        )
     }
 }
 
 #Preview("ビジョンがないタスク一覧") {
     NavigationStack {
-        TaskBoardView(store: .preview(role: .player, visions: []), vision: nil, now: .preview)
+        TaskBoardView(store: .preview(role: .player, visions: []), vision: nil, now: .preview, linkPreviewing: OfflineLinkPreviews())
     }
 }

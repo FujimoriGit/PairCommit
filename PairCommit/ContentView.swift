@@ -14,6 +14,7 @@ struct ContentView: View {
     let session: PartnershipSession
     let invitationLinks: AsyncStream<URL>
     let makeCriteriaReviewing: () -> (any CriteriaReviewing)?
+    let linkPreviewing: any LinkPreviewing
 
     @State private var linkRefusal: PartnershipSession.LinkRefusal?
 
@@ -63,7 +64,7 @@ private extension ContentView {
     }
 
     func paired(_ store: PartnershipStore) -> some View {
-        PartnershipTabs(session: session, store: store, makeCriteriaReviewing: makeCriteriaReviewing)
+        PartnershipTabs(session: session, store: store, makeCriteriaReviewing: makeCriteriaReviewing, linkPreviewing: linkPreviewing)
             .tint(store.role.accent)
             .task {
                 for await _ in NotificationCenter.default.notifications(named: UIApplication.willEnterForegroundNotification) {
@@ -152,5 +153,10 @@ private extension ContentView {
 }
 
 #Preview("役割の選択") {
-    ContentView(session: .preview, invitationLinks: AsyncStream { $0.finish() }, makeCriteriaReviewing: { nil })
+    ContentView(
+        session: .preview,
+        invitationLinks: AsyncStream { $0.finish() },
+        makeCriteriaReviewing: { nil },
+        linkPreviewing: OfflineLinkPreviews()
+    )
 }
