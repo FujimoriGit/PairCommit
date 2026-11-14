@@ -35,7 +35,7 @@ struct SelectableText: UIViewRepresentable {
         let next = appearance(in: context.environment)
         // UITextView は attributedText を代入されると、中身が同じでも選択を解除する。
         guard context.coordinator.shown != next else { return }
-        view.attributedText = attributedText(sized: next.size)
+        view.attributedText = attributedText(showing: next)
         view.linkTextAttributes = [
             .foregroundColor: UIColor(linkColor),
             .underlineStyle: NSUnderlineStyle.single.rawValue
@@ -45,7 +45,7 @@ struct SelectableText: UIViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         let limit = proposal.width ?? .greatestFiniteMagnitude
-        let used = attributedText(sized: context.environment.dynamicTypeSize).boundingRect(
+        let used = attributedText(showing: appearance(in: context.environment)).boundingRect(
             with: CGSize(width: limit, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             context: nil
@@ -62,6 +62,7 @@ extension SelectableText {
         let color: Color
         let linkColor: Color
         let size: DynamicTypeSize
+        let weight: LegibilityWeight?
         let scheme: ColorScheme
     }
 
@@ -81,15 +82,17 @@ private extension SelectableText {
             color: color,
             linkColor: linkColor,
             size: environment.dynamicTypeSize,
+            weight: environment.legibilityWeight,
             scheme: environment.colorScheme
         )
     }
 
-    func attributedText(sized size: DynamicTypeSize) -> NSAttributedString {
-        let base = UIFont.preferredFont(
-            forTextStyle: font,
-            compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
-        )
+    func attributedText(showing appearance: Appearance) -> NSAttributedString {
+        let traits = UITraitCollection { traits in
+            traits.preferredContentSizeCategory = UIContentSizeCategory(appearance.size)
+            traits.legibilityWeight = appearance.weight == .bold ? .bold : .regular
+        }
+        let base = UIFont.preferredFont(forTextStyle: font, compatibleWith: traits)
         // SwiftUI の Text は行の高さを欧文のフォントで決める。UIKit は何もしないと、和文のフォントの高い行で描く。
         let lines = NSMutableParagraphStyle()
         lines.minimumLineHeight = base.lineHeight
