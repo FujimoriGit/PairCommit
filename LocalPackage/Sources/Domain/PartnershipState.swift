@@ -547,6 +547,7 @@ private extension PartnershipState {
     func statusAction(on task: TaskItem, from before: TaskItem.Status, feedback: Note.ID?) -> PartnerAction? {
         guard task.status != before else { return nil }
         switch (before, task.status) {
+        case (.cancelled, _): return nil
         case (.proposed, .todo): return .taskAdopted(task.id)
         case (.reported, .todo): return .taskReturned(task.id, feedback: feedback)
         case (_, .reported): return .taskReported(task.id)
