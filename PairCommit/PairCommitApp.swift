@@ -101,22 +101,26 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
 
 // MARK: - UNUserNotificationCenterDelegate
 
+// async の形で受けると、終わったことを iOS に返す呼び出しがメインスレッドの外で行われ、
+// 通知を押したあとに UIKit が例外を投げてアプリが落ちる。受けたスレッドでそのまま返す。
 extension PairCommitDelegate: UNUserNotificationCenterDelegate {
     // これを返さないと、前面にいる間の通知は iOS が表示しない。
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
-        guard let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) else {
-            return
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        if let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) {
+            MainActor.assumeIsolated { session.open(subject) }
         }
-        await session.open(subject)
+        completionHandler()
     }
 }
