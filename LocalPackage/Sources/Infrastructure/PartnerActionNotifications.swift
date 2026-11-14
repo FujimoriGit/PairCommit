@@ -33,6 +33,14 @@ public struct PartnerActionNotifications: PartnerActionNotifying {
         let delivered = await center.deliveredNotifications().map(\.request.identifier)
         center.removeDeliveredNotifications(withIdentifiers: delivered.filter { $0.hasPrefix(Self.prefix) })
     }
+
+    public func showBadge(_ count: Int) async {
+        do {
+            try await UNUserNotificationCenter.current().setBadgeCount(count)
+        } catch {
+            Diagnostics.notification.failed("setBadgeCount \(count)", error)
+        }
+    }
 }
 
 // MARK: - Private

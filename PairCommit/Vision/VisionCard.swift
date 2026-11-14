@@ -13,6 +13,7 @@ struct VisionCard: View {
     let taskProgress: Vision.Progress
     let role: Role
     let now: Date
+    var unseenCount = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -20,6 +21,11 @@ struct VisionCard: View {
                 Text(.commonVision)
                     .font(.caption.weight(.bold))
                 Spacer(minLength: 8)
+                if unseenCount > 0 {
+                    CountBadge(count: unseenCount)
+                        .hidden()
+                        .anchorPreference(key: BadgeBounds.self, value: .bounds) { $0 }
+                }
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.bold))
                     .opacity(0.8)
@@ -43,11 +49,30 @@ struct VisionCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .modifier(Surface(role: role))
+        // ガラスの面の中に置くと、赤がガラスの色に沈んで暗くなる。
+        .overlayPreferenceValue(BadgeBounds.self) { bounds in
+            GeometryReader { proxy in
+                if let bounds {
+                    CountBadge(count: unseenCount)
+                        .position(x: proxy[bounds].midX, y: proxy[bounds].midY)
+                }
+            }
+        }
         .shadow(color: role.accent.opacity(0.3), radius: 12, y: 6)
     }
 }
 
 // MARK: - Private
+
+private struct BadgeBounds: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? {
+        nil
+    }
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
+    }
+}
 
 private struct Surface: ViewModifier {
     let role: Role
@@ -112,6 +137,17 @@ private extension VisionCard {
         taskProgress: .init(approved: 3, total: 5),
         role: .player,
         now: .preview
+    )
+    .padding()
+}
+
+#Preview("まだ見ていない更新があるビジョンカード") {
+    VisionCard(
+        vision: .preview(status: .active, deadline: .preview(daysLater: 30)),
+        taskProgress: .init(approved: 3, total: 5),
+        role: .player,
+        now: .preview,
+        unseenCount: 1
     )
     .padding()
 }

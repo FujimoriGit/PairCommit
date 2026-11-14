@@ -28,6 +28,7 @@ struct ActiveVisionView: View {
         }
         .navigationTitle(.commonVision)
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: store.unseen.count(on: .vision(vision.id))) { await store.see([.vision(vision.id)]) }
         .confirmationDialog(
             .managerTaskCloseVisionConfirmationTitle,
             isPresented: Binding(presenting: $outcome),

@@ -39,6 +39,7 @@ struct TaskDetailView: View {
         .animation(.default, value: task)
         .animation(.default, value: store.state.notes)
         .sensoryFeedback(.selection, trigger: editingProgress) { _, value in value != nil }
+        .task(id: store.unseen.count(on: .task(taskID))) { await store.see([.task(taskID)]) }
     }
 }
 

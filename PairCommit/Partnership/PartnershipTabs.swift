@@ -28,6 +28,7 @@ struct PartnershipTabs: View {
                 Tab(tab.title, systemImage: tab.symbol, value: tab) {
                     root(of: tab)
                 }
+                .badge(unseenCount(on: tab))
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: destination)
@@ -119,6 +120,7 @@ private extension PartnershipTabs {
                 PartnershipHistoryView(state: store.state, role: store.role)
                     .refreshable { await refresh() }
                     .simultaneousGesture(tabSwipe, including: mask)
+                    .task(id: unseenCount(on: .history)) { await store.see(unseenSubjects(on: .history)) }
             }
         case .settings:
             NavigationStack {
@@ -135,11 +137,31 @@ private extension PartnershipTabs {
             TimelineView(.everyMinute) { context in
                 HomeView(store: store, vision: vision, now: context.date, linkPreviewing: linkPreviewing)
             }
-        case (.manager, .none): ManagerVisionView(store: store)
+        case (.manager, .none):
+            ManagerVisionView(store: store)
+                .task(id: unseenCount(on: .home)) { await store.see(unseenSubjects(on: .home)) }
         case (.player, .none):
             TimelineView(.everyMinute) { context in
                 PlayerVisionView(store: store, reviewing: makeCriteriaReviewing(), now: context.date)
             }
+            .task(id: unseenCount(on: .home)) { await store.see(unseenSubjects(on: .home)) }
+        }
+    }
+
+    func unseenCount(on tab: Destination) -> Int {
+        scope(of: tab).map { store.unseen.count(in: $0, of: store.state) } ?? 0
+    }
+
+    func unseenSubjects(on tab: Destination) -> Set<Note.Subject> {
+        scope(of: tab).map { store.unseen.subjects(in: $0, of: store.state) } ?? []
+    }
+
+    func scope(of tab: Destination) -> UnseenUpdates.Scope? {
+        switch tab {
+        case .home: .openVisions
+        case .tasks: .openTasks
+        case .history: .closedVisions
+        case .settings: nil
         }
     }
 

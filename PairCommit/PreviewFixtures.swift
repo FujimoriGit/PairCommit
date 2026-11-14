@@ -123,6 +123,7 @@ extension PartnershipStore {
         visions: [Vision],
         tasks: [TaskItem] = [],
         notes: [Note] = [],
+        unseen: UnseenUpdates = .init(),
         named: Bool = true
     ) -> Self {
         .init(
@@ -142,14 +143,23 @@ extension PartnershipStore {
                 lastNoteNumber: notes.map(\.number).max() ?? 0
             ),
             failures: PreviewFailures(),
-            announcement: .preview
+            announcement: .preview(unseen: unseen)
         )
     }
 }
 
 extension PartnerActionAnnouncement {
     static var preview: Self {
-        .init(knownState: PreviewKnownState(), notifying: PreviewPartnerActionNotifications(), message: { _, _ in "" })
+        .preview(unseen: .init())
+    }
+
+    static func preview(unseen: UnseenUpdates) -> Self {
+        .init(
+            knownState: PreviewKnownState(),
+            unseen: PreviewUnseen(unseen: unseen),
+            notifying: PreviewPartnerActionNotifications(),
+            message: { _, _ in "" }
+        )
     }
 }
 
@@ -219,6 +229,18 @@ struct PreviewPartnerActionNotifications: PartnerActionNotifying {
     func deliver(_ notices: [PartnerActionNotice]) async {}
 
     func withdrawAll() async {}
+
+    func showBadge(_ count: Int) async {}
+}
+
+struct PreviewUnseen: UnseenKeeping {
+    let unseen: UnseenUpdates
+
+    func lastUnseen() -> UnseenUpdates {
+        unseen
+    }
+
+    func keep(_ unseen: UnseenUpdates) {}
 }
 
 struct PreviewKnownState: KnownStateKeeping {
