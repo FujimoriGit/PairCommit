@@ -159,8 +159,8 @@ struct PartnerActionTests {
         #expect(actions == [.taskCancelled(taskID)])
     }
 
-    @Test("見届ける人が承認待ちで取り消したタスクを戻しても、見届ける人に完了報告は知らされない")
-    func restoredReportIsNotToldToTheManager() throws {
+    @Test("見届ける人が承認待ちで取り消したタスクを戻しても、見届ける人には何も知らされない")
+    func restoredReportTellsTheManagerNothing() throws {
         let (reported, taskID) = try PartnershipState().activeVisionWithTask(in: .reported)
         let before = try reported.cancellingTask(taskID, by: .manager)
         let after = try before.restoringTask(taskID, by: .manager)
