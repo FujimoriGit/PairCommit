@@ -13,28 +13,22 @@ struct TaskDueTests {
 
     @Test("期限の当日でも期限の時刻を過ぎたタスクは期限切れになり、挑む人には期限切れの催促が届く")
     func taskPastItsDeadlineTimeOnTheDayIsOverdueAndThePlayerIsNudged() throws {
-        // Given
         let state = try stateWithTask(deadline: day(0, hoursLater: 10))
         let task = try #require(state.tasks.first)
         let now = day(0, hoursLater: 11)
 
-        // When
         let due = task.due(at: now, in: utc)
 
-        // Then
         #expect(due == .overdue)
         #expect(state.nudges(for: .player, now: now).contains(.taskOverdue(task.id)))
     }
 
     @Test("期限の時刻より前なら、期限が当日のタスクは今日の期限になる")
     func beforeTheDeadlineTimeOnTheDayIsToday() {
-        // Given
         let task = task(deadline: day(0, hoursLater: 10))
 
-        // When
         let due = task.due(at: day(0, hoursLater: 1), in: utc)
 
-        // Then
         #expect(due == .today)
     }
 
@@ -43,37 +37,28 @@ struct TaskDueTests {
         (day(7, hoursLater: 15), day(0, hoursLater: -7))
     ])
     func deadlineFromTomorrowToSevenDaysLaterIsWithinWeek(deadline: Date, now: Date) {
-        // Given
         let task = task(deadline: deadline)
 
-        // When
         let due = task.due(at: now, in: utc)
 
-        // Then
         #expect(due == .withinWeek)
     }
 
     @Test("期限が8日後以降の日付のタスクは、それより先になる")
     func deadlineEightDaysLaterIsLater() {
-        // Given
         let task = task(deadline: day(8, hoursLater: -7))
 
-        // When
         let due = task.due(at: day(0, hoursLater: 15), in: utc)
 
-        // Then
         #expect(due == .later)
     }
 
     @Test("期限の無いタスクは、期限なしになる")
     func taskWithoutDeadlineIsUnscheduled() {
-        // Given
         let task = task(deadline: nil)
 
-        // When
         let due = task.due(at: day(0), in: utc)
 
-        // Then
         #expect(due == .unscheduled)
     }
 }

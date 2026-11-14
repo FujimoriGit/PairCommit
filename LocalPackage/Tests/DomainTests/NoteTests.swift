@@ -13,13 +13,10 @@ struct NoteTests {
 
     @Test("挑む人がタスクに状況報告を書くと、そのタスクの書き込みに並ぶ")
     func reportWrittenByThePlayerAppearsOnTheTask() throws {
-        // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
-        // When
         let written = try state.writingNote("2回目まで終わった", on: .task(taskID), by: .player)
 
-        // Then
         #expect(written.notes(on: .task(taskID)).map(\.body) == ["2回目まで終わった"])
     }
 
@@ -28,37 +25,29 @@ struct NoteTests {
         (Role.manager, Note.Kind.reminder),
     ])
     func kindOfNoteFollowsTheWritersRole(role: Role, kind: Note.Kind) throws {
-        // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
-        // When
         let written = try state.writingNote("進めている", on: .task(taskID), by: role)
 
-        // Then
         #expect(written.notes(on: .task(taskID)).map(\.kind) == [kind])
     }
 
     @Test("見届ける人が完了報告を差し戻すと、理由がフィードバックとしてタスクに残る")
     func reasonForSendingBackRemainsAsFeedback() throws {
-        // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try todo.reportingTask(taskID, by: .player)
 
-        // When
         let returned = try reported.returningTask(taskID, feedback: "写真も付けてほしい", by: .manager)
 
-        // Then
         let note = try #require(returned.notes(on: .task(taskID)).first)
         #expect(note.kind == .feedback(.returned) && note.author == .manager && note.body == "写真も付けてほしい")
     }
 
     @Test("理由が空白だけでは、完了報告を差し戻せない")
     func reportCannotBeSentBackWithoutAReason() throws {
-        // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try todo.reportingTask(taskID, by: .player)
 
-        // When / Then
         #expect(throws: TaskReturnError.blankFeedback) {
             try reported.returningTask(taskID, feedback: "  \n", by: .manager)
         }
@@ -66,23 +55,18 @@ struct NoteTests {
 
     @Test("見届ける人がビジョンを差し戻すと、理由がフィードバックとしてビジョンに残る")
     func reasonForSendingBackAVisionRemainsAsFeedback() throws {
-        // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
 
-        // When
         let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
 
-        // Then
         let note = try #require(returned.notes(on: .vision(visionID)).first)
         #expect(note.kind == .feedback(.returned) && note.author == .manager && note.body == "期限を決めてほしい")
     }
 
     @Test("理由が空白だけでは、ビジョンを差し戻せない")
     func visionCannotBeSentBackWithoutAReason() throws {
-        // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
 
-        // When / Then
         #expect(throws: VisionRejectionError.blankFeedback) {
             try proposed.rejectingVision(visionID, feedback: "  \n", by: .manager)
         }
@@ -90,63 +74,49 @@ struct NoteTests {
 
     @Test("見届ける人が承認するときに書いたフィードバックは、タスクに残る")
     func feedbackWrittenOnApprovalRemainsOnTheTask() throws {
-        // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try todo.reportingTask(taskID, by: .player)
 
-        // When
         let approved = try reported.approvingTask(taskID, feedback: "よく続けた", by: .manager)
 
-        // Then
         #expect(approved.notes(on: .task(taskID)).map(\.kind) == [.feedback(.approved)])
     }
 
     @Test("見届ける人が空白だけのフィードバックを付けて承認すると、タスクは承認され、書き込みは残らない")
     func blankFeedbackOnApprovalLeavesNoNote() throws {
-        // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let reported = try todo.reportingTask(taskID, by: .player)
 
-        // When
         let approved = try reported.approvingTask(taskID, feedback: " ", by: .manager)
 
-        // Then
         #expect(approved.status(of: taskID) == .approved && approved.notes(on: .task(taskID)).isEmpty)
     }
 
     @Test("書き込みには、書いた順に1から番号が振られる")
     func notesAreNumberedInTheOrderWritten() throws {
-        // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
         let first = try state.writingNote("進んでる？", on: .task(taskID), by: .manager)
 
-        // When
         let second = try first.writingNote("半分まで来た", on: .task(taskID), by: .player)
 
-        // Then
         #expect(second.notes(on: .task(taskID)).map(\.number) == [1, 2])
     }
 
     @Test("書き込みは、受け取った順に関係なく、書いた順に並ぶ")
     func notesAreOrderedAsWrittenRegardlessOfArrival() {
-        // Given
         let subject = Note.Subject.task(UUID())
         let second = Note(id: UUID(), subject: subject, kind: .report, author: .player, number: 2, body: "b", writtenAt: Date())
         let first = Note(id: UUID(), subject: subject, kind: .reminder, author: .manager, number: 1, body: "a", writtenAt: Date())
 
-        // When
         let state = PartnershipState(notes: [second, first], lastNoteNumber: 2)
 
-        // Then
         #expect(state.notes(on: subject).map(\.number) == [1, 2])
     }
 
     @Test("空白だけの書き込みはできない")
     func blankNoteIsRefused() throws {
-        // Given
         let (state, taskID) = try PartnershipState().activeVisionWithTask()
 
-        // When / Then
         #expect(throws: NoteWritingError.blankBody) {
             try state.writingNote("  \n", on: .task(taskID), by: .manager)
         }
@@ -154,12 +124,10 @@ struct NoteTests {
 
     @Test("閉じたビジョンのタスクには書き込めない")
     func taskOfAClosedVisionCannotBeWrittenOn() throws {
-        // Given
         let (active, visionID) = try PartnershipState().activeVision()
         let (created, taskID) = try active.creatingTask(title: "t", by: .manager)
         let closed = try created.closingVision(visionID, as: .achieved, by: .manager)
 
-        // When / Then
         #expect(throws: NoteWritingError.subjectClosed) {
             try closed.writingNote("おつかれさま", on: .task(taskID), by: .manager)
         }
@@ -167,11 +135,9 @@ struct NoteTests {
 
     @Test("閉じたビジョンには書き込めない")
     func closedVisionCannotBeWrittenOn() throws {
-        // Given
         let (active, visionID) = try PartnershipState().activeVision()
         let closed = try active.closingVision(visionID, as: .achieved, by: .manager)
 
-        // When / Then
         #expect(throws: NoteWritingError.subjectClosed) {
             try closed.writingNote("おつかれさま", on: .vision(visionID), by: .manager)
         }
@@ -179,58 +145,46 @@ struct NoteTests {
 
     @Test("取り下げた起案に書いた書き込みは、起案と一緒に消える")
     func notesOnADiscardedDraftAreRemoved() throws {
-        // Given
         let (proposed, visionID) = try PartnershipState().proposedVision()
         let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
         let written = try returned.writingNote("期限を決めてほしい", on: .vision(visionID), by: .manager)
 
-        // When
         let discarded = try written.discardingVision(visionID, by: .player)
 
-        // Then
         #expect(discarded.notes(on: .vision(visionID)).isEmpty)
     }
 
     @Test("挑む人が書き込むと、見届ける人にその書き込みが知らされる")
     func noteByThePlayerIsToldToTheManager() throws {
-        // Given
         let (before, taskID) = try PartnershipState().activeVisionWithTask()
         let after = try before.writingNote("今日は休む", on: .task(taskID), by: .player)
         let noteID = try #require(after.notes.first?.id)
 
-        // When
         let actions = after.partnerActions(since: before, for: .manager)
 
-        // Then
         #expect(actions == [.noteWritten(noteID, on: .task(taskID), author: .player)])
     }
 
     @Test("見届ける人が書き込むと、挑む人にその書き込みが知らされる")
     func noteByTheManagerIsToldToThePlayer() throws {
-        // Given
         let (before, taskID) = try PartnershipState().activeVisionWithTask()
         let after = try before.writingNote("進んでる？", on: .task(taskID), by: .manager)
         let noteID = try #require(after.notes.first?.id)
 
-        // When
         let actions = after.partnerActions(since: before, for: .player)
 
-        // Then
         #expect(actions == [.noteWritten(noteID, on: .task(taskID), author: .manager)])
     }
 
     @Test("挑む人がもう一度書き込むと、見届ける人には新しい書き込みだけが知らされる")
     func onlyTheNewNoteIsToldToTheManager() throws {
-        // Given
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
         let before = try todo.writingNote("1回目", on: .task(taskID), by: .player)
         let after = try before.writingNote("2回目", on: .task(taskID), by: .player)
         let noteID = try #require(after.notes.last?.id)
 
-        // When
         let actions = after.partnerActions(since: before, for: .manager)
 
-        // Then
         #expect(actions == [.noteWritten(noteID, on: .task(taskID), author: .player)])
     }
 }
