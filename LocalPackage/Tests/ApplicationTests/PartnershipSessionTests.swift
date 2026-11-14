@@ -15,73 +15,56 @@ struct PartnershipSessionTests {
 
     @Test("前のペアが端末に残っていれば、つなぐと、そのペアの役割で使い始める")
     func thePairLeftOnTheDeviceStartsWithItsRole() async throws {
-        // Given
         let session = try PartnershipSession.make(saved: Self.share())
 
-        // When
         await session.connect()
 
-        // Then
         #expect(session.store?.role == .manager)
     }
 
     @Test("前のペアが相手の側で終わっていたら、つなぐと、ペアが終わったことを伝えて役割の選択に戻る")
     func anEndedPairLeftOnTheDeviceReturnsToTheRolePicker() async {
-        // Given
         let session = PartnershipSession.make(saved: StubShare(isOwner: true))
 
-        // When
         await session.connect()
 
-        // Then
         #expect(session.stage == .choosingRole(.partnershipEnded))
     }
 
     @Test("前のペアにつなげなかったら、つなげなかった理由を出して、つなぎ直しを待つ")
     func failingToConnectWaitsForRetry() async {
-        // Given
         let session = PartnershipSession.make(saved: UnreachableShare())
 
-        // When
         await session.connect()
 
-        // Then
         #expect(session.stage == .connecting(.unavailable))
     }
 
     @Test("端末の外に前のペアが残っていれば、つなぐと、そのペアの役割で使い始める")
     func aRemainingPairStartsWithItsRole() async throws {
-        // Given
         let session = try PartnershipSession.make(remaining: Self.share())
         await session.resumeRemainingPairing()
 
-        // When
         await session.connect()
 
-        // Then
         #expect(session.store?.role == .manager)
     }
 
     @Test("役割を選んでペアの組み方を選んでいる間は、端末の外に前のペアが残っていても、そのペアにつながない")
     func choosingHowToPairIsNotInterruptedByARemainingPair() async throws {
-        // Given
         let session = try PartnershipSession.make(remaining: Self.share())
         session.chosenRole = .manager
 
-        // When
         await session.resumeRemainingPairing()
 
-        // Then
         #expect(session.stage == .choosingRole(nil))
     }
 
     @Test("ペアを組んでいるときに招待リンクを開くと、組み済みとして断る")
     func invitationLinkIsRefusedWhilePaired() async throws {
-        // Given
         let session = try PartnershipSession.make(saved: Self.share())
         await session.connect()
 
-        // When / Then
         #expect(throws: PartnershipSession.LinkRefusal.alreadyPaired) {
             try session.accept(Self.link)
         }
@@ -89,11 +72,9 @@ struct PartnershipSessionTests {
 
     @Test("近くの相手とペアリングしている途中に招待リンクを開くと、ペアリング中として断る")
     func invitationLinkIsRefusedWhilePairingNearby() {
-        // Given
         let session = PartnershipSession.make()
         session.pairNearby(as: .manager)
 
-        // When / Then
         #expect(throws: PartnershipSession.LinkRefusal.pairingInProgress) {
             try session.accept(Self.link)
         }
@@ -101,7 +82,6 @@ struct PartnershipSessionTests {
 
     @Test("相手がペアを終えたら、ペアが終わったことを伝えて役割の選択に戻る")
     func partnerEndingThePairReturnsToTheRolePicker() async throws {
-        // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         let synchronizer = InMemorySynchronizer(initialState: paired)
         let session = PartnershipSession.make(saved: StubShare(isOwner: true, synchronizer: synchronizer))
@@ -109,113 +89,90 @@ struct PartnershipSessionTests {
         try await synchronizer.save(.init(), replacing: paired)
         try await session.store?.refresh()
 
-        // When
         await session.followStateChange()
 
-        // Then
         #expect(session.stage == .choosingRole(.partnershipEnded))
     }
 
     @Test("ペアリングをやり直すと、役割の選択に戻る")
     func redoingThePairingReturnsToTheRolePicker() async throws {
-        // Given
         let session = try PartnershipSession.make(saved: Self.share())
         await session.connect()
 
-        // When
         try await session.endPartnership()
 
-        // Then
         #expect(session.stage == .choosingRole(nil))
     }
 
     @Test("ペアリングをやり直すと、いまのペアも、前に組んで残っていたペアも終わる")
     func redoingThePairingEndsEveryRemainingPair() async throws {
-        // Given
         let pairs = RemainingPairs(["いまのペア", "前のペア"])
         let session = try PartnershipSession.make(saved: Self.share("いまのペア", in: pairs))
         await session.connect()
 
-        // When
         try await session.endPartnership()
 
-        // Then
         #expect(await pairs.names.isEmpty)
     }
 
     @Test("招待リンクで新しくペアを組むと、前に組んで残っていたペアが終わる")
     func pairingAnewEndsThePairsLeftBefore() async throws {
-        // Given
         let pairs = RemainingPairs(["新しいペア", "前のペア"])
         let session = try PartnershipSession.make(joined: Self.share("新しいペア", in: pairs))
         try session.accept(Self.link)
         await session.pairRemotely()
 
-        // When
         await session.connect()
 
-        // Then
         #expect(await pairs.names == ["新しいペア"])
     }
 
     @Test("前に組んで残っていたペアを終わらせられなくても、招待リンクで組んだペアを使い始める")
     func pairingAnewStartsEvenIfThePairsLeftBeforeCannotBeEnded() async throws {
-        // Given
         let pairs = RemainingPairs(["新しいペア", "前のペア"])
         let session = try PartnershipSession.make(joined: Self.leftoverKeepingShare("新しいペア", in: pairs))
         try session.accept(Self.link)
         await session.pairRemotely()
 
-        // When
         await session.connect()
 
-        // Then
         #expect(session.store?.role == .manager)
     }
 
     @Test("前に組んで残っていたペアを終わらせられないと、その理由が診断の記録に残る")
     func failingToEndThePairsLeftBeforeIsRecorded() async throws {
-        // Given
         let pairs = RemainingPairs(["新しいペア", "前のペア"])
         let failures = RecordedFailures()
         let session = try PartnershipSession.make(joined: Self.leftoverKeepingShare("新しいペア", in: pairs), failures: failures)
         try session.accept(Self.link)
         await session.pairRemotely()
 
-        // When
         await session.connect()
 
-        // Then
         #expect(failures.recorded.contains { $0 as? PairingFailure == .offline })
     }
 
     @Test("前に組んで残っていたペアを終わらせられないと、ペアリングをやり直してもエラーになり、いまのペアは相手の側でも続く")
     func redoingThePairingKeepsTheCurrentPairIfThePairsLeftBeforeCannotBeEnded() async throws {
-        // Given
         let pairs = RemainingPairs(["いまのペア", "前のペア"])
         let session = try PartnershipSession.make(saved: Self.leftoverKeepingShare("いまのペア", in: pairs))
         await session.connect()
 
-        // When
         await #expect(throws: PairingFailure.offline) {
             try await session.endPartnership()
         }
 
-        // Then
         #expect(await pairs.names.contains("いまのペア"))
     }
 
     @Test("端末の外に残っていたペアにつなぎ直しても、ほかに残っていたペアは終わらない")
     func resumingARemainingPairKeepsTheOthers() async throws {
-        // Given
         let pairs = RemainingPairs(["つなぎ直したペア", "ほかのペア"])
         let session = try PartnershipSession.make(remaining: Self.share("つなぎ直したペア", in: pairs))
         await session.resumeRemainingPairing()
 
-        // When
         await session.connect()
 
-        // Then
         #expect(await pairs.names == ["つなぎ直したペア", "ほかのペア"])
     }
 }

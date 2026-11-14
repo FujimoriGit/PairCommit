@@ -13,88 +13,67 @@ struct StalledNudgeTests {
 
     @Test("未完了のタスクが1日動かないと、そのあとの20時に挑む人に進み具合の報告が催促される")
     func taskLeftUntouchedForADayNudgesThePlayerAtEight() throws {
-        // Given
         let (state, visionID) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
 
-        // When
         let nudges = state.nudges(for: .player, now: at(day: 1, hour: 21), in: utc)
 
-        // Then
         #expect(nudges == [.progressReportDue(visionID, on: at(day: 1, hour: 20))])
     }
 
     @Test("タスクが動いてから1日たっていなければ、20時を過ぎても挑む人に進み具合の報告は催促されない")
     func taskTouchedLessThanADayAgoDoesNotNudgeThePlayer() throws {
-        // Given
         let (state, _) = try Self.visionWithTask(createdAt: at(day: 0, hour: 22))
 
-        // When
         let nudges = state.nudges(for: .player, now: at(day: 1, hour: 21), in: utc)
 
-        // Then
         #expect(nudges.isEmpty)
     }
 
     @Test("タスクが動かないままなら、挑む人には次の日の20時にもう一度進み具合の報告が催促される")
     func taskStillUntouchedNudgesThePlayerAgainTheNextDay() throws {
-        // Given
         let (state, visionID) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
 
-        // When
         let nudges = state.nudges(for: .player, now: at(day: 2, hour: 21), in: utc)
 
-        // Then
         #expect(nudges == [.progressReportDue(visionID, on: at(day: 2, hour: 20))])
     }
 
     @Test("挑む人が書き込むと、そこから1日たつまで挑む人に進み具合の報告は催促されない")
     func playersNoteHoldsOffTheReportNudge() throws {
-        // Given
         let (created, visionID) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
         let state = try created.writingNote("少し進んだ", on: .vision(visionID), by: .player, now: at(day: 1, hour: 19))
 
-        // When
         let nudges = state.nudges(for: .player, now: at(day: 1, hour: 21), in: utc)
 
-        // Then
         #expect(nudges.isEmpty)
     }
 
     @Test("未完了のタスクがなければ、挑む人に進み具合の報告は催促されない")
     func noTaskToDoMeansNoReportNudge() throws {
-        // Given
         let (created, _) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
         let state = try created.reportingTask(created.tasks[0].id, by: .player, now: at(day: 0, hour: 11))
 
-        // When
         let nudges = state.nudges(for: .player, now: at(day: 5, hour: 21), in: utc)
 
-        // Then
         #expect(nudges.isEmpty)
     }
 
     @Test("未完了のタスクが1日動かないと、そのあとの20時に見届ける人に声かけが催促される")
     func taskLeftUntouchedForADayNudgesTheManagerAtEight() throws {
-        // Given
         let (state, visionID) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
 
-        // When
         let nudges = state.nudges(for: .manager, now: at(day: 1, hour: 21), in: utc)
 
-        // Then
         #expect(nudges == [.checkInDue(visionID, on: at(day: 1, hour: 20))])
     }
 
     @Test("見届ける人が書き込むと、そこから1日たつまで見届ける人に声かけは催促されない")
     func managersNoteHoldsOffTheCheckInNudge() throws {
-        // Given
         let (created, visionID) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
         let state = try created.writingNote("進んでる？", on: .vision(visionID), by: .manager, now: at(day: 1, hour: 19))
 
-        // When
         let nudges = state.nudges(for: .manager, now: at(day: 1, hour: 21), in: utc)
 
-        // Then
         #expect(nudges.isEmpty)
     }
 
@@ -103,13 +82,10 @@ struct StalledNudgeTests {
         arguments: [at(day: 1, hour: 12), at(day: 1, hour: 21)]
     )
     func reportNudgesAreScheduledSevenTimesAhead(now: Date) throws {
-        // Given
         let (state, _) = try Self.visionWithTask(createdAt: at(day: 0, hour: 10))
 
-        // When
         let upcoming = state.upcomingNudges(for: .player, now: now, in: utc)
 
-        // Then
         #expect(upcoming.count == 7)
     }
 }

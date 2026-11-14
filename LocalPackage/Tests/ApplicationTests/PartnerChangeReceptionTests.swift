@@ -15,7 +15,6 @@ struct PartnerChangeReceptionTests {
 
     @Test("アプリを開いているかにかかわらず、挑む人が完了を報告すると、見届ける人に完了報告が知らされる", arguments: [false, true])
     func reportIsToldToTheManager(isActive: Bool) async throws {
-        // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
         let notifications = RecordingPartnerActions()
@@ -26,16 +25,13 @@ struct PartnerChangeReceptionTests {
         await session.connect()
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
 
-        // When
         _ = try await Self.reception().receive(in: session, isActive: isActive)
 
-        // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
     }
 
     @Test("アプリが終了したあとに起こされても、相手の操作が知らされる")
     func actionIsToldAfterTheAppWasTerminated() async throws {
-        // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
@@ -45,16 +41,13 @@ struct PartnerChangeReceptionTests {
             announcement: .recording(into: notifications, known: before)
         )
 
-        // When
         _ = try await Self.reception().receive(in: session, isActive: false)
 
-        // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
     }
 
     @Test("相手の変更の知らせが続けて届いても、同じ操作は1度しか知らされない")
     func consecutiveArrivalsTellTheActionOnce() async throws {
-        // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = InMemorySynchronizer(initialState: before)
         let notifications = RecordingPartnerActions()
@@ -66,18 +59,15 @@ struct PartnerChangeReceptionTests {
         try await synchronizer.save(try before.reportingTask(taskID, by: .player), replacing: before)
         let reception = Self.reception()
 
-        // When
         async let first = reception.receive(in: session, isActive: false)
         async let second = reception.receive(in: session, isActive: false)
         _ = try await (first, second)
 
-        // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
     }
 
     @Test("相手の変更の知らせで起こされるのと同時にアプリを開くと、次の知らせが届いても、挑む人の完了報告は見届ける人に1度だけ知らされる")
     func openingTheAppWhileWokenTellsTheReportOnce() async throws {
-        // Given
         let (before, taskID) = try Self.pairedWithTask()
         let synchronizer = LateFirstStart(earlier: before, latest: try before.reportingTask(taskID, by: .player))
         let notifications = RecordingPartnerActions()
@@ -90,16 +80,13 @@ struct PartnerChangeReceptionTests {
         async let woken = reception.receive(in: session, isActive: false)
         _ = try await (opened, woken)
 
-        // When
         _ = try await reception.receive(in: session, isActive: false)
 
-        // Then
         #expect(notifications.notices == [PartnerActionNotice(action: .taskReported(taskID), message: "操作")])
     }
 
     @Test("招待リンクでペアを組み終えた直後に、アプリを開いたまま相手の変更の知らせが届いても、通知の許可を求める")
     func pairingAnewAsksForPermissionEvenIfAChangeArrivesFirst() async throws {
-        // Given
         let paired = try PartnershipState().establishingPairing(ownerRole: .manager)
         let permissions = PermissionRequests()
         let session = PartnershipSession.make(
@@ -109,10 +96,8 @@ struct PartnerChangeReceptionTests {
         try session.accept(URL(fileURLWithPath: "/invitation"))
         await session.pairRemotely()
 
-        // When
         _ = try await Self.reception().receive(in: session, isActive: true)
 
-        // Then
         #expect(permissions.count == 1)
     }
 }

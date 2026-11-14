@@ -15,7 +15,6 @@ struct UnseenUpdatesTests {
 
     @Test("見届ける人が取り直すと、挑む人の完了報告がまだ見ていない更新になり、アプリのアイコンに1が出る")
     func partnerReportBecomesAnUnseenUpdateOnTheIcon() async throws {
-        // Given
         let (before, taskID) = try Self.todoTask()
         let synchronizer = InMemorySynchronizer(initialState: try before.reportingTask(taskID, by: .player))
         let notifications = RecordingPartnerActions()
@@ -27,17 +26,14 @@ struct UnseenUpdatesTests {
             announcement: .recording(into: notifications, known: before)
         )
 
-        // When
         try await store.refresh()
 
-        // Then
         #expect(store.unseen.count(on: .task(taskID)) == 1)
         #expect(notifications.badges.last == 1)
     }
 
     @Test("見届ける人が完了報告されたタスクを開くと、まだ見ていない更新から外れ、アプリのアイコンの数字が消える")
     func openingTheReportedTaskClearsTheIcon() async throws {
-        // Given
         let (before, taskID) = try Self.todoTask()
         let synchronizer = InMemorySynchronizer(initialState: try before.reportingTask(taskID, by: .player))
         let notifications = RecordingPartnerActions()
@@ -50,10 +46,8 @@ struct UnseenUpdatesTests {
         )
         try await store.refresh()
 
-        // When
         await store.see([.task(taskID)])
 
-        // Then
         #expect(store.unseen.count(on: .task(taskID)) == 0)
         #expect(notifications.badges.last == 0)
     }

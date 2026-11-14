@@ -13,55 +13,43 @@ struct VisionCountdownTests {
 
     @Test("期限の時刻を過ぎたら、期限の当日でも期限切れになり、催促と食い違わない")
     func passingTheDeadlineTimeOnTheDayIsOverdueLikeTheNudge() throws {
-        // Given
         let deadline = day(0, hoursLater: 10)
         let now = day(0, hoursLater: 11)
         let state = try activeState(deadline: deadline)
         let vision = try #require(state.activeVision)
 
-        // When
         let countdown = vision.countdown(at: now, in: utc)
 
-        // Then
         #expect(countdown == .overdue(deadline))
         #expect(state.nudges(for: .manager, now: now) == [.visionOverdue(vision.id)])
     }
 
     @Test("期限の時刻より前なら、期限の当日の残り日数は0日になる")
     func beforeTheDeadlineTimeOnTheDayLeavesZeroDays() {
-        // Given
         let deadline = day(0, hoursLater: 10)
         let vision = vision(deadline: deadline)
 
-        // When
         let countdown = vision.countdown(at: day(0, hoursLater: 1), in: utc)
 
-        // Then
         #expect(countdown == .days(0, until: deadline))
     }
 
     @Test("残り日数は時刻ではなく日付の差で数える")
     func remainingDaysCountCalendarDaysNotElapsedTime() {
-        // Given
         let deadline = day(2, hoursLater: -7)
         let vision = vision(deadline: deadline)
 
-        // When
         let countdown = vision.countdown(at: day(0, hoursLater: 15), in: utc)
 
-        // Then
         #expect(countdown == .days(2, until: deadline))
     }
 
     @Test("期限の無いビジョンには、残り日数がない")
     func visionWithoutDeadlineIsUnbounded() {
-        // Given
         let vision = vision(deadline: nil)
 
-        // When
         let countdown = vision.countdown(at: day(0), in: utc)
 
-        // Then
         #expect(countdown == .unbounded)
     }
 }

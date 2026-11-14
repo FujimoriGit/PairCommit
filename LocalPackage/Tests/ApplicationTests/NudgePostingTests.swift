@@ -15,16 +15,13 @@ struct NudgePostingTests {
 
     @Test("催促の通知は、開始済みのものはすぐに、これから開始するものは開始時刻に届く")
     func nudgesInEffectAreNotifiedNowAndUpcomingOnesWhenTheyStart() async throws {
-        // Given
         let active = try Self.activeVision()
         let overdue = try active.creatingTask(title: "o", deadline: Self.day(1), by: .manager, now: Self.day(0))
         let later = try overdue.state.creatingTask(title: "l", deadline: Self.day(10), by: .manager, now: Self.day(0))
         let notifications = RecordingNotifications()
 
-        // When
         await notifications.post(for: .player, in: later.state, now: Self.day(2)) { _ in "催促" }
 
-        // Then
         let taskSubjects: Set<Note.Subject> = [.task(overdue.taskID), .task(later.taskID)]
         #expect(Set(notifications.notices.filter { taskSubjects.contains($0.nudge.subject) }) == [
             NudgeNotice(nudge: .taskOverdue(overdue.taskID), message: "催促", startsAt: nil),
