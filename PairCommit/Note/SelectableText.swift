@@ -16,6 +16,10 @@ struct SelectableText: UIViewRepresentable {
     let color: Color
     let linkColor: Color
 
+    func makeCoordinator() -> Coordinator {
+        .init()
+    }
+
     func makeUIView(context: Context) -> UITextView {
         let view = UITextView()
         view.isEditable = false
@@ -24,21 +28,24 @@ struct SelectableText: UIViewRepresentable {
         view.backgroundColor = .clear
         view.textContainerInset = .zero
         view.textContainer.lineFragmentPadding = 0
-        view.adjustsFontForContentSizeCategory = true
         return view
     }
 
     func updateUIView(_ view: UITextView, context: Context) {
-        view.attributedText = attributedText
+        let next = appearance(in: context.environment)
+        // UITextView は attributedText を代入されると、中身が同じでも選択を解除する。
+        guard context.coordinator.shown != next else { return }
+        view.attributedText = attributedText(sized: next.size)
         view.linkTextAttributes = [
             .foregroundColor: UIColor(linkColor),
             .underlineStyle: NSUnderlineStyle.single.rawValue
         ]
+        context.coordinator.shown = next
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         let limit = proposal.width ?? .greatestFiniteMagnitude
-        let used = attributedText.boundingRect(
+        let used = attributedText(sized: context.environment.dynamicTypeSize).boundingRect(
             with: CGSize(width: limit, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             context: nil
@@ -48,11 +55,41 @@ struct SelectableText: UIViewRepresentable {
     }
 }
 
+extension SelectableText {
+    struct Appearance: Equatable {
+        let text: String
+        let font: UIFont.TextStyle
+        let color: Color
+        let linkColor: Color
+        let size: DynamicTypeSize
+        let scheme: ColorScheme
+    }
+
+    @MainActor
+    final class Coordinator {
+        var shown: Appearance?
+    }
+}
+
 // MARK: - Private
 
 private extension SelectableText {
-    var attributedText: NSAttributedString {
-        let base = UIFont.preferredFont(forTextStyle: font)
+    func appearance(in environment: EnvironmentValues) -> Appearance {
+        .init(
+            text: text,
+            font: font,
+            color: color,
+            linkColor: linkColor,
+            size: environment.dynamicTypeSize,
+            scheme: environment.colorScheme
+        )
+    }
+
+    func attributedText(sized size: DynamicTypeSize) -> NSAttributedString {
+        let base = UIFont.preferredFont(
+            forTextStyle: font,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
+        )
         // SwiftUI の Text は行の高さを欧文のフォントで決める。UIKit は何もしないと、和文のフォントの高い行で描く。
         let lines = NSMutableParagraphStyle()
         lines.minimumLineHeight = base.lineHeight
