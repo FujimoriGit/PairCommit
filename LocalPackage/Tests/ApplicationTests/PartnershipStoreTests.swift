@@ -13,8 +13,8 @@ import Testing
 @MainActor
 struct PartnershipStoreTests {
 
-    @Test("操作は保存の完了を待たずに手元の状態に反映され、保存もされる")
-    func anActionAppliesLocallyRightAwayAndIsSaved() async throws {
+    @Test("挑む人の操作は、手元の状態に反映され、保存される")
+    func anActionAppliesLocallyAndIsSaved() async throws {
         let synchronizer = InMemorySynchronizer()
         let store = PartnershipStore(
             role: .player,
@@ -31,6 +31,30 @@ struct PartnershipStoreTests {
         #expect(store.state.visions.count == 1)
         let saved = await synchronizer.load()
         #expect(saved == store.state)
+    }
+
+    @Test("挑む人の操作は、保存が終わる前に手元の状態に反映される")
+    func anActionAppliesLocallyBeforeItsSaveFinishes() async throws {
+        let synchronizer = InterruptibleSynchronizer()
+        let store = PartnershipStore(
+            role: .player,
+            synchronizer: synchronizer,
+            state: .init(),
+            failures: RecordedFailures(),
+            announcement: .quiet
+        )
+        synchronizer.hold()
+
+        let performing = Task {
+            try await store.perform { state, role throws(VisionDraftingError) in
+                try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
+            }
+        }
+
+        #expect(await eventually { store.state.visions.count == 1 })
+        #expect(synchronizer.stored.visions.isEmpty)
+        synchronizer.release()
+        try await performing.value
     }
 
     @Test("役割やルールで許されない操作は、状態を変えずにエラーになる")
@@ -72,7 +96,7 @@ struct PartnershipStoreTests {
 
     @Test("自分の操作の保存中に最新の状態を取得しても、自分の操作は消えない")
     func reloadingWhileSavingKeepsTheSavedAction() async throws {
-        let synchronizer = InterruptibleSynchronizer()
+        let synchronizer = InterruptibleSynchronizer(savingTakes: .milliseconds(20))
         let store = PartnershipStore(
             role: .player,
             synchronizer: synchronizer,
@@ -80,26 +104,19 @@ struct PartnershipStoreTests {
             failures: RecordedFailures(),
             announcement: .quiet
         )
-        synchronizer.hold()
 
-        let performing = Task {
-            try await store.perform { state, role throws(VisionDraftingError) in
-                try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
-            }
+        async let performing: Void = store.perform { state, role throws(VisionDraftingError) in
+            try state.draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: role).state
         }
-        await Task.yield()
-        let refreshing = Task { try await store.refresh() }
-        await Task.yield()
-        synchronizer.release()
-        try await performing.value
-        try await refreshing.value
+        async let refreshing: Void = store.refresh()
+        _ = try await (performing, refreshing)
 
         #expect(store.state.visions.count == 1)
     }
 
     @Test("続けて操作して保存が重なっても、どちらの操作も消えない")
     func overlappingActionsAreBothKept() async throws {
-        let synchronizer = InterruptibleSynchronizer()
+        let synchronizer = InterruptibleSynchronizer(savingTakes: .milliseconds(20))
         let store = PartnershipStore(
             role: .player,
             synchronizer: synchronizer,
@@ -107,23 +124,14 @@ struct PartnershipStoreTests {
             failures: RecordedFailures(),
             announcement: .quiet
         )
-        synchronizer.hold()
 
-        let first = Task {
-            try await store.perform { state, role throws(VisionDraftingError) in
-                try state.draftingVision(.init(statement: "s1", doneCriteria: "c1", deadline: nil, why: nil), by: role).state
-            }
+        async let first: Void = store.perform { state, role throws(VisionDraftingError) in
+            try state.draftingVision(.init(statement: "s1", doneCriteria: "c1", deadline: nil, why: nil), by: role).state
         }
-        await Task.yield()
-        let second = Task {
-            try await store.perform { state, role throws(VisionDraftingError) in
-                try state.draftingVision(.init(statement: "s2", doneCriteria: "c2", deadline: nil, why: nil), by: role).state
-            }
+        async let second: Void = store.perform { state, role throws(VisionDraftingError) in
+            try state.draftingVision(.init(statement: "s2", doneCriteria: "c2", deadline: nil, why: nil), by: role).state
         }
-        await Task.yield()
-        synchronizer.release()
-        try await first.value
-        try await second.value
+        _ = try await (first, second)
 
         #expect(store.state.visions.count == 2)
         #expect(synchronizer.stored == store.state)
@@ -423,14 +431,19 @@ private extension PartnershipStoreTests {
     }
 }
 
-/// 保存を止めておける同期層。保存が重なった状況を作るために使う。
+/// 保存を止めておけて、保存にかかる時間も決められる同期層。保存が終わる前の状況を作るために使う。
 @MainActor
 private final class InterruptibleSynchronizer: PartnershipSyncing {
     var stored: PartnershipState = .init()
     var failure: SyncFailure?
 
+    private let savingTakes: Duration
     private var held = false
     private var waiting: CheckedContinuation<Void, Never>?
+
+    init(savingTakes: Duration = .zero) {
+        self.savingTakes = savingTakes
+    }
 
     func hold() {
         held = true
@@ -454,6 +467,7 @@ private final class InterruptibleSynchronizer: PartnershipSyncing {
         if held {
             await withCheckedContinuation { waiting = $0 }
         }
+        try? await Task.sleep(for: savingTakes)
         if let failure {
             throw failure
         }

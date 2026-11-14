@@ -56,6 +56,15 @@ struct VisionLifecycleTests {
         }
     }
 
+    @Test("ビジョンを差し戻せるのは見届ける人だけ")
+    func onlyManagerCanSendBackAVision() throws {
+        let (state, visionID) = try PartnershipState().proposedVision()
+
+        #expect(throws: VisionRejectionError.notManager) {
+            try state.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .player)
+        }
+    }
+
     @Test("承認を待つ間に期限が過ぎたビジョンは、承認できない")
     func visionWhoseDeadlinePassedCannotBeApproved() throws {
         let deadline = Date(timeIntervalSinceReferenceDate: 800_000_000)

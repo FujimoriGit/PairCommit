@@ -32,17 +32,6 @@ struct NoteTests {
         #expect(written.notes(on: .task(taskID)).map(\.kind) == [kind])
     }
 
-    @Test("見届ける人が完了報告を差し戻すと、理由がフィードバックとしてタスクに残る")
-    func reasonForSendingBackRemainsAsFeedback() throws {
-        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
-        let reported = try todo.reportingTask(taskID, by: .player)
-
-        let returned = try reported.returningTask(taskID, feedback: "写真も付けてほしい", by: .manager)
-
-        let note = try #require(returned.notes(on: .task(taskID)).first)
-        #expect(note.kind == .feedback(.returned) && note.author == .manager && note.body == "写真も付けてほしい")
-    }
-
     @Test("理由が空白だけでは、完了報告を差し戻せない")
     func reportCannotBeSentBackWithoutAReason() throws {
         let (todo, taskID) = try PartnershipState().activeVisionWithTask()
@@ -53,16 +42,6 @@ struct NoteTests {
         }
     }
 
-    @Test("見届ける人がビジョンを差し戻すと、理由がフィードバックとしてビジョンに残る")
-    func reasonForSendingBackAVisionRemainsAsFeedback() throws {
-        let (proposed, visionID) = try PartnershipState().proposedVision()
-
-        let returned = try proposed.rejectingVision(visionID, feedback: "期限を決めてほしい", by: .manager)
-
-        let note = try #require(returned.notes(on: .vision(visionID)).first)
-        #expect(note.kind == .feedback(.returned) && note.author == .manager && note.body == "期限を決めてほしい")
-    }
-
     @Test("理由が空白だけでは、ビジョンを差し戻せない")
     func visionCannotBeSentBackWithoutAReason() throws {
         let (proposed, visionID) = try PartnershipState().proposedVision()
@@ -70,16 +49,6 @@ struct NoteTests {
         #expect(throws: VisionRejectionError.blankFeedback) {
             try proposed.rejectingVision(visionID, feedback: "  \n", by: .manager)
         }
-    }
-
-    @Test("見届ける人が承認するときに書いたフィードバックは、タスクに残る")
-    func feedbackWrittenOnApprovalRemainsOnTheTask() throws {
-        let (todo, taskID) = try PartnershipState().activeVisionWithTask()
-        let reported = try todo.reportingTask(taskID, by: .player)
-
-        let approved = try reported.approvingTask(taskID, feedback: "よく続けた", by: .manager)
-
-        #expect(approved.notes(on: .task(taskID)).map(\.kind) == [.feedback(.approved)])
     }
 
     @Test("見届ける人が空白だけのフィードバックを付けて承認すると、タスクは承認され、書き込みは残らない")

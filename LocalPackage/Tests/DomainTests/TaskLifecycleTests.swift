@@ -76,6 +76,33 @@ struct TaskLifecycleTests {
         }
     }
 
+    @Test("挑む人が起案したタスクを採用できるのは見届ける人だけ")
+    func onlyManagerCanAdoptASuggestedTask() throws {
+        let (state, taskID) = try PartnershipState().activeVisionWithTask(in: .proposed)
+
+        #expect(throws: TaskAdoptionError.notManager) {
+            try state.adoptingTask(taskID, by: .player)
+        }
+    }
+
+    @Test("完了の報告を差し戻せるのは見届ける人だけ")
+    func onlyManagerCanSendBackAReport() throws {
+        let (state, taskID) = try PartnershipState().activeVisionWithTask(in: .reported)
+
+        #expect(throws: TaskReturnError.notManager) {
+            try state.returningTask(taskID, feedback: "写真も付けてほしい", by: .player)
+        }
+    }
+
+    @Test("タスクを取り消せるのは見届ける人だけ")
+    func onlyManagerCanCancelATask() throws {
+        let (state, taskID) = try PartnershipState().activeVisionWithTask(in: .todo)
+
+        #expect(throws: TaskCancellationError.notManager) {
+            try state.cancellingTask(taskID, by: .player)
+        }
+    }
+
     @Test("見届ける人は、挑む人が起案したタスクを採用して、未完了のタスクにできる")
     func managerCanAdoptATaskThePlayerSuggested() throws {
         let (active, _) = try PartnershipState().activeVision()

@@ -52,6 +52,16 @@ struct PartnerActionTests {
         #expect(actions == [.visionReturned(visionID, feedback: noteID)])
     }
 
+    @Test("見届ける人がビジョンを承認すると、挑む人に承認が知らされる")
+    func approvedVisionIsToldToThePlayer() throws {
+        let (before, visionID) = try PartnershipState().proposedVision()
+        let after = try before.approvingVision(visionID, by: .manager)
+
+        let actions = after.partnerActions(since: before, for: .player)
+
+        #expect(actions == [.visionApproved(visionID)])
+    }
+
     @Test("見届ける人がビジョンを達成にすると、挑む人に達成が知らされる")
     func achievedVisionIsToldToThePlayer() throws {
         let (before, visionID) = try PartnershipState().activeVision()
