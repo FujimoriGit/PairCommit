@@ -326,7 +326,7 @@ graph LR
    -> 離れた相手とは、MC の代わりに共有の URL を招待リンクとして送る（「ペアリング（決定）」参照）。成功判定は ACK ではなく、相手だけが参加できる共有の参加者の承諾状態で締める。これも実機2台での検証がまだ。
 2. データモデルのリレーション図作る -> 済（「データモデル骨格 > リレーション図 / 状態の流れ」参照）
 3. ビジョン達成時のお祝い演出 → 次ビジョン設定への画面遷移 -> 済。達成済みビジョンの有無から導いて出す（見たかどうかの状態は持たない）。
-4. ビジョンのクライテリアをFoundationModelに基準をレビューさせてもよい -> 済。境界は `CriteriaReviewing`（Domain）、実装は端末上のモデルを使うのでアプリターゲット。使えない端末では機能ごと出さない。
+4. ビジョンのクライテリアをFoundationModelに基準をレビューさせてもよい -> 済。境界は `CriteriaReviewing`（Domain）、実装は `Infrastructure`。モデルに渡す指示の文はアプリが持つ。使えない端末では機能ごと出さない。
 5. **ペアリング時のロール割り当て** -> 済。最初の画面でロールを選ぶ。2台はつながったら、まず選んだロールを MC で送り合い、その組み合わせで共有を作る側を決める。共有を作る側は自分のロールを入れた状態をルートレコードに書いてから共有し、CKShare の URL を MC で渡す。受ける側は MC でロールを受け取るのではなく、参加後に読み込んだ状態から `ownerRole` を読む。
    - 最初の画面は「どちらで使いますか」と聞き、2人がそれぞれ自分のロールを選ぶ。ロールが違えば、そのままペアにする。共有は見届ける人を選んだ側が作り、挑む人を選んだ側が受ける。
    - ロールが同じときは、共有を作る前に止めて、片方に選び直してもらう。
@@ -361,7 +361,7 @@ graph LR
 - 同期境界 `PartnershipSyncing` と、CloudKit 実装・インメモリ実装。UI結節点の `PartnershipStore`。インメモリ実装はテスト専用。
 - 実装は `LocalPackage` の `Domain` / `Application` / `Infrastructure` に分離。テストは `LocalPackage/Tests/` へ層ごとに置き、`Scripts/unit-test.sh` だけで回る（シミュレータ不要）。アプリ側に残るのは VRT のみ。
 - CI は2本立て。`unit-tests.yml`（ubuntu・`Scripts/unit-test.sh`）と `ci.yml`（macOS・アプリのビルドと VRT）。
-- TestFlight への配信は `testflight.yml`（手動実行・main のみ・`Scripts/testflight.sh`）。署名は自動署名のまま、App Store Connect の API キーで Xcode に証明書とプロファイルを用意させる。証明書とプロファイルを Secrets に置かないので、期限が切れるたびに差し替える手間がない。
+- TestFlight への配信は `testflight.yml`（手動実行・main のみ・`Scripts/testflight.sh`）。署名は自動署名のまま、App Store Connect の API キーで Xcode にプロファイルを用意させる。開発用の証明書だけは1枚を Secrets に置き、CI のキーチェーンに入れて使い回す。置かないと、CI には証明書がないので Xcode が署名のたびに新しく作り、アカウントの上限に達する（#189・#199）。代わりに、証明書の期限が切れたら Secrets を入れ替える。
 - VRT（Prefire）・SwiftLint の自動化基盤、設計・テスト原則の明文化（CLAUDE.md）。
 - ロール別UI ── ビジョンの起案から承認・達成判断まで（`PairCommit/Vision/`）と、タスクの起案・採用・完了報告・承認・感情表明（`PairCommit/Task/`）。ビジョンとタスクに期限を設定できる。
 - 閉じたビジョンの記録 ── 達成・取りやめたビジョンと、その配下のタスク・感情を見返せる（`PairCommit/History/`）。
