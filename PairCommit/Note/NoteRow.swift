@@ -31,14 +31,15 @@ struct NoteRow: View {
                 }
                 .padding(.horizontal, 6)
             }
-            Text(AttributedString(linkingURLsIn: note.body))
-                .font(.subheadline)
-                .foregroundStyle(isMine ? .white : .primary)
-                .tint(isMine ? .white : role.accent)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 9)
-                .background(isMine ? role.accent : Color(.secondarySystemGroupedBackground), in: bubble)
-                .textSelection(.enabled)
+            SelectableText(
+                text: note.body,
+                font: .subheadline,
+                color: isMine ? .white : Color(.label),
+                linkColor: isMine ? .white : role.accent
+            )
+            .padding(.horizontal, 13)
+            .padding(.vertical, 9)
+            .background(isMine ? role.accent : Color(.secondarySystemGroupedBackground), in: bubble)
             if let link, let preview {
                 LinkPreviewCard(url: link, preview: preview)
             }

@@ -191,7 +191,8 @@ private extension TaskBoardView {
                 unseen: .init(counts: [.task(tasks[0].id): 2, .task(tasks[2].id): 1])
             ),
             vision: vision,
-            now: .preview
+            now: .preview,
+            linkPreviewing: OfflineLinkPreviews()
         )
     }
 }
