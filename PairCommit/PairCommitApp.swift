@@ -41,8 +41,6 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     let notifications: NudgeNotifications
     let session: PartnershipSession
 
-    private let tappedSubjects = AsyncStream<Note.Subject>.makeStream()
-
     override init() {
         let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
         let notifications = NudgeNotifications()
@@ -73,11 +71,6 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()
         Task { await PendingDiagnostics.send() }
-        Task {
-            for await subject in tappedSubjects.stream {
-                session.open(subject)
-            }
-        }
         return true
     }
 
@@ -126,7 +119,7 @@ extension PairCommitDelegate: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         if let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) {
-            tappedSubjects.continuation.yield(subject)
+            MainActor.assumeIsolated { session.open(subject) }
         }
         completionHandler()
     }
