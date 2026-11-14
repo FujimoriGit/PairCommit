@@ -136,6 +136,17 @@ struct PartnerActionTests {
         #expect(actions == [.taskCancelled(taskID)])
     }
 
+    @Test("見届ける人が承認待ちで取り消したタスクを戻しても、見届ける人には何も知らされない")
+    func restoredReportTellsTheManagerNothing() throws {
+        let (reported, taskID) = try PartnershipState().activeVisionWithTask(in: .reported)
+        let before = try reported.cancellingTask(taskID, by: .manager)
+        let after = try before.restoringTask(taskID, by: .manager)
+
+        let actions = after.partnerActions(since: before, for: .manager)
+
+        #expect(actions.isEmpty)
+    }
+
     @Test("見届ける人がビジョンを閉じると、挑む人には閉じたことだけが知らされる")
     func closingVisionIsToldWithoutEachCancelledTask() throws {
         let (active, visionID) = try PartnershipState().activeVision()
