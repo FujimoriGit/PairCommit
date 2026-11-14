@@ -96,7 +96,7 @@ struct PartnershipStoreTests {
 
     @Test("自分の操作の保存中に最新の状態を取得しても、自分の操作は消えない")
     func reloadingWhileSavingKeepsTheSavedAction() async throws {
-        let synchronizer = InterruptibleSynchronizer(savingTakes: .milliseconds(20))
+        let synchronizer = InterruptibleSynchronizer(respondingTakes: .milliseconds(20))
         let store = PartnershipStore(
             role: .player,
             synchronizer: synchronizer,
@@ -116,7 +116,7 @@ struct PartnershipStoreTests {
 
     @Test("続けて操作して保存が重なっても、どちらの操作も消えない")
     func overlappingActionsAreBothKept() async throws {
-        let synchronizer = InterruptibleSynchronizer(savingTakes: .milliseconds(20))
+        let synchronizer = InterruptibleSynchronizer(respondingTakes: .milliseconds(20))
         let store = PartnershipStore(
             role: .player,
             synchronizer: synchronizer,
@@ -431,18 +431,18 @@ private extension PartnershipStoreTests {
     }
 }
 
-/// 保存を止めておけて、保存にかかる時間も決められる同期層。保存が終わる前の状況を作るために使う。
+/// 保存を止めておけて、保存と取得にかかる時間も決められる同期層。保存や取得が終わる前の状況を作るために使う。
 @MainActor
 private final class InterruptibleSynchronizer: PartnershipSyncing {
     var stored: PartnershipState = .init()
     var failure: SyncFailure?
 
-    private let savingTakes: Duration
+    private let respondingTakes: Duration
     private var held = false
     private var waiting: CheckedContinuation<Void, Never>?
 
-    init(savingTakes: Duration = .zero) {
-        self.savingTakes = savingTakes
+    init(respondingTakes: Duration = .zero) {
+        self.respondingTakes = respondingTakes
     }
 
     func hold() {
@@ -459,15 +459,17 @@ private final class InterruptibleSynchronizer: PartnershipSyncing {
         stored
     }
 
-    func load() -> PartnershipState {
-        stored
+    func load() async -> PartnershipState {
+        let requested = stored
+        try? await Task.sleep(for: respondingTakes)
+        return requested
     }
 
     func save(_ state: PartnershipState, replacing base: PartnershipState) async throws(SyncFailure) {
         if held {
             await withCheckedContinuation { waiting = $0 }
         }
-        try? await Task.sleep(for: savingTakes)
+        try? await Task.sleep(for: respondingTakes)
         if let failure {
             throw failure
         }
