@@ -41,6 +41,8 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
     let notifications: NudgeNotifications
     let session: PartnershipSession
 
+    private let tappedSubjects = AsyncStream<Note.Subject>.makeStream()
+
     override init() {
         let sharing = CloudSharing(shareTitle: PairCommitApp.shareTitle)
         let notifications = NudgeNotifications()
@@ -71,6 +73,11 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
         UNUserNotificationCenter.current().delegate = self
         application.registerForRemoteNotifications()
         Task { await PendingDiagnostics.send() }
+        Task {
+            for await subject in tappedSubjects.stream {
+                session.open(subject)
+            }
+        }
         return true
     }
 
@@ -101,22 +108,26 @@ final class PairCommitDelegate: NSObject, UIApplicationDelegate {
 
 // MARK: - UNUserNotificationCenterDelegate
 
+// async の形で受けると、終わったことを iOS に返す呼び出しがメインスレッドの外で行われ、
+// 通知を押したあとに UIKit が例外を投げてアプリが落ちる。受けたスレッドでそのまま返す。
 extension PairCommitDelegate: UNUserNotificationCenterDelegate {
     // これを返さないと、前面にいる間の通知は iOS が表示しない。
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
-        guard let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) else {
-            return
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        if let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) {
+            tappedSubjects.continuation.yield(subject)
         }
-        await session.open(subject)
+        completionHandler()
     }
 }
