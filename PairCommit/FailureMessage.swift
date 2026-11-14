@@ -199,16 +199,6 @@ extension ProgressError: PresentableError {
     }
 }
 
-extension NoteWritingError: PresentableError {
-    var message: String {
-        switch self {
-        case .blankBody: String(localized: .errorBlankText)
-        case .subjectNotFound: String(localized: .errorNoteSubjectNotFound)
-        case .subjectClosed: String(localized: .errorNoteSubjectClosed)
-        }
-    }
-}
-
 extension PairingFailure {
     var message: String {
         switch self {

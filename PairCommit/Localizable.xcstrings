@@ -681,40 +681,6 @@
         }
       }
     },
-    "error.noteSubjectClosed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can’t write on a closed vision or its tasks."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "閉じたビジョンと、そのタスクには書き込めません。"
-          }
-        }
-      }
-    },
-    "error.noteSubjectNotFound" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The vision or task to write on wasn’t found."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書き込む先のビジョンかタスクが見つかりません。"
-          }
-        }
-      }
-    },
     "error.offline" : {
       "extractionState" : "manual",
       "localizations" : {
