@@ -161,15 +161,12 @@ struct PartnerActionTests {
 
     @Test("見届ける人が承認待ちで取り消したタスクを戻しても、見届ける人に完了報告は知らされない")
     func restoredReportIsNotToldToTheManager() throws {
-        // Given
         let (reported, taskID) = try PartnershipState().activeVisionWithTask(in: .reported)
         let before = try reported.cancellingTask(taskID, by: .manager)
         let after = try before.restoringTask(taskID, by: .manager)
 
-        // When
         let actions = after.partnerActions(since: before, for: .manager)
 
-        // Then
         #expect(actions.isEmpty)
     }
 
