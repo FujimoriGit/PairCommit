@@ -8,7 +8,7 @@
 import Domain
 import Foundation
 
-extension Note.Subject {
+extension NotificationSubject {
     /// 押された通知の `userInfo` から、その通知の対象を読む。対象を載せていない通知なら nil。
     public init?(notificationUserInfo userInfo: [AnyHashable: Any]) {
         guard let kind = userInfo[Self.kindKey] as? String,
@@ -16,6 +16,7 @@ extension Note.Subject {
         switch kind {
         case Self.visionKind: self = .vision(id)
         case Self.taskKind: self = .task(id)
+        case Self.tasksKind: self = .tasks(of: id)
         default: return nil
         }
     }
@@ -24,15 +25,17 @@ extension Note.Subject {
         switch self {
         case .vision(let id): [Self.kindKey: Self.visionKind, Self.idKey: id.uuidString]
         case .task(let id): [Self.kindKey: Self.taskKind, Self.idKey: id.uuidString]
+        case .tasks(let id): [Self.kindKey: Self.tasksKind, Self.idKey: id.uuidString]
         }
     }
 }
 
 // MARK: - Private
 
-private extension Note.Subject {
+private extension NotificationSubject {
     static let kindKey = "subject"
     static let idKey = "subjectID"
     static let visionKind = "vision"
     static let taskKind = "task"
+    static let tasksKind = "tasks"
 }

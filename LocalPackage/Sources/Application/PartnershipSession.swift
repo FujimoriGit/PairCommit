@@ -38,7 +38,7 @@ public final class PartnershipSession {
     /// 役割を選び、ペアの組み方を選んでいる途中の役割。
     public var chosenRole: Role?
     /// 利用者が押した通知の対象。ペアの画面が受け取るまで持っておく。
-    public private(set) var requestedSubject: Note.Subject?
+    public private(set) var requestedSubject: NotificationSubject?
 
     private let sharing: any PartnershipSharing
     private let nudges: any NudgeNotifying
@@ -201,12 +201,12 @@ public final class PartnershipSession {
     }
 
     /// 押された通知の対象を、ペアの画面が受け取るまで持っておく。
-    public func open(_ subject: Note.Subject) {
+    public func open(_ subject: NotificationSubject) {
         requestedSubject = subject
     }
 
     /// 押された通知の対象を受け取る。受け取った対象はもう持たない。
-    public func takeRequestedSubject() -> Note.Subject? {
+    public func takeRequestedSubject() -> NotificationSubject? {
         defer { requestedSubject = nil }
         return requestedSubject
     }

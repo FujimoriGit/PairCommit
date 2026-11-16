@@ -19,12 +19,13 @@ public enum NotificationTarget: Hashable, Sendable {
 
     /// 対象がホームの最初の画面に出ている。提出されたビジョンと差し戻されたビジョン。
     case home
+    case tasks
     case detail(Detail)
 }
 
 extension PartnershipState {
     /// 押された通知の対象を開く先。対象が見つからなければ nil。
-    public func target(of subject: Note.Subject) -> NotificationTarget? {
+    public func target(of subject: NotificationSubject) -> NotificationTarget? {
         switch subject {
         case .task(let id):
             return tasks.contains { $0.id == id } ? .detail(.task(id)) : nil
@@ -35,6 +36,8 @@ extension PartnershipState {
             case .achieved, .abandoned: return .detail(.closedVision(id))
             case .draft, .proposed: return .home
             }
+        case .tasks(let id):
+            return activeVision?.id == id ? .tasks : nil
         }
     }
 }

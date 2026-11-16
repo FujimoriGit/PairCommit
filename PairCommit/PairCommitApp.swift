@@ -118,7 +118,7 @@ extension PairCommitDelegate: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        if let subject = Note.Subject(notificationUserInfo: response.notification.request.content.userInfo) {
+        if let subject = NotificationSubject(notificationUserInfo: response.notification.request.content.userInfo) {
             MainActor.assumeIsolated { session.open(subject) }
         }
         completionHandler()

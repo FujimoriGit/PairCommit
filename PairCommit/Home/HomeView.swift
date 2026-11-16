@@ -14,7 +14,6 @@ struct HomeView: View {
     let store: PartnershipStore
     let vision: Vision
     let now: Date
-    let linkPreviewing: any LinkPreviewing
 
     @State private var isShowingVision = false
 
@@ -58,16 +57,14 @@ private extension HomeView {
                     title: String(localized: .managerTaskNeedsDecision),
                     tasks: tasks.filter { $0.status.turn == .manager },
                     store: store,
-                    now: now,
-                    linkPreviewing: linkPreviewing
+                    now: now
                 )
                 TaskSection(
                     title: TaskItem.Due.overdue.label,
                     isAlert: true,
                     tasks: tasks.filter { $0.status == .todo },
                     store: store,
-                    now: now,
-                    linkPreviewing: linkPreviewing
+                    now: now
                 )
             case .player:
                 ForEach([TaskItem.Due.overdue, .today, .withinWeek], id: \.self) { due in
@@ -76,8 +73,7 @@ private extension HomeView {
                         isAlert: due == .overdue,
                         tasks: tasks.filter { $0.due(at: now, in: .current) == due },
                         store: store,
-                        now: now,
-                        linkPreviewing: linkPreviewing
+                        now: now
                     )
                 }
             }
@@ -128,8 +124,7 @@ private extension HomeView {
                 ]
             ),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
@@ -144,8 +139,7 @@ private extension HomeView {
                 tasks: [.preview(visionID: vision.id, title: "週3でジムに行く", status: .todo, createdBy: .manager)]
             ),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
@@ -153,7 +147,7 @@ private extension HomeView {
 #Preview("見届ける人のビジョンの期限切れ") {
     NavigationStack {
         let vision = Vision.preview(status: .active, deadline: .preview(daysLater: -1), createdAt: .preview(daysLater: -30))
-        HomeView(store: .preview(role: .manager, visions: [vision]), vision: vision, now: .preview, linkPreviewing: OfflineLinkPreviews())
+        HomeView(store: .preview(role: .manager, visions: [vision]), vision: vision, now: .preview)
     }
 }
 
@@ -194,8 +188,7 @@ private extension HomeView {
                 ]
             ),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
@@ -210,8 +203,7 @@ private extension HomeView {
                 tasks: [.preview(visionID: vision.id, title: "週3でジムに行く", status: .reported)]
             ),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }

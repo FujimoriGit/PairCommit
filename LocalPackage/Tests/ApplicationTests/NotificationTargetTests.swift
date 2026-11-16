@@ -50,6 +50,31 @@ struct NotificationTargetTests {
         #expect(target == .home)
     }
 
+    @Test(
+        "タスクが動いていない催促の通知を押すと、タスクの一覧が開く",
+        arguments: [
+            Nudge.progressReportDue(stalledVisionID, on: .distantPast),
+            Nudge.checkInDue(stalledVisionID, on: .distantPast),
+        ]
+    )
+    func stalledTasksNudgeOpensTheTaskList(nudge: Nudge) throws {
+        let (state, _) = try Self.activeVision(id: Self.stalledVisionID)
+
+        let target = state.target(of: nudge.subject)
+
+        #expect(target == .tasks)
+    }
+
+    @Test("閉じたビジョンの、タスクが動いていない催促の通知を押しても、何も開かない")
+    func stalledTasksNudgeForAClosedVisionOpensNothing() throws {
+        let (active, visionID) = try Self.activeVision()
+        let state = try active.closingVision(visionID, as: .achieved, by: .manager)
+
+        let target = state.target(of: .tasks(of: visionID))
+
+        #expect(target == nil)
+    }
+
     @Test("見つからないタスクの通知を押しても、何も開かない")
     func notificationForAMissingTaskOpensNothing() throws {
         let (state, _) = try Self.activeVision()
@@ -63,15 +88,17 @@ struct NotificationTargetTests {
 // MARK: - Private
 
 private extension NotificationTargetTests {
-    static func proposedVision() throws -> (state: PartnershipState, visionID: Vision.ID) {
+    static let stalledVisionID = UUID()
+
+    static func proposedVision(id: Vision.ID = UUID()) throws -> (state: PartnershipState, visionID: Vision.ID) {
         let drafted = try PartnershipState()
             .establishingPairing(ownerRole: .manager)
-            .draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player)
+            .draftingVision(.init(statement: "s", doneCriteria: "c", deadline: nil, why: nil), by: .player, id: id)
         return (try drafted.state.proposingVision(drafted.visionID, by: .player), drafted.visionID)
     }
 
-    static func activeVision() throws -> (state: PartnershipState, visionID: Vision.ID) {
-        let (proposed, visionID) = try proposedVision()
+    static func activeVision(id: Vision.ID = UUID()) throws -> (state: PartnershipState, visionID: Vision.ID) {
+        let (proposed, visionID) = try proposedVision(id: id)
         return (try proposed.approvingVision(visionID, by: .manager), visionID)
     }
 }

@@ -13,8 +13,6 @@ struct ClosedTaskList: View {
     let store: PartnershipStore
     let tasks: [TaskItem]
     let now: Date
-    let linkPreviewing: any LinkPreviewing
-    let onShowCancelled: () -> Void
 
     @ViewBuilder
     var body: some View {
@@ -23,10 +21,10 @@ struct ClosedTaskList: View {
                 TaskSectionHeader(title: String(localized: .taskListClosed), count: approved.count + cancelled.count)
                 TaskRowGroup {
                     ForEach(approved) { task in
-                        TaskRow(store: store, task: task, now: now, linkPreviewing: linkPreviewing)
+                        TaskRow(store: store, task: task, now: now)
                     }
                     if !cancelled.isEmpty {
-                        Button(action: onShowCancelled) {
+                        NavigationLink(value: TaskBoardView.Destination.cancelledTasks) {
                             cancelledLink
                         }
                         .buttonStyle(.choice)

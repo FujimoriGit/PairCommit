@@ -18,7 +18,7 @@ public struct PartnerActionNotifications: PartnerActionNotifying {
             let content = UNMutableNotificationContent()
             content.body = notice.message
             content.sound = .default
-            content.userInfo = notice.action.subject.notificationUserInfo
+            content.userInfo = NotificationSubject(notice.action.subject).notificationUserInfo
             let identifier = Self.identifier(of: notice.action)
             do {
                 try await center.add(.init(identifier: identifier, content: content, trigger: nil))
