@@ -10,14 +10,16 @@ import Domain
 import SwiftUI
 
 struct TaskBoardView: View {
+    enum Destination: Hashable {
+        case cancelledTasks
+    }
+
     let store: PartnershipStore
     let vision: Vision?
     let now: Date
-    let linkPreviewing: any LinkPreviewing
 
     @State private var mode = Mode.list
     @State private var isAddingTask = false
-    @State private var isShowingCancelledTasks = false
 
     var body: some View {
         Screen(role: store.role) {
@@ -54,7 +56,7 @@ struct TaskBoardView: View {
                 onSubmit: { await create($0) }
             )
         }
-        .navigationDestination(isPresented: $isShowingCancelledTasks) {
+        .navigationDestination(for: Destination.self) { _ in
             if let vision {
                 CancelledTaskView(store: store, vision: vision)
             }
@@ -110,7 +112,7 @@ private extension TaskBoardView {
         } else {
             switch mode {
             case .list: list(of: tasks)
-            case .roadmap: TaskRoadmap(store: store, vision: vision, tasks: tasks, now: now, linkPreviewing: linkPreviewing)
+            case .roadmap: TaskRoadmap(store: store, vision: vision, tasks: tasks, now: now)
             }
         }
     }
@@ -124,8 +126,7 @@ private extension TaskBoardView {
                 title: String(localized: .managerTaskNeedsDecision),
                 tasks: awaitingManager,
                 store: store,
-                now: now,
-                linkPreviewing: linkPreviewing
+                now: now
             )
         }
         ForEach([TaskItem.Due.overdue, .today, .withinWeek, .later, .unscheduled], id: \.self) { due in
@@ -134,8 +135,7 @@ private extension TaskBoardView {
                 isAlert: due == .overdue,
                 tasks: todo.filter { $0.due(at: now, in: .current) == due },
                 store: store,
-                now: now,
-                linkPreviewing: linkPreviewing
+                now: now
             )
         }
         if store.role == .player {
@@ -143,11 +143,10 @@ private extension TaskBoardView {
                 title: String(localized: .taskBoardPartnerTurn(Role.manager.label)),
                 tasks: awaitingManager,
                 store: store,
-                now: now,
-                linkPreviewing: linkPreviewing
+                now: now
             )
         }
-        ClosedTaskList(store: store, tasks: tasks, now: now, linkPreviewing: linkPreviewing) { isShowingCancelledTasks = true }
+        ClosedTaskList(store: store, tasks: tasks, now: now)
     }
 
     func create(_ entered: TaskInput) async -> String? {
@@ -173,8 +172,7 @@ private extension TaskBoardView {
         TaskBoardView(
             store: .preview(role: .manager, visions: [vision], tasks: .board(in: vision)),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
@@ -191,8 +189,7 @@ private extension TaskBoardView {
                 unseen: .init(counts: [.task(tasks[0].id): 2, .task(tasks[2].id): 1])
             ),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
@@ -203,8 +200,7 @@ private extension TaskBoardView {
         TaskBoardView(
             store: .preview(role: .player, visions: [vision], tasks: .board(in: vision)),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
@@ -215,14 +211,13 @@ private extension TaskBoardView {
         TaskBoardView(
             store: .preview(role: .manager, visions: [vision]),
             vision: vision,
-            now: .preview,
-            linkPreviewing: OfflineLinkPreviews()
+            now: .preview
         )
     }
 }
 
 #Preview("ビジョンがないタスク一覧") {
     NavigationStack {
-        TaskBoardView(store: .preview(role: .player, visions: []), vision: nil, now: .preview, linkPreviewing: OfflineLinkPreviews())
+        TaskBoardView(store: .preview(role: .player, visions: []), vision: nil, now: .preview)
     }
 }

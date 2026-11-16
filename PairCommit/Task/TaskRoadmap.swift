@@ -15,7 +15,6 @@ struct TaskRoadmap: View {
     let vision: Vision
     let tasks: [TaskItem]
     let now: Date
-    let linkPreviewing: any LinkPreviewing
 
     @ScaledMetric(relativeTo: .headline) private var dateWidth: CGFloat = 40
 
@@ -45,8 +44,7 @@ struct TaskRoadmap: View {
             title: String(localized: .commonNoDeadline),
             tasks: tasks.filter { $0.deadline == nil && $0.status != .cancelled },
             store: store,
-            now: now,
-            linkPreviewing: linkPreviewing
+            now: now
         )
     }
 }
@@ -105,7 +103,7 @@ private extension TaskRoadmap {
                     .frame(width: dateWidth, alignment: .trailing)
                 pin(of: task)
                     .frame(width: Self.pinWidth)
-                TaskRow(store: store, task: task, now: now, linkPreviewing: linkPreviewing, style: .timeline)
+                TaskRow(store: store, task: task, now: now, style: .timeline)
                     .rowCard()
             }
         case .today:
@@ -195,8 +193,7 @@ private extension TaskRoadmap {
                     store: .preview(role: .manager, visions: [vision], tasks: tasks),
                     vision: vision,
                     tasks: tasks,
-                    now: .preview,
-                    linkPreviewing: OfflineLinkPreviews()
+                    now: .preview
                 )
             }
             .padding(.horizontal, 20)

@@ -18,6 +18,7 @@ struct PartnershipTabs: View {
 
     @State private var destination = Destination.home
     @State private var homePath: [NotificationTarget.Detail] = []
+    @State private var tasksPath = NavigationPath()
     @State private var refreshFailure: String?
     @State private var isNaming = false
     @State private var isTyping = false
@@ -110,10 +111,15 @@ private extension PartnershipTabs {
                     }
             }
         case .tasks:
-            NavigationStack {
+            NavigationStack(path: $tasksPath) {
                 tasks
                     .refreshable { await refresh() }
                     .simultaneousGesture(tabSwipe, including: mask)
+                    .navigationDestination(for: NotificationTarget.Detail.self) { detail in
+                        TimelineView(.everyMinute) { context in
+                            opened(detail, now: context.date)
+                        }
+                    }
             }
         case .history:
             NavigationStack {
@@ -135,7 +141,7 @@ private extension PartnershipTabs {
         switch (store.role, store.state.activeVision) {
         case (_, .some(let vision)):
             TimelineView(.everyMinute) { context in
-                HomeView(store: store, vision: vision, now: context.date, linkPreviewing: linkPreviewing)
+                HomeView(store: store, vision: vision, now: context.date)
             }
         case (.manager, .none):
             ManagerVisionView(store: store)
@@ -167,7 +173,7 @@ private extension PartnershipTabs {
 
     var tasks: some View {
         TimelineView(.everyMinute) { context in
-            TaskBoardView(store: store, vision: store.state.activeVision, now: context.date, linkPreviewing: linkPreviewing)
+            TaskBoardView(store: store, vision: store.state.activeVision, now: context.date)
         }
     }
 
@@ -211,6 +217,7 @@ private extension PartnershipTabs {
             homePath = []
             destination = .home
         case .tasks:
+            tasksPath = .init()
             destination = .tasks
         case .detail(let detail):
             homePath = [detail]
