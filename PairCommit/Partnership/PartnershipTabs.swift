@@ -207,10 +207,15 @@ private extension PartnershipTabs {
 
     func open(_ target: NotificationTarget) {
         switch target {
-        case .home: homePath = []
-        case .detail(let detail): homePath = [detail]
+        case .home:
+            homePath = []
+            destination = .home
+        case .tasks:
+            destination = .tasks
+        case .detail(let detail):
+            homePath = [detail]
+            destination = .home
         }
-        destination = .home
     }
 
     // ペアが終わったときは最初の画面へ戻るので、入力を求めない

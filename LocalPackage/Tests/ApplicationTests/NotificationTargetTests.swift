@@ -50,6 +50,34 @@ struct NotificationTargetTests {
         #expect(target == .home)
     }
 
+    @Test("挑む人が、タスクが動いていない催促の通知を押すと、タスクの一覧が開く")
+    func stalledTasksNudgeToThePlayerOpensTheTaskList() throws {
+        let (state, visionID) = try Self.activeVision()
+
+        let target = state.target(of: Nudge.progressReportDue(visionID, on: .now).subject)
+
+        #expect(target == .tasks)
+    }
+
+    @Test("見届ける人が、タスクが動いていない催促の通知を押すと、タスクの一覧が開く")
+    func stalledTasksNudgeToTheManagerOpensTheTaskList() throws {
+        let (state, visionID) = try Self.activeVision()
+
+        let target = state.target(of: Nudge.checkInDue(visionID, on: .now).subject)
+
+        #expect(target == .tasks)
+    }
+
+    @Test("閉じたビジョンの、タスクが動いていない催促の通知を押しても、何も開かない")
+    func stalledTasksNudgeForAClosedVisionOpensNothing() throws {
+        let (active, visionID) = try Self.activeVision()
+        let state = try active.closingVision(visionID, as: .achieved, by: .manager)
+
+        let target = state.target(of: .tasks(of: visionID))
+
+        #expect(target == nil)
+    }
+
     @Test("見つからないタスクの通知を押しても、何も開かない")
     func notificationForAMissingTaskOpensNothing() throws {
         let (state, _) = try Self.activeVision()

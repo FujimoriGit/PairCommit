@@ -24,10 +24,11 @@ public enum Nudge: Hashable, Sendable {
         }
     }
 
-    public var subject: Note.Subject {
+    public var subject: NotificationSubject {
         switch self {
         case .taskOverdue(let id), .taskDueSoon(let id), .approvalStalled(let id): .task(id)
-        case .visionOverdue(let id), .progressReportDue(let id, _), .checkInDue(let id, _): .vision(id)
+        case .visionOverdue(let id): .vision(id)
+        case .progressReportDue(let id, _), .checkInDue(let id, _): .tasks(of: id)
         }
     }
 }
