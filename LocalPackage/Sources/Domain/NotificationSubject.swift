@@ -7,11 +7,9 @@
 
 import Foundation
 
-/// 通知が指しているもの。
 public enum NotificationSubject: Hashable, Sendable {
     case task(TaskItem.ID)
     case vision(Vision.ID)
-    /// そのビジョンのタスクの一覧。
     case tasks(of: Vision.ID)
 
     public init(_ subject: Note.Subject) {
